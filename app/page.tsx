@@ -6,12 +6,56 @@ import { useLanguage } from "@/components/LanguageProvider";
 import { fetchLatestPapers } from "@/app/actions";
 
 const CATEGORIES = [
-    { id: "all", ja: "すべて", en: "All fields" },
-    { id: "physics", ja: "物理学", en: "Physics" },
-    { id: "biology", ja: "生物学", en: "Biology" },
-    { id: "computer_science", ja: "計算機科学", en: "Computer Science" },
-    { id: "medicine", ja: "医学", en: "Medicine" },
-    { id: "chemistry", ja: "化学", en: "Chemistry" }
+    {
+        id: "physics",
+        ja: "物理学",
+        en: "Physics",
+        sub: [
+            { id: "astrophysics", ja: "天体物理学", en: "Astrophysics" },
+            { id: "quantum", ja: "量子力学", en: "Quantum Mechanics" },
+            { id: "particle", ja: "素粒子物理学", en: "Particle Physics" }
+        ]
+    },
+    {
+        id: "biology",
+        ja: "生物学",
+        en: "Biology",
+        sub: [
+            { id: "genetics", ja: "遺伝学", en: "Genetics" },
+            { id: "neuroscience", ja: "神経科学", en: "Neuroscience" },
+            { id: "ecology", ja: "生態学", en: "Ecology" }
+        ]
+    },
+    {
+        id: "computer_science",
+        ja: "情報科学",
+        en: "Computer Science",
+        sub: [
+            { id: "ai", ja: "人工知能 (AI)", en: "Artificial Intelligence" },
+            { id: "security", ja: "サイバーセキュリティ", en: "Cybersecurity" },
+            { id: "hci", ja: "ヒューマンコンピュータインタラクション", en: "HCI" }
+        ]
+    },
+    {
+        id: "math",
+        ja: "数学",
+        en: "Mathematics",
+        sub: [
+            { id: "algebra", ja: "代数学", en: "Algebra" },
+            { id: "geometry", ja: "幾何学", en: "Geometry" },
+            { id: "statistics", ja: "統計学", en: "Statistics" }
+        ]
+    },
+    {
+        id: "chemistry",
+        ja: "化学",
+        en: "Chemistry",
+        sub: [
+            { id: "organic", ja: "有機化学", en: "Organic Chemistry" },
+            { id: "materials", ja: "材料科学", en: "Materials Science" },
+            { id: "biochem", ja: "生化学", en: "Biochemistry" }
+        ]
+    }
 ];
 
 export default function Home() {
@@ -20,6 +64,10 @@ export default function Home() {
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
+
+    // Onboarding UI state
+    const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
+    const [tempParentCategory, setTempParentCategory] = useState<string | null>(null);
 
     useEffect(() => {
         const storedCategory = localStorage.getItem("selectedCategory");
@@ -34,21 +82,31 @@ export default function Home() {
         if (selectedCategory === null) return;
 
         const fetchPapers = async () => {
+            console.log("Fetching papers...");
             setIsLoading(true);
             try {
                 if (selectedCategory === "all") {
                     const data = await fetchLatestPapers(10);
+                    console.log("Data:", data);
                     setPapers(data as PaperCardData[]);
                 } else {
-                    const categoryObj = CATEGORIES.find(c => c.id === selectedCategory);
-                    const q = categoryObj ? categoryObj.ja : selectedCategory;
+                    // Flatten categories to find the user's selection
+                    let q = selectedCategory;
+                    for (const cat of CATEGORIES) {
+                        if (cat.id === selectedCategory) q = cat.ja;
+                        for (const sub of cat.sub) {
+                            if (sub.id === selectedCategory) q = sub.ja;
+                        }
+                    }
+
                     const res = await fetch("/api/search", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ query: `${q}の研究`, limit: 10 }),
+                        body: JSON.stringify({ query: `${q}に関係する最新の論文`, limit: 10 }),
                     });
                     if (res.ok) {
                         const data = await res.json();
+                        console.log("Data:", data.papers);
                         setPapers(data.papers || []);
                     }
                 }
@@ -61,10 +119,20 @@ export default function Home() {
         fetchPapers();
     }, [selectedCategory]);
 
-    const handleSelectCategory = (id: string) => {
+    const handleSelectParent = (id: string) => {
+        if (id === "all") {
+            handleFinalSelect("all");
+            return;
+        }
+        setTempParentCategory(id);
+        setOnboardingStep(2);
+    };
+
+    const handleFinalSelect = (id: string) => {
         localStorage.setItem("selectedCategory", id);
         setSelectedCategory(id);
         setShowOnboarding(false);
+        setOnboardingStep(1);
     };
 
     const newsItems = [
@@ -90,27 +158,69 @@ export default function Home() {
             {/* Onboarding Overlay */}
             {showOnboarding && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-6">
-                    <div className="w-full max-w-2xl bg-[#030712]/90 border border-white/10 rounded-3xl p-8 sm:p-12 shadow-[0_0_50px_rgba(34,211,238,0.15)] relative overflow-hidden text-center">
+                    <div className="w-full max-w-3xl bg-[#030712]/90 border border-white/10 rounded-3xl p-8 sm:p-12 shadow-[0_0_50px_rgba(34,211,238,0.15)] relative text-center flex flex-col items-center">
                         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
 
-                        <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4">
-                            {t("あなたの興味は？", "What are you interested in?")}
-                        </h2>
-                        <p className="text-slate-400 mb-10 text-lg">
-                            {t("興味のある分野を選ぶと、パーソナライズされた論文をお届けします。", "Select a field of interest to get personalized paper recommendations.")}
-                        </p>
-
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                            {CATEGORIES.map((cat) => (
+                        {onboardingStep === 1 ? (
+                            <>
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 relative z-10">
+                                    {t("興味のある分野は？", "What is your main interest?")}
+                                </h2>
+                                <p className="text-slate-400 mb-10 text-lg relative z-10">
+                                    {t("大きな分野を選んでください。", "Select a broad field.")}
+                                </p>
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full relative z-10">
+                                    <button
+                                        onClick={() => handleSelectParent("all")}
+                                        className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
+                                    >
+                                        <div className="text-2xl">🌍</div>
+                                        {t("すべて", "All fields")}
+                                    </button>
+                                    {CATEGORIES.map((cat) => (
+                                        <button
+                                            key={cat.id}
+                                            onClick={() => handleSelectParent(cat.id)}
+                                            className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
+                                        >
+                                            {t(cat.ja, cat.en)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <>
                                 <button
-                                    key={cat.id}
-                                    onClick={() => handleSelectCategory(cat.id)}
-                                    className="px-4 py-4 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
+                                    onClick={() => setOnboardingStep(1)}
+                                    className="absolute top-8 left-8 text-slate-400 hover:text-white transition-colors"
                                 >
-                                    {t(cat.ja, cat.en)}
+                                    ← {t("戻る", "Back")}
                                 </button>
-                            ))}
-                        </div>
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 relative z-10">
+                                    {t("さらに詳しく！", "More specifically!")}
+                                </h2>
+                                <p className="text-slate-400 mb-10 text-lg relative z-10">
+                                    {t("より具体的なトピックを選んでください。", "Choose a more specific topic.")}
+                                </p>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl relative z-10">
+                                    <button
+                                        onClick={() => handleFinalSelect(tempParentCategory!)}
+                                        className="px-4 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
+                                    >
+                                        {t("全体", "General")} {t(CATEGORIES.find(c => c.id === tempParentCategory)?.ja, CATEGORIES.find(c => c.id === tempParentCategory)?.en)}
+                                    </button>
+                                    {CATEGORIES.find(c => c.id === tempParentCategory)?.sub.map((sub) => (
+                                        <button
+                                            key={sub.id}
+                                            onClick={() => handleFinalSelect(sub.id)}
+                                            className="px-4 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
+                                        >
+                                            {t(sub.ja, sub.en)}
+                                        </button>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
@@ -134,9 +244,29 @@ export default function Home() {
                             onClick={() => setShowOnboarding(true)}
                             className="shrink-0 px-4 py-2 rounded-full border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-medium transition-colors flex items-center gap-2"
                         >
-                            <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
-                            {t("興味のある分野: ", "Interest: ")}
-                            {t(CATEGORIES.find(c => c.id === selectedCategory)?.ja || "すべて", CATEGORIES.find(c => c.id === selectedCategory)?.en || "All")}
+                            {(() => {
+                                let labelJa = "すべて";
+                                let labelEn = "All";
+                                for (const cat of CATEGORIES) {
+                                    if (cat.id === selectedCategory) {
+                                        labelJa = cat.ja;
+                                        labelEn = cat.en;
+                                    }
+                                    for (const sub of cat.sub) {
+                                        if (sub.id === selectedCategory) {
+                                            labelJa = sub.ja;
+                                            labelEn = sub.en;
+                                        }
+                                    }
+                                }
+                                return (
+                                    <>
+                                        <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
+                                        {t("興味のある分野: ", "Interest: ")}
+                                        {t(labelJa, labelEn)}
+                                    </>
+                                );
+                            })()}
                         </button>
                     )}
                 </section>
