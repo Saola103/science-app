@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { embedText } from "@/lib/llm/index";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { getSupabaseServerClient } from "@/lib/supabase/serviceClient";
 
 export async function POST(req: NextRequest) {
     try {
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
         const queryEmbedding = await embedText(query);
 
         // Supabase クライアントを取得
-        const supabase = getSupabaseClient();
+        const supabase = getSupabaseServerClient();
 
         // RPC match_papers を呼び出して類似論文を取得
         const { data: papers, error } = await supabase.rpc("match_papers", {

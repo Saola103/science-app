@@ -11,7 +11,7 @@ export function Header() {
     const navItems = [
         { name: t("ホーム", "Home"), href: "/" },
         { name: t("AI検索", "AI Search"), href: "/search" },
-        { name: t("開発者の思い", "Developer's thoughts"), href: "/thoughts" },
+        { name: t("このアプリについて", "About this app"), href: "/about" },
     ];
 
     return (
@@ -44,8 +44,8 @@ export function Header() {
                         <button
                             onClick={() => setLanguage("ja")}
                             className={`rounded-full px-3 py-1 transition-all ${language === "ja"
-                                    ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                                    : "hover:bg-white/5 text-slate-400"
+                                ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                                : "hover:bg-white/5 text-slate-400"
                                 }`}
                         >
                             JA
@@ -53,8 +53,8 @@ export function Header() {
                         <button
                             onClick={() => setLanguage("en")}
                             className={`rounded-full px-3 py-1 transition-all ${language === "en"
-                                    ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                                    : "hover:bg-white/5 text-slate-400"
+                                ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
+                                : "hover:bg-white/5 text-slate-400"
                                 }`}
                         >
                             EN

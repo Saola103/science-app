@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { PaperCard, type PaperCardData } from "@/components/PaperCard";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/components/LanguageProvider";
+import { fetchLatestPapers } from "@/app/actions";
 
 export default function SearchPage() {
   const { t } = useLanguage();
@@ -15,17 +15,12 @@ export default function SearchPage() {
 
   const fetchInitial = async () => {
     setIsLoading(true);
-    const supabase = getSupabaseClient();
-    const { data, error } = await supabase
-      .from("papers")
-      .select("id, title, journal, url, published_at, summary, summary_general, summary_expert")
-      .order("published_at", { ascending: false })
-      .limit(20);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setPapers(data || []);
+    try {
+      const data = await fetchLatestPapers(20);
+      setPapers(data as PaperCardData[]);
+      setError("");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
     }
     setIsLoading(false);
   };

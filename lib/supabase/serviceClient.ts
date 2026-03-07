@@ -19,7 +19,7 @@ type PaperUpsertInput = {
 
 let client: SupabaseClient | null = null;
 
-function getSupabaseClient(): SupabaseClient {
+export function getSupabaseServerClient(): SupabaseClient {
   if (client) return client;
 
   const url = process.env.SUPABASE_URL;
@@ -58,7 +58,7 @@ function getSupabaseClient(): SupabaseClient {
  * - source (text)        : "pubmed" など
  */
 export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<void> {
-  const supabase = getSupabaseClient();
+  const supabase = getSupabaseServerClient();
   const schema = process.env.SUPABASE_SCHEMA ?? "public";
   const table = process.env.SUPABASE_PAPERS_TABLE ?? "papers";
 
