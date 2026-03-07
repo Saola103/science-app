@@ -29,83 +29,89 @@ export function Header() {
     const navItems = [
         { name: t("ホーム", "Home"), href: "/" },
         { name: t("AI検索", "AI Search"), href: "/search" },
-        { name: t("プロジェクトについて", "About"), href: "/about" },
+        { name: t("アプリについて", "About"), href: "/about" },
     ];
 
     return (
-        <header className="sticky top-0 z-50 border-b border-neutral-200 bg-white/90 backdrop-blur-md">
-            <nav className="mx-auto flex max-w-7xl items-center h-16 px-6">
+        <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/80 backdrop-blur-xl">
+            <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 h-20">
 
-                {/* Menu Button (Left) */}
-                <div className="flex-1 flex justify-start">
+                {/* Left: Mobile Toggle & Desktop Nav */}
+                <div className="flex-1 flex items-center gap-6">
                     <button
                         onClick={() => setIsMenuOpen(!isMenuOpen)}
-                        className="flex items-center gap-3 p-2 group"
+                        className="p-2 rounded-xl bg-slate-50 text-slate-600 hover:text-black transition-all"
                     >
                         <div className="flex flex-col gap-1 w-5">
-                            <span className={`h-[2px] w-full bg-black transition-all ${isMenuOpen ? 'rotate-45 translate-y-[6px]' : ''}`}></span>
-                            <span className={`h-[2px] w-full bg-black ${isMenuOpen ? 'opacity-0' : 'opacity-100'}`}></span>
-                            <span className={`h-[2px] w-full bg-black transition-all ${isMenuOpen ? '-rotate-45 -translate-y-[6px]' : ''}`}></span>
+                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+                            <span className={`h-0.5 w-full bg-current ${isMenuOpen ? 'opacity-0' : ''}`}></span>
+                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
                         </div>
-                        <span className="text-[10px] font-black tracking-[0.2em] uppercase hidden sm:inline">Menu</span>
                     </button>
+
+                    <div className="hidden lg:flex items-center gap-6">
+                        {navItems.map((item) => (
+                            <Link
+                                key={item.href}
+                                href={item.href}
+                                className={`text-[10px] font-black tracking-widest uppercase transition-colors ${pathname === item.href ? "text-cyan-600" : "text-slate-400 hover:text-black"}`}
+                            >
+                                {item.name}
+                            </Link>
+                        ))}
+                    </div>
                 </div>
 
-                {/* Logo (Center) */}
-                <div className="flex-none">
+                {/* Center: Logo */}
+                <div className="flex flex-col items-center">
                     <Link href="/" className="flex items-center gap-2 group">
-                        <span className="text-xl font-black tracking-tighter text-black">
-                            Science<span className="text-cyan-600">Papers</span>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
+                            <span className="font-black text-xs">SP</span>
+                        </div>
+                        <span className="text-xl font-black tracking-tighter text-slate-900 group-hover:text-cyan-600 transition-colors">
+                            Science<span className="text-cyan-500 font-extrabold">Papers</span>
                         </span>
                     </Link>
                 </div>
 
-                {/* Actions (Right) */}
+                {/* Right: Actions */}
                 <div className="flex-1 flex justify-end items-center gap-4">
-                    {/* User */}
                     {user ? (
-                        <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 rounded-full border border-neutral-200 hover:bg-neutral-50 transition-all">
-                            <div className="w-5 h-5 rounded-full bg-black flex items-center justify-center text-[8px] font-black text-white">
+                        <Link href="/profile" className="flex items-center gap-2 px-4 py-2 rounded-full bg-slate-50 hover:bg-slate-100 transition-all border border-slate-100">
+                            <div className="w-5 h-5 rounded-full bg-cyan-500 flex items-center justify-center text-[8px] font-bold text-white">
                                 {user.email?.[0].toUpperCase()}
                             </div>
-                            <span className="text-[10px] font-black tracking-widest uppercase hidden lg:inline">{t("マイページ", "MY PAGE")}</span>
+                            <span className="text-[10px] font-black tracking-widest text-slate-600 uppercase hidden sm:inline">{t("マイページ", "PROFILE")}</span>
                         </Link>
                     ) : (
-                        <Link href="/login" className="text-[10px] font-black tracking-widest uppercase hover:text-cyan-600 transition-colors">
+                        <Link href="/login" className="px-5 py-2.5 rounded-full bg-slate-900 text-white font-black tracking-widest text-[10px] uppercase hover:bg-cyan-600 transition-all">
                             {t("ログイン", "LOGIN")}
                         </Link>
                     )}
 
-                    <div className="h-4 w-px bg-neutral-200"></div>
+                    <div className="h-4 w-px bg-slate-200 ml-2"></div>
 
-                    {/* Language Switch */}
-                    <div className="flex items-center gap-3 text-[10px] font-black">
-                        <button onClick={() => setLanguage("ja")} className={language === "ja" ? "text-cyan-600" : "text-neutral-400"}>JA</button>
-                        <button onClick={() => setLanguage("en")} className={language === "en" ? "text-cyan-600" : "text-neutral-400"}>EN</button>
+                    <div className="flex items-center gap-2 text-[10px] font-black">
+                        <button onClick={() => setLanguage("ja")} className={`p-1 ${language === "ja" ? "text-cyan-600" : "text-slate-300 hover:text-slate-900"}`}>JA</button>
+                        <button onClick={() => setLanguage("en")} className={`p-1 ${language === "en" ? "text-cyan-600" : "text-slate-300 hover:text-slate-900"}`}>EN</button>
                     </div>
                 </div>
             </nav>
 
-            {/* Menu Overlay */}
-            <div className={`absolute top-16 inset-0 h-[calc(100vh-64px)] bg-white z-[100] transition-transform duration-500 ease-in-out ${isMenuOpen ? 'translate-y-0' : '-translate-y-full'}`}>
-                <div className="mx-auto max-w-2xl px-6 py-20 flex flex-col gap-8">
+            {/* Dropdown Menu Overlay */}
+            <div className={`absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-2xl border-b border-slate-100 transition-all duration-500 ease-in-out overflow-hidden ${isMenuOpen ? 'max-h-[400px] opacity-100 py-10 shadow-2xl' : 'max-h-0 opacity-0'}`}>
+                <div className="mx-auto max-w-4xl px-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
                             onClick={() => setIsMenuOpen(false)}
-                            className="group flex items-center justify-between border-b border-neutral-100 pb-6 hover:translate-x-4 transition-transform"
+                            className="p-6 rounded-3xl border border-slate-100 hover:border-cyan-500/30 hover:bg-cyan-500/[0.02] transition-all group"
                         >
-                            <span className={`text-4xl sm:text-6xl font-black uppercase tracking-tight ${pathname === item.href ? 'text-black' : 'text-neutral-300 group-hover:text-black'}`}>
-                                {item.name}
-                            </span>
-                            <svg className="w-8 h-8 opacity-0 group-hover:opacity-100 transition-all" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                            <div className="text-[10px] font-black text-cyan-500 uppercase tracking-widest mb-1">Explore</div>
+                            <div className="text-2xl font-black text-slate-900 uppercase tracking-tight group-hover:translate-x-2 transition-transform">{item.name}</div>
                         </Link>
                     ))}
-                    <div className="pt-20">
-                        <div className="text-[10px] font-black tracking-widest uppercase text-neutral-400 mb-4">{t("開発者の想い", "DEVELOPER")}</div>
-                        <p className="text-xl font-bold leading-tight max-w-md">{t("「科学論文は難しすぎる」。そんな常識を、高校生がAIで塗り替えました。", "Redefining science papers with AI. A project by Saola.")}</p>
-                    </div>
                 </div>
             </div>
         </header>
