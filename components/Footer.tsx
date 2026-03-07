@@ -7,7 +7,7 @@ export function Footer() {
     const { t } = useLanguage();
 
     return (
-        <footer className="mt-20 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black/20 py-16 transition-colors duration-300">
+        <footer className="mt-20 border-t border-slate-200 dark:border-white/5 bg-slate-50 dark:bg-black py-16 transition-colors duration-300">
             <div className="mx-auto max-w-6xl px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
                 <div className="md:col-span-1 space-y-6">
                     <Link href="/" className="flex items-center gap-2 group">
@@ -18,12 +18,17 @@ export function Footer() {
                             Science<span className="text-cyan-500">Papers</span>
                         </span>
                     </Link>
-                    <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
-                        {t(
-                            "最先端の学術的な知見を、誰にでも分かりやすい形でお届けする科学情報プラットフォーム。",
-                            "A science information platform that delivers cutting-edge academic insights in a form that is easy for everyone to understand."
-                        )}
-                    </p>
+                    <div className="space-y-2">
+                        <p className="text-sm text-slate-500 dark:text-slate-300 leading-relaxed font-bold">
+                            {t("Developer: Saola", "Developer: Saola")}
+                        </p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                            {t(
+                                "最先端の学術的な知見を、誰にでも分かりやすい形でお届けする科学情報プラットフォーム。",
+                                "A science information platform that delivers cutting-edge insights to everyone."
+                            )}
+                        </p>
+                    </div>
                 </div>
 
                 <div className="space-y-6">
@@ -39,16 +44,10 @@ export function Footer() {
                     <h3 className="text-xs font-black tracking-widest text-foreground uppercase opacity-80">{t("連絡先", "Contact")}</h3>
                     <ul className="space-y-4 text-sm font-bold">
                         <li className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-cyan-500">
                                 <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                             </svg>
-                            <span>contact@sciencepapers.app</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9s2.015-9 4.5-9m0 18c1.828 0 3.522-1.817 4.096-4.5m-8.192 0c.574 2.683 2.268 4.5 4.096 4.5M12 3c1.828 0 3.522 1.817 4.096 4.5m-8.192 0c.574-2.683 2.268-4.5 4.096-4.5" />
-                            </svg>
-                            <span>Tokyo, Japan</span>
+                            <span>contact@saolams.com</span>
                         </li>
                     </ul>
                 </div>
@@ -60,9 +59,9 @@ export function Footer() {
                             <span className="sr-only">X (Twitter)</span>
                             <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293l13.314 17.411z" /></svg>
                         </a>
-                        <a href="#" className="p-3 rounded-2xl bg-slate-200 dark:bg-white/5 hover:bg-cyan-500/20 text-foreground transition-all">
-                            <span className="sr-only">LinkedIn</span>
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" /></svg>
+                        <a href="#" className="p-3 rounded-2xl bg-slate-200 dark:bg-white/5 hover:bg-blue-600/20 text-foreground transition-all">
+                            <span className="sr-only">Facebook</span>
+                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12z" /></svg>
                         </a>
                     </div>
                 </div>
@@ -71,9 +70,9 @@ export function Footer() {
             <div className="mx-auto max-w-6xl px-6 mt-16 pt-8 border-t border-slate-200 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center gap-6">
                 <p className="text-xs font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 opacity-60">© 2026 Science Papers. All rights reserved.</p>
                 <div className="flex gap-8 text-[10px] font-black tracking-widest uppercase text-slate-500 dark:text-slate-400 opacity-60">
-                    <Link href="#" className="hover:text-cyan-500">{t("利用規約", "Terms")}</Link>
-                    <Link href="#" className="hover:text-cyan-500">{t("プライバシー", "Privacy")}</Link>
-                    <Link href="#" className="hover:text-cyan-500">{t("特定商取引法", "Legal")}</Link>
+                    <Link href="/terms" className="hover:text-cyan-500">{t("利用規約", "Terms")}</Link>
+                    <Link href="/privacy" className="hover:text-cyan-500">{t("プライバシー", "Privacy")}</Link>
+                    <Link href="/legal" className="hover:text-cyan-500">{t("特定商取引法", "Legal")}</Link>
                 </div>
             </div>
         </footer>

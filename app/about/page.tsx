@@ -15,27 +15,30 @@ export default function AboutPage() {
           {t("科学を、", "Opening Science")}<br />
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">{t("すべての人に開放する。", "To Everyone.")}</span>
         </h1>
-        <p className="mx-auto max-w-2xl text-lg text-slate-500 dark:text-slate-400 font-medium leading-relaxed">
+        <p className="mx-auto max-w-2xl text-lg text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
           {t("「科学論文は難しすぎる」。そんな常識を、高校生がAI技術を使って塗り替えました。世界中の最新論文をAIが収集・要約し、中高生から社会人まで、誰もが最適な深度で科学に触れられるプラットフォームです。",
             "\"Scientific papers are too difficult.\" A high school student has redefined this common sense using AI. A platform where AI collects and summarizes global papers, allowing everyone to access science at their own depth.")}
         </p>
       </section>
 
       <main className="mx-auto max-w-4xl px-6 space-y-12">
-        <article className="rounded-[2.5rem] border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 p-10 sm:p-20 backdrop-blur-md shadow-2xl relative overflow-hidden group">
+        <article className="rounded-[2.5rem] border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/50 p-10 sm:p-20 backdrop-blur-md shadow-2xl relative overflow-hidden group">
           <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
           <div className="prose dark:prose-invert max-w-none space-y-16">
             <section className="space-y-8">
-              <h2 className="text-3xl font-black text-foreground tracking-tight m-0">{t("高校生が作った論文アプリ", "High Schooler's Vision")}</h2>
-              <div className="space-y-8 text-lg font-medium text-slate-700 dark:text-slate-300 leading-relaxed border-l-4 border-cyan-500/30 pl-8">
+              <div className="flex items-center gap-4">
+                <h2 className="text-3xl font-black text-foreground tracking-tight m-0">{t("開発者の想い", "Developer's Voice")}</h2>
+                <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500">Developer: Saola</span>
+              </div>
+              <div className="space-y-8 text-lg font-medium text-slate-700 dark:text-slate-100 leading-relaxed border-l-4 border-cyan-500/30 pl-8">
                 <p>
-                  {t("私は高校生で、以前から科学の世界に興味を持っていました。最先端の科学の世界を知るには論文は欠かせません。しかし、論文を読み解くだけでなく、そもそも読みたい論文を探す段階から、高校生にはハードルが高いものでした。同じような悩みを抱えた学生や社会人は日本に数多くいるはずです。",
-                    "As a high school student, I've always been interested in science. Papers are essential to know the cutting edge, but finding and reading them was a huge hurdle for a student. There must be many others with similar struggles.")}
+                  {t("私は高校生で以前から科学の世界に興味を持っていました。最先端の科学の世界を知るには論文は欠かせません。しかし、論文を読むだけでなくそもそも読みたい論文を探すところから高校生にはハードルが高いものでした。同じような悩みを抱えた高校生は日本に数多くいると思います。",
+                    "As a high school student, I've always been interested in science. Papers are essential to know the cutting edge, but finding them was a hurdle. I believe many other students face the same challenge.")}
                 </p>
                 <p>
-                  {t("そこで私は、論文をもっと身近に、全員にわかりやすく届けられるよう、この『Science Papers』を開発しました。このアプリではAIに要約された最新の科学ニュースや論文を、「一般向け」「専門家向け」と二つの難易度で読むことができます。また、AI検索機能により、読みたい論文にたどり着くまでの時間を大幅に短縮できます。",
-                    "I developed \"Science Papers\" to bring research closer to everyone. AI-summarized papers and news come with two levels of depth. Our AI search significantly reduces the time to find relevant research.")}
+                  {t("そこで私は論文をもっと身近に、全員にわかりやすく、読めるようこのアプリ「Science Papers」を開発しました。このアプリではAIに要約された最新の科学ニュースや論文を「一般向け」「専門家向け」と二つの難度で読むことができます。また論文のAI検索もでき、読みたい論文にたどり着くまでの時間を大幅に短縮できます。",
+                    "I developed \"Science Papers\" to bring research closer to everyone. AI-summarized papers and news come with two levels of depth, and our AI search reduces common hurdles to accessing the unknown.")}
                 </p>
                 <p>
                   {t("中高生には「研究という選択肢」を。社会人の方には「科学的思考のアップデート」を。このアプリが、あなたの知的好奇心を刺激する一つのきっかけになれば、これほど嬉しいことはありません。",
@@ -46,7 +49,7 @@ export default function AboutPage() {
 
             <section className="space-y-10 pt-16 border-t border-slate-200 dark:border-white/5">
               <h3 className="text-xs font-black tracking-widest uppercase opacity-40">{t("著作権と要約について", "Usage and Copyright")}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-bold text-slate-500 dark:text-slate-400">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-bold text-slate-500 dark:text-slate-300">
                 <div className="p-8 rounded-[2rem] bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 transition-all hover:border-cyan-500/20">
                   <h4 className="text-foreground text-base mb-4 tracking-tight">{t("オープンアクセス遵守", "CC BY Compliance")}</h4>
                   <p>{t("本アプリで取得している論文は、著作権を遵守し、オープンアクセス（CC BY 等）の論文のみを対象としています。各論文には必ず元のソースへのリンクを表示しており、クレジットの明確化を行っています。", "We fetch only CC-BY compliant open-access papers. Links to the original source are provided for all content.")}</p>

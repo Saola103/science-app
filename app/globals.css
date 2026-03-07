@@ -8,17 +8,34 @@
 }
 
 :root {
-  --background: #f8fafc; /* slate-50 */
-  --foreground: #0f172a; /* slate-900 */
-  --accent-cyan: #0891b2; /* cyan-600 */
-  --accent-blue: #2563eb; /* blue-600 */
+  --background: #f8fafc;
+  /* slate-50 */
+  --foreground: #0f172a;
+  /* slate-900 */
+  --accent-cyan: #0891b2;
+  /* cyan-600 */
+  --accent-blue: #2563eb;
+  /* blue-600 */
+  --card-bg: rgba(255, 255, 255, 0.8);
+  --card-border: rgba(0, 0, 0, 0.1);
+  --text-muted: #64748b;
+  /* slate-500 */
 }
 
 .dark {
-  --background: #020617; /* slate-950 */
-  --foreground: #f1f5f9; /* slate-100 */
-  --accent-cyan: #22d3ee; /* cyan-400 */
-  --accent-blue: #60a5fa; /* blue-400 */
+  --background: #000000;
+  /* PURE BLACK as requested */
+  --foreground: #ffffff;
+  /* PURE WHITE */
+  --accent-cyan: #22d3ee;
+  /* cyan-400 */
+  --accent-blue: #60a5fa;
+  /* blue-400 */
+  --card-bg: rgba(15, 23, 42, 0.6);
+  /* Transparent dark card */
+  --card-border: rgba(255, 255, 255, 0.1);
+  --text-muted: #94a3b8;
+  /* slate-400 */
 }
 
 body {
@@ -28,29 +45,58 @@ body {
   overflow-x: hidden;
 }
 
+/* Ensure text visibility in dark mode */
+.dark body {
+  color: #ffffff;
+}
+
 /* Custom Scrollbar for Pro feel */
 ::-webkit-scrollbar {
   width: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
 }
+
 .dark ::-webkit-scrollbar-thumb {
   background: #334155;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #94a3b8;
 }
 
-/* Attractive Typography */
-h1, h2, h3, h4 {
+/* Typography refinements */
+h1,
+h2,
+h3,
+h4 {
   letter-spacing: -0.02em;
+  color: var(--foreground);
 }
 
-.prose p {
-  line-height: 1.8;
+p,
+span,
+div {
+  color: inherit;
+}
+
+.dark p,
+.dark span,
+.dark div {
+  color: #e2e8f0;
+  /* slate-200 for normal text in dark */
+}
+
+.dark h1,
+.dark h2,
+.dark h3,
+.dark h4 {
+  color: #ffffff;
 }

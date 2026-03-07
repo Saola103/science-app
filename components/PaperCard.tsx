@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useLanguage } from "./LanguageProvider";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 export type PaperCardData = {
   id: string;
@@ -24,6 +25,15 @@ function formatDate(value?: string | null): string | null {
 export function PaperCard({ paper }: { paper: PaperCardData }) {
   const [mode, setMode] = useState<"general" | "expert">("general");
   const { t } = useLanguage();
+  const [isBookmarked, setIsBookmarked] = useState(false);
+  const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
+
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsUserLoggedIn(!!user);
+    });
+  }, []);
 
   const summary = useMemo(() => {
     if (mode === "general") return paper.summary_general || paper.summary || t("要約がありません", "No summary available");
@@ -32,19 +42,34 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
 
   const published = formatDate(paper.published_at);
 
-  const shareOnX = () => {
-    const text = encodeURIComponent(`${paper.title} | Science Papers`);
-    const url = encodeURIComponent(paper.url || window.location.href);
-    window.open(`https://twitter.com/intent/tweet?url=${url}&text=${text}`, '_blank');
+  const handleShare = async () => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: paper.title,
+          text: summary.slice(0, 100) + "...",
+          url: paper.url || window.location.href,
+        });
+      } catch (err) {
+        console.log("Share failed", err);
+      }
+    } else {
+      // Fallback
+      navigator.clipboard.writeText(paper.url || window.location.href);
+      alert(t("URLをコピーしました", "URL copied to clipboard"));
+    }
   };
 
-  const shareOnLine = () => {
-    const url = encodeURIComponent(paper.url || window.location.href);
-    window.open(`https://social-plugins.line.me/lineit/share?url=${url}`, '_blank');
+  const toggleBookmark = () => {
+    if (!isUserLoggedIn) {
+      alert(t("ブックマークにはログインが必要です", "Login required for bookmarks"));
+      return;
+    }
+    setIsBookmarked(!isBookmarked);
   };
 
   return (
-    <article className="group relative rounded-[2.5rem] border border-slate-200 dark:border-white/5 bg-white/70 dark:bg-white/5 p-8 sm:p-10 backdrop-blur-md transition-all duration-500 hover:border-cyan-500/30 dark:hover:border-cyan-500/20 hover:shadow-[0_20px_50px_-20px_rgba(34,211,238,0.2)] overflow-hidden">
+    <article className="group relative rounded-[2.5rem] border border-slate-200 dark:border-white/10 bg-white dark:bg-slate-900 p-8 sm:p-10 backdrop-blur-md transition-all duration-500 hover:border-cyan-500/30 dark:hover:border-white/20 hover:shadow-[0_20px_50px_-20px_rgba(34,211,238,0.2)] overflow-hidden">
       <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
 
       <div className="flex flex-col gap-10">
@@ -55,13 +80,13 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
                 PAPER
               </span>
               <div className="h-px w-8 bg-slate-200 dark:bg-white/10"></div>
-              {paper.journal && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{paper.journal}</span>}
-              {published && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{published}</span>}
+              {paper.journal && <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{paper.journal}</span>}
+              {published && <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">{published}</span>}
             </div>
 
             <h2 className="text-2xl sm:text-3xl font-black leading-tight text-foreground tracking-tight line-clamp-3">
               {paper.url ? (
-                <a href={paper.url} target="_blank" rel="noreferrer" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors drop-shadow-sm">
+                <a href={paper.url} target="_blank" rel="noreferrer" className="hover:text-cyan-600 dark:hover:text-cyan-400 transition-colors">
                   {paper.title}
                 </a>
               ) : paper.title}
@@ -69,42 +94,41 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
           </div>
 
           <div className="shrink-0 w-full sm:w-auto flex flex-col items-center sm:items-end gap-6">
-            <div className="inline-flex items-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100/50 dark:bg-black/40 p-1.5 text-[10px] font-black tracking-widest uppercase shadow-inner backdrop-blur-md">
+            <div className="inline-flex items-center rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-100/50 dark:bg-black p-1.5 text-[10px] font-black tracking-widest uppercase shadow-inner backdrop-blur-md">
               <button
                 onClick={() => setMode("general")}
                 className={`rounded-xl px-5 py-2.5 transition-all duration-500 flex items-center gap-2 ${mode === "general" ? "bg-white dark:bg-white/10 text-cyan-600 dark:text-cyan-400 shadow-lg" : "text-slate-500 dark:text-slate-400 hover:text-foreground"}`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-                </svg>
                 {t("一般向け", "GENERAL")}
               </button>
               <button
                 onClick={() => setMode("expert")}
                 className={`rounded-xl px-5 py-2.5 transition-all duration-500 flex items-center gap-2 ${mode === "expert" ? "bg-white dark:bg-white/10 text-indigo-600 dark:text-indigo-400 shadow-lg" : "text-slate-500 dark:text-slate-400 hover:text-foreground"}`}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-3.5 h-3.5">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.26 10.174L3 12m0 0l1.26 1.826M3 12h18M12 4c2.21 0 4 1.79 4 4v1m0 0a4 4 0 1 1-8 0v-1c0-2.21 1.79-4 4-4z" />
-                </svg>
                 {t("専門家向け", "EXPERT")}
               </button>
             </div>
 
-            {/* Share Buttons */}
             <div className="flex gap-3">
               <button
-                onClick={shareOnX}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all text-foreground group/share"
-                title="Share on X"
+                onClick={handleShare}
+                className="p-3 rounded-2xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-cyan-500/10 transition-all text-foreground"
+                title="Share"
               >
-                <svg className="w-4 h-4 opacity-70 group-hover/share:opacity-100" fill="currentColor" viewBox="0 0 24 24"><path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.294 19.497h2.039L6.482 3.239H4.293l13.314 17.411z" /></svg>
+                {/* Arrow-curve-up icon for share */}
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3" />
+                </svg>
               </button>
+
               <button
-                onClick={shareOnLine}
-                className="p-2.5 rounded-xl border border-slate-200 dark:border-white/10 bg-slate-50 dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 transition-all text-[#06C755] group/share"
-                title="Share on LINE"
+                onClick={toggleBookmark}
+                className={`p-3 rounded-2xl border border-slate-200 dark:border-white/10 transition-all group/bookmark ${isBookmarked ? 'bg-amber-500 text-white border-amber-500' : 'bg-slate-50 dark:bg-white/5 text-foreground hover:bg-amber-500/10'}`}
+                title="Bookmark"
               >
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 32 32"><path d="M26.7 13.5c-.1-5.1-4.7-9.3-10.2-9.3s-10.1 4.2-10.1 9.3c0 4.6 3.7 8.4 8.6 9.1.3 0 .8.2 1 .6l.3 1.5c.1.4 0 .9-.3 1.1-.1.1-.3.2-.5.2-.1 0-.3 0-.4-.1-1.1-.4-2.5-.9-2.5-.9-.4-.2-.8-.1-1.1.2s-.3.8-.1 1.1c.1.2 2.6 1 2.6 1 .3.1.6 0 .8-.1.6-.2 1.3-.8 1.4-1.7l.2-1.2h.1c5.2 0 9.4-4.2 9.4-9.3zM10.8 17H8.5c-.4 0-.7-.3-.7-.7v-5.6c0-.4.3-.7.7-.7s.7.3.7.7v4.9h1.6c.4 0 .7.3.7.7s-.3.7-.7.7zm4.2-.7c0 .4-.3.7-.7.7h-2.3c-.4 0-.7-.3-.7-.7v-5.6c0-.4.3-.7.7-.7s.7.3.7.7v5.6c.4 0 .7-.3.7-.7zm1.7 0c0 .4-.3.7-.7.7s-.7-.3-.7-.7v-5.6c0-.4.3-.7.7-.7s.7.3.7.7v5.6zm7.2 0h-2.3c-.4 0-.7-.3-.7-.7v-5.6c0-.4.3-.7.7-.7h2.3c.4 0 .7.3.7.7s-.3.7-.7.7h-1.6v1.4h1.6c.4 0 .7.3.7.7s-.3.7-.7.7h-1.6v1.4h1.6c.4 0 .7.3.7.7s-.3.7-.7.7z" /></svg>
+                <svg xmlns="http://www.w3.org/2000/svg" fill={isBookmarked ? "currentColor" : "none"} viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={`w-5 h-5 transition-transform ${isBookmarked ? 'scale-110' : 'group-hover/bookmark:scale-110'}`}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" />
+                </svg>
               </button>
             </div>
           </div>
@@ -112,7 +136,7 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
 
         <div className="relative group/summary mt-2">
           <div className="absolute -left-5 top-0 bottom-0 w-1.5 bg-gradient-to-b from-cyan-500/50 to-transparent rounded-full opacity-30 group-hover/summary:opacity-100 transition-opacity"></div>
-          <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap">
+          <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-100 font-medium whitespace-pre-wrap transition-colors duration-300">
             {summary}
           </p>
         </div>
