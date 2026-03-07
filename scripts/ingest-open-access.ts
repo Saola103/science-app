@@ -2,7 +2,9 @@
 
 import { fetchArxivOpenAccessPapers } from "../lib/sources/arxiv";
 import { summarize } from "../lib/llm/summarize";
+import { embedText } from "../lib/llm/index";
 import { upsertPaperToSupabase } from "../lib/supabase/serviceClient";
+
 
 function loadEnvLocal(): void {
   // `npx tsx` で実行する場合、Next.js の env ローダが走らないため手動で読み込む
@@ -71,25 +73,27 @@ async function main() {
   for (const paper of papers) {
     console.log(`\n---\n📝 処理中: ${paper.title}`);
 
-    let summary: string | undefined;
-
-    if (paper.abstract && paper.abstract.trim().length > 0) {
-      summary = await summarize(paper.abstract);
-    } else {
-      const contentForSummary = [
+    const contentForSummary = paper.abstract && paper.abstract.trim().length > 0
+      ? paper.abstract
+      : [
         paper.title,
         paper.publishedAt ? `Published at: ${paper.publishedAt}` : "",
       ]
         .filter(Boolean)
         .join("\n");
 
-      summary = await summarize(contentForSummary);
-    }
+    const summary = await summarize(contentForSummary);
+    const summaryGeneral = await summarize(contentForSummary, { tone: "casual", maxLength: 300 });
+
+    // ベクトル化
+    const summaryEmbedding = await embedText(summaryGeneral);
 
     await upsertPaperToSupabase({
       ...paper,
       source: "arxiv",
       summary,
+      summaryGeneral,
+      summaryEmbedding,
     });
 
     console.log("💾 Supabase に保存しました (papers テーブル / upsert)。");

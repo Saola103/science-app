@@ -32,39 +32,53 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
   const published = formatDate(paper.published_at);
 
   return (
-    <article className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <h2 className="text-pretty text-lg font-semibold leading-7 text-slate-900">
+    <article className="group relative rounded-[2rem] border border-white/5 bg-white/5 p-6 sm:p-8 backdrop-blur-sm transition-all duration-300 hover:border-cyan-500/30 hover:bg-white/10 hover:shadow-[0_0_30px_rgba(34,211,238,0.1)] overflow-hidden">
+      {/* Subtle background glow effect on hover */}
+      <div className="absolute inset-0 -z-10 bg-gradient-to-br from-cyan-500/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
+
+      <div className="flex flex-col-reverse items-start justify-between gap-6 sm:flex-row">
+        <div className="min-w-0 flex-1">
+          <h2 className="text-pretty text-xl font-bold leading-relaxed text-white">
             {paper.url ? (
-              <a href={paper.url} target="_blank" rel="noreferrer" className="underline decoration-slate-300 underline-offset-4 hover:decoration-slate-700">
+              <a href={paper.url} target="_blank" rel="noreferrer" className="hover:text-cyan-400 transition-colors">
                 {paper.title}
               </a>
             ) : (
               paper.title
             )}
           </h2>
-          <div className="mt-2 text-sm text-slate-500">
-            {paper.journal && <span>{paper.journal}</span>}
-            {published && <span className="ml-2 text-slate-300">• {published}</span>}
+          <div className="mt-3 flex items-center gap-2 text-sm text-slate-400 font-medium">
+            {paper.journal && <span className="px-2 py-0.5 rounded-md border border-white/10 bg-white/5">{paper.journal}</span>}
+            {published && <span>{published}</span>}
           </div>
         </div>
-        <div className="shrink-0">
-          <Toggle value={mode} onChange={setMode} labels={{ general: "一般", expert: "専門" }} />
+        <div className="shrink-0 self-end sm:self-start">
+          <Toggle value={mode} onChange={setMode} labels={{ general: "一般向け", expert: "専門家向け" }} />
         </div>
       </div>
-      <p className="mt-4 text-pretty text-sm leading-7 text-slate-800">{summary}</p>
+      <div className="mt-6 relative">
+        <div className="absolute -left-3 top-0 bottom-0 w-1 bg-gradient-to-b from-cyan-500/50 to-transparent rounded-full opacity-50"></div>
+        <p className="text-pretty text-[15px] leading-8 text-slate-300">
+          {summary}
+        </p>
+      </div>
     </article>
   );
 }
 
-function Toggle({ value, onChange, labels }: any) {
+function Toggle({ value, onChange, labels }: { value: string, onChange: (v: "general" | "expert") => void, labels: { general: string, expert: string } }) {
   return (
-    <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 p-1 text-xs text-slate-700">
-      <button onClick={() => onChange("general")} className={`rounded-full px-3 py-1.5 transition ${value === "general" ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`}>
+    <div className="inline-flex items-center rounded-full border border-white/10 bg-black/40 p-1 text-xs font-medium text-slate-400 backdrop-blur shadow-inner">
+      <button
+        onClick={() => onChange("general")}
+        className={`rounded-full px-4 py-2 transition-all duration-300 ${value === "general" ? "bg-cyan-500 text-white shadow-[0_0_15px_rgba(34,211,238,0.3)]" : "hover:text-white hover:bg-white/5"
+          }`}>
         {labels.general}
       </button>
-      <button onClick={() => onChange("expert")} className={`rounded-full px-3 py-1.5 transition ${value === "expert" ? "bg-slate-900 text-white" : "hover:bg-slate-100"}`}>
+      <button
+        onClick={() => onChange("expert")}
+        className={`rounded-full px-4 py-2 transition-all duration-300 ${value === "expert" ? "bg-indigo-500 text-white shadow-[0_0_15px_rgba(99,102,241,0.3)]" : "hover:text-white hover:bg-white/5"
+          }`}>
         {labels.expert}
       </button>
     </div>

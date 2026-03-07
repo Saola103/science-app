@@ -142,3 +142,10 @@ export async function generateText(prompt: string): Promise<string> {
   }
 }
 
+export async function embedText(text: string): Promise<number[]> {
+  const client = getClient();
+  const model = client.getGenerativeModel({ model: "text-embedding-004" });
+  const result = await model.embedContent(text);
+  return result.embedding.values;
+}
+

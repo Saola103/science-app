@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Link from "next/link";
+import { LanguageProvider } from "@/components/LanguageProvider";
+import { Header } from "@/components/Header";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -15,7 +16,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Science Papers",
-  description: "科学論文をやさしく要約して届ける Web アプリケーション",
+  description: "ワンクリックで科学の最前線へ飛べるプラットフォーム",
 };
 
 export default function RootLayout({
@@ -26,35 +27,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-white text-slate-900`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#030712] text-slate-300 selection:bg-cyan-500/30`}
       >
-        <div className="min-h-screen">
-          <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-            <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-3">
-              <Link
-                href="/"
-                className="text-sm font-semibold tracking-tight text-slate-900"
-              >
-                Science Papers
-              </Link>
-              <div className="flex items-center gap-4 text-sm text-slate-600">
-                <Link
-                  href="/"
-                  className="hover:text-slate-900"
-                >
-                  一覧
-                </Link>
-                <Link
-                  href="/about"
-                  className="hover:text-slate-900"
-                >
-                  このプロジェクトについて
-                </Link>
-              </div>
-            </nav>
-          </header>
-          {children}
-        </div>
+        {/* Futuristic glowing background */}
+        <div className="fixed inset-0 -z-10 h-full w-full bg-[#030712] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.15),rgba(255,255,255,0))]"></div>
+        <LanguageProvider>
+          <div className="min-h-screen flex flex-col">
+            <Header />
+            <div className="flex-1">
+              {children}
+            </div>
+          </div>
+        </LanguageProvider>
       </body>
     </html>
   );
