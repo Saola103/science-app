@@ -15,23 +15,21 @@ export function Header() {
     ];
 
     return (
-        <header className="sticky top-0 z-50 border-b border-white/5 bg-black/40 backdrop-blur-xl">
+        <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md">
             <nav className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
                 <div className="flex items-center gap-8">
                     <Link
                         href="/"
-                        className="text-lg font-bold tracking-tight text-white flex items-center gap-2"
+                        className="text-xl font-bold tracking-tight text-slate-900 flex items-center gap-2"
                     >
-                        <span className="bg-gradient-to-r from-cyan-400 to-blue-500 bg-clip-text text-transparent">
-                            Science Papers
-                        </span>
+                        Science Papers
                     </Link>
                     <div className="hidden md:flex items-center gap-6 text-sm font-medium">
                         {navItems.map((item) => (
                             <Link
                                 key={item.href}
                                 href={item.href}
-                                className={`transition-colors hover:text-cyan-400 ${pathname === item.href ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "text-slate-400"
+                                className={`transition-colors hover:text-cyan-600 ${pathname === item.href ? "text-cyan-600 font-semibold" : "text-slate-600"
                                     }`}
                             >
                                 {item.name}
@@ -40,12 +38,12 @@ export function Header() {
                     </div>
                 </div>
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center rounded-full border border-white/10 bg-white/5 p-1 text-xs font-medium text-slate-300 backdrop-blur-md">
+                    <div className="flex items-center rounded-full border border-slate-200 bg-slate-100 p-1 text-xs font-medium text-slate-500">
                         <button
                             onClick={() => setLanguage("ja")}
                             className={`rounded-full px-3 py-1 transition-all ${language === "ja"
-                                ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                                : "hover:bg-white/5 text-slate-400"
+                                    ? "bg-white text-slate-900 shadow-sm"
+                                    : "hover:bg-slate-200"
                                 }`}
                         >
                             JA
@@ -53,8 +51,8 @@ export function Header() {
                         <button
                             onClick={() => setLanguage("en")}
                             className={`rounded-full px-3 py-1 transition-all ${language === "en"
-                                ? "bg-white/10 text-white shadow-[0_0_10px_rgba(255,255,255,0.1)]"
-                                : "hover:bg-white/5 text-slate-400"
+                                    ? "bg-white text-slate-900 shadow-sm"
+                                    : "hover:bg-slate-200"
                                 }`}
                         >
                             EN
@@ -63,12 +61,12 @@ export function Header() {
                 </div>
             </nav>
             {/* Mobile Nav */}
-            <div className="md:hidden border-t border-white/5 flex justify-center space-x-6 py-3 px-4 overflow-x-auto bg-black/50">
+            <div className="md:hidden border-t border-slate-100 flex justify-center space-x-6 py-3 px-4 overflow-x-auto bg-white/90">
                 {navItems.map((item) => (
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`whitespace-nowrap text-sm font-medium transition-colors hover:text-cyan-400 ${pathname === item.href ? "text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "text-slate-400"
+                        className={`whitespace-nowrap text-sm font-medium transition-colors hover:text-cyan-600 ${pathname === item.href ? "text-cyan-600 font-semibold" : "text-slate-600"
                             }`}
                     >
                         {item.name}

@@ -3,6 +3,7 @@
 import { getSupabaseServerClient } from "@/lib/supabase/serviceClient";
 
 export async function fetchLatestPapers(limit = 10) {
+    console.log("[fetchLatestPapers] Starting fetch, limit:", limit);
     const supabase = getSupabaseServerClient();
     const { data, error } = await supabase
         .from("papers")
@@ -11,8 +12,10 @@ export async function fetchLatestPapers(limit = 10) {
         .limit(limit);
 
     if (error) {
+        console.error("[fetchLatestPapers] Error:", error.message);
         throw new Error(`Failed to fetch papers: ${error.message}`);
     }
 
+    console.log("[fetchLatestPapers] Success, rows:", data?.length);
     return data;
 }

@@ -10,7 +10,7 @@ function loadEnvLocal(): void {
   // `npx tsx` で実行する場合、Next.js の env ローダが走らないため手動で読み込む
   if (
     process.env.GEMINI_API_KEY &&
-    process.env.SUPABASE_URL &&
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
     process.env.SUPABASE_SERVICE_ROLE_KEY
   ) {
     return;
@@ -84,15 +84,22 @@ async function main() {
 
     const summary = await summarize(contentForSummary);
     const summaryGeneral = await summarize(contentForSummary, { tone: "casual", maxLength: 300 });
+    const summaryExpert = await summarize(contentForSummary, { tone: "formal", maxLength: 500 });
 
-    // ベクトル化
-    const summaryEmbedding = await embedText(summaryGeneral);
+    // ベクトル化 (optional — skip if embedding model is not available)
+    let summaryEmbedding: number[] | undefined;
+    try {
+      summaryEmbedding = await embedText(summaryGeneral);
+    } catch (embErr) {
+      console.warn("⚠️ Embedding generation skipped:", (embErr as Error).message?.slice(0, 100));
+    }
 
     await upsertPaperToSupabase({
       ...paper,
       source: "arxiv",
       summary,
       summaryGeneral,
+      summaryExpert,
       summaryEmbedding,
     });
 
