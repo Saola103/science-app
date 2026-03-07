@@ -78,7 +78,8 @@ export default function Home() {
             setIsLoading(true);
             setError("");
             try {
-                const data = await fetchLatestPapers(5);
+                // Fetch papers based on selected categories
+                const data = await fetchLatestPapers(5, selectedCategories);
                 setPapers((data || []) as PaperCardData[]);
             } catch (err) {
                 setError(t("データの取得に失敗しました。", "Failed to fetch data."));
@@ -158,7 +159,9 @@ export default function Home() {
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/20 flex items-center justify-center text-3xl">🗃️</div>
-                            <h2 className="text-2xl font-black tracking-widest text-foreground uppercase">{t("最新ニュース", "Breaking News 2026")}</h2>
+                            <h2 className="text-2xl font-black tracking-widest text-foreground uppercase">
+                                {selectedCategories.includes("all") ? t("最新ニュース", "Breaking News 2026") : t("あなたへのニュース", "News for You")}
+                            </h2>
                         </div>
                     </div>
                     <div className="space-y-8">
@@ -199,9 +202,11 @@ export default function Home() {
                     <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-6">
                         <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 dark:bg-cyan-500/20 border border-cyan-500/20 flex items-center justify-center text-3xl">📄</div>
-                            <h2 className="text-2xl font-black tracking-widest text-foreground uppercase">{t("注目論文", "Featured Papers")}</h2>
+                            <h2 className="text-2xl font-black tracking-widest text-foreground uppercase">
+                                {selectedCategories.includes("all") ? t("注目論文", "Featured Papers") : t("おすすめの論文", "Recommended")}
+                            </h2>
                         </div>
-                        <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">TOP 5 LATEST</div>
+                        <div className="text-[10px] font-black text-slate-400 dark:text-slate-500 tracking-widest uppercase">TOP 5</div>
                     </div>
 
                     {isLoading ? (
@@ -211,7 +216,13 @@ export default function Home() {
                         </div>
                     ) : (
                         <div className="space-y-8">
-                            {papers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
+                            {papers.length === 0 ? (
+                                <p className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
+                                    {t("該当する最新論文が見つかりませんでした。", "No matching papers found yet.")}
+                                </p>
+                            ) : (
+                                papers.map(paper => <PaperCard key={paper.id} paper={paper} />)
+                            )}
                         </div>
                     )}
                 </section>
@@ -234,8 +245,8 @@ export default function Home() {
                             <button
                                 onClick={() => toggleCategory("all")}
                                 className={`p-6 sm:p-10 rounded-3xl border transition-all font-black text-[10px] tracking-widest uppercase group ${selectedCategories.includes("all")
-                                        ? "bg-foreground text-background border-foreground shadow-2xl shadow-foreground/20"
-                                        : "bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-300 hover:border-cyan-500/50"
+                                    ? "bg-foreground text-background border-foreground shadow-2xl shadow-foreground/20"
+                                    : "bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-300 hover:border-cyan-500/50"
                                     }`}
                             >
                                 <div className={`text-4xl mb-4 transition-transform group-hover:scale-110`}>🌍</div>
@@ -246,8 +257,8 @@ export default function Home() {
                                     key={cat.id}
                                     onClick={() => toggleCategory(cat.id)}
                                     className={`p-6 sm:p-10 rounded-3xl border transition-all font-black text-[10px] tracking-widest uppercase group ${selectedCategories.includes(cat.id)
-                                            ? "bg-cyan-500 text-white border-cyan-500 shadow-2xl shadow-cyan-500/20"
-                                            : "bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-300 hover:border-cyan-500/50"
+                                        ? "bg-cyan-500 text-white border-cyan-500 shadow-2xl shadow-cyan-500/20"
+                                        : "bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 dark:text-slate-300 hover:border-cyan-500/50"
                                         }`}
                                 >
                                     <div className={`text-4xl mb-4 transition-transform group-hover:scale-110`}>{cat.icon}</div>

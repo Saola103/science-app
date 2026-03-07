@@ -5,117 +5,96 @@ import { summarize } from "../lib/llm/summarize";
 import { embedText } from "../lib/llm/index";
 import { upsertPaperToSupabase } from "../lib/supabase/serviceClient";
 
+const CATEGORIES = [
+  { id: "physics", query: "physics" },
+  { id: "biology", query: "biology" },
+  { id: "chemistry", query: "chemistry" },
+  { id: "computer_science", query: "computer science machine learning" },
+  { id: "neuroscience", query: "neuroscience" },
+  { id: "medicine", query: "medicine health" },
+  { id: "math", query: "mathematics" },
+  { id: "astronomy", query: "astronomy astrophysics" },
+  { id: "energy", query: "energy fusion renewable" },
+  { id: "environment", query: "environment ecology climate" }
+];
 
 function loadEnvLocal(): void {
-  // `npx tsx` で実行する場合、Next.js の env ローダが走らないため手動で読み込む
-  if (
-    process.env.GEMINI_API_KEY &&
-    process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    process.env.SUPABASE_SERVICE_ROLE_KEY
-  ) {
-    return;
-  }
-
+  if (process.env.GEMINI_API_KEY && process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) return;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("node:fs") as typeof import("node:fs");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require("node:path") as typeof import("node:path");
-
+    const fs = require("node:fs");
+    const path = require("node:path");
     const envPath = path.resolve(process.cwd(), ".env.local");
     if (!fs.existsSync(envPath)) return;
-
     const content = fs.readFileSync(envPath, "utf8");
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
-
       const eqIndex = trimmed.indexOf("=");
       if (eqIndex === -1) continue;
-
       const key = trimmed.slice(0, eqIndex).trim();
       let value = trimmed.slice(eqIndex + 1).trim();
-
-      if (
-        (value.startsWith('"') && value.endsWith('"')) ||
-        (value.startsWith("'") && value.endsWith("'"))
-      ) {
-        value = value.slice(1, -1);
-      }
-
-      if (key && process.env[key] === undefined) {
-        process.env[key] = value;
-      }
+      if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) value = value.slice(1, -1);
+      if (key && process.env[key] === undefined) process.env[key] = value;
     }
-  } catch {
-    // 読み込みに失敗しても、既存の env で継続する
+  } catch (err) {
+    console.warn("Failed to load .env.local:", err);
+  }
+}
+
+async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
+  console.log(`\n--- 🚀 Ingesting Category: ${cat.id} (Query: ${cat.query}) ---`);
+  try {
+    const papers = await fetchArxivOpenAccessPapers(cat.query, limit);
+    console.log(`Found ${papers.length} papers.`);
+
+    for (const paper of papers) {
+      console.log(`Processing: ${paper.title.slice(0, 50)}...`);
+      const abstract = paper.abstract || paper.title;
+
+      // Professional Summaries
+      const summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
+      const summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
+
+      let summaryEmbedding: number[] | undefined;
+      try {
+        summaryEmbedding = await embedText(summaryGeneral);
+      } catch (embErr) {
+        console.warn("Embedding failed, skipping vector.");
+      }
+
+      await upsertPaperToSupabase({
+        ...paper,
+        source: "arxiv",
+        summary: summaryGeneral, // Default summary
+        summaryGeneral,
+        summaryExpert,
+        summaryEmbedding,
+      });
+
+      // Wait to avoid rate limits
+      await new Promise(r => setTimeout(r, 2000));
+    }
+  } catch (err) {
+    console.error(`Error in category ${cat.id}:`, err);
   }
 }
 
 async function main() {
   loadEnvLocal();
+  const limitPerCategory = Number(process.argv[2]) || 3;
 
-  const query = process.argv[2] ?? "machine learning";
-  const maxResultsArg = process.argv[3];
-  const maxResults = maxResultsArg ? Number(maxResultsArg) || 10 : 10;
+  console.log(`🌟 Starting Automated Ingest at ${new Date().toISOString()}`);
 
-  console.log(`🔎 arXiv からオープンアクセス論文を検索します: "${query}"`);
-
-  const papers = await fetchArxivOpenAccessPapers(query, maxResults);
-
-  if (papers.length === 0) {
-    console.log("該当する arXiv 論文が見つかりませんでした。");
-    return;
+  for (const cat of CATEGORIES) {
+    await ingestForCategory(cat, limitPerCategory);
   }
 
-  console.log(`✅ ${papers.length} 件の論文メタデータを取得しました。要約と保存を開始します。`);
-
-  for (const paper of papers) {
-    console.log(`\n---\n📝 処理中: ${paper.title}`);
-
-    const contentForSummary = paper.abstract && paper.abstract.trim().length > 0
-      ? paper.abstract
-      : [
-        paper.title,
-        paper.publishedAt ? `Published at: ${paper.publishedAt}` : "",
-      ]
-        .filter(Boolean)
-        .join("\n");
-
-    const summary = await summarize(contentForSummary);
-    const summaryGeneral = await summarize(contentForSummary, { tone: "casual", maxLength: 300 });
-    const summaryExpert = await summarize(contentForSummary, { tone: "formal", maxLength: 500 });
-
-    // ベクトル化 (optional — skip if embedding model is not available)
-    let summaryEmbedding: number[] | undefined;
-    try {
-      summaryEmbedding = await embedText(summaryGeneral);
-    } catch (embErr) {
-      console.warn("⚠️ Embedding generation skipped:", (embErr as Error).message?.slice(0, 100));
-    }
-
-    await upsertPaperToSupabase({
-      ...paper,
-      source: "arxiv",
-      summary,
-      summaryGeneral,
-      summaryExpert,
-      summaryEmbedding,
-    });
-
-    console.log("💾 Supabase に保存しました (papers テーブル / upsert)。");
-
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-  }
-
-  console.log("\n🎉 インジェスト処理が完了しました。");
+  console.log("\n✅ All categories processed successfully.");
 }
 
-// ts-node / node から直接実行されたときだけ main を走らせる
 if (require.main === module) {
-  main().catch((err) => {
-    console.error("インジェスト処理中にエラーが発生しました:", err);
+  main().catch(err => {
+    console.error("Fatal error:", err);
     process.exit(1);
   });
 }
-

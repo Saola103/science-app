@@ -40,6 +40,43 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
     return paper.summary_expert || paper.summary || t("要約がありません", "No summary available");
   }, [mode, paper, t]);
 
+  const summaryContent = useMemo(() => {
+    if (!summary) return null;
+
+    // Detect bullet points (starts with - or contains list)
+    if (mode === "general" && summary.includes("- ")) {
+      const parts = summary.split("\n\n");
+      const bullets = parts[0].split("\n").filter((l: string) => l.trim().startsWith("-"));
+      const explanation = parts.slice(1).join("\n\n");
+
+      if (bullets.length > 0) {
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-3">
+              {bullets.map((b: string, i: number) => (
+                <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 transition-all dark:bg-white/5">
+                  <span className="shrink-0 w-6 h-6 rounded-full bg-cyan-500 text-white flex items-center justify-center text-[10px] font-black">{i + 1}</span>
+                  <p className="text-base font-bold text-slate-800 dark:text-slate-100 leading-tight">{b.replace(/^- /, "")}</p>
+                </div>
+              ))}
+            </div>
+            {explanation && (
+              <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-300 font-medium whitespace-pre-wrap pt-4 border-t border-slate-200 dark:border-white/5">
+                {explanation}
+              </p>
+            )}
+          </div>
+        );
+      }
+    }
+
+    return (
+      <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-100 font-medium whitespace-pre-wrap">
+        {summary}
+      </p>
+    );
+  }, [summary, mode]);
+
   const published = formatDate(paper.published_at);
 
   const handleShare = async () => {
@@ -136,9 +173,7 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
 
         <div className="relative group/summary mt-2">
           <div className="absolute -left-5 top-0 bottom-0 w-1.5 bg-gradient-to-b from-cyan-500/50 to-transparent rounded-full opacity-30 group-hover/summary:opacity-100 transition-opacity"></div>
-          <p className="text-lg leading-relaxed text-slate-700 dark:text-slate-100 font-medium whitespace-pre-wrap transition-colors duration-300">
-            {summary}
-          </p>
+          {summaryContent}
         </div>
       </div>
     </article>
