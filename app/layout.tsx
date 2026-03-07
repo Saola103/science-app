@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { LanguageProvider } from "@/components/LanguageProvider";
+import { AppProvider } from "@/components/LanguageProvider";
 import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,19 +26,25 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="ja" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#030712] text-slate-300 selection:bg-cyan-500/30`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300 relative`}
       >
-        <div className="fixed inset-0 -z-10 h-full w-full bg-[#030712] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.15),rgba(255,255,255,0))]"></div>
-        <LanguageProvider>
+        {/* Subtle Background Radial Gradient */}
+        <div className="fixed inset-0 -z-10 h-full w-full 
+          bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.1),transparent)]
+          dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.15),transparent)]">
+        </div>
+
+        <AppProvider>
           <div className="min-h-screen flex flex-col">
             <Header />
-            <div className="flex-1">
+            <main className="flex-1">
               {children}
-            </div>
+            </main>
+            <Footer />
           </div>
-        </LanguageProvider>
+        </AppProvider>
       </body>
     </html>
   );
