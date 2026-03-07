@@ -6,62 +6,59 @@ export default function AboutPage() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen pb-32">
-      <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 text-center space-y-8">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-cyan-500/20 bg-cyan-500/5 text-[10px] font-black tracking-widest text-cyan-600 dark:text-cyan-400 uppercase">
-          ABOUT THE PROJECT
-        </div>
-        <h1 className="text-4xl sm:text-6xl font-black tracking-tight text-foreground leading-[1.1]">
-          {t("科学を、", "Opening Science")}<br />
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-500 to-blue-600">{t("すべての人に開放する。", "To Everyone.")}</span>
+    <div className="min-h-screen bg-white pb-32">
+      <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 space-y-8">
+        <div className="text-xs-pro text-cyan-600">Vision</div>
+        <h1 className="text-5xl sm:text-8xl font-black tracking-tighter uppercase leading-[0.85]">
+          Democratizing<br />
+          <span className="text-neutral-300">Science.</span>
         </h1>
-        <p className="mx-auto max-w-2xl text-lg text-slate-500 dark:text-slate-300 font-medium leading-relaxed">
-          {t("「科学論文は難しすぎる」。そんな常識を、高校生がAI技術を使って塗り替えました。世界中の最新論文をAIが収集・要約し、中高生から社会人まで、誰もが最適な深度で科学に触れられるプラットフォームです。",
-            "\"Scientific papers are too difficult.\" A high school student has redefined this common sense using AI. A platform where AI collects and summarizes global papers, allowing everyone to access science at their own depth.")}
+        <p className="max-w-xl text-lg font-bold leading-tight text-neutral-500">
+          {t("「科学論文は難しすぎる」。そんな常識を、高校生がAI技術を使って塗り替えました。", "Redefining the accessibility of research using AI. A project born from a high schooler's curiosity.")}
         </p>
       </section>
 
-      <main className="mx-auto max-w-4xl px-6 space-y-12">
-        <article className="rounded-[2.5rem] border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-slate-900/50 p-10 sm:p-20 backdrop-blur-md shadow-2xl relative overflow-hidden group">
-          <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+      <main className="mx-auto max-w-4xl px-6">
+        <div className="border-t border-black pt-12 space-y-24">
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="text-xs-pro text-neutral-400">01 / Motivation</div>
+            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight">
+              <p>
+                {t("私は高校生で以前から科学の世界に興味を持っていました。最先端の科学の世界を知るには論文は欠かせません。しかし、論文を読みこなすだけでなく、そもそも読みたい論文を探すところから高いハードルがありました。",
+                  "As a high school student fascinated by science, I found that accessing cutting-edge papers was surprisingly difficult—not just reading them, but even locating the right ones.")}
+              </p>
+              <p>
+                {t("同じような悩みを抱えた学生は日本に、そして世界中に数多くいるはずです。科学は一部の専門家だけのものではなく、好奇心を持つすべての人に開かれているべきだと信じています。",
+                  "I believe science shouldn't be gated. It should be open to anyone with the drive to learn, regardless of their background or age.")}
+              </p>
+            </div>
+          </section>
 
-          <div className="prose dark:prose-invert max-w-none space-y-16">
-            <section className="space-y-8">
-              <div className="flex items-center gap-4">
-                <h2 className="text-3xl font-black text-foreground tracking-tight m-0">{t("開発者の想い", "Developer's Voice")}</h2>
-                <span className="px-3 py-1 rounded-lg bg-slate-100 dark:bg-white/10 text-[10px] font-black uppercase tracking-widest text-slate-500">Developer: Saola</span>
-              </div>
-              <div className="space-y-8 text-lg font-medium text-slate-700 dark:text-slate-100 leading-relaxed border-l-4 border-cyan-500/30 pl-8">
-                <p>
-                  {t("私は高校生で以前から科学の世界に興味を持っていました。最先端の科学の世界を知るには論文は欠かせません。しかし、論文を読むだけでなくそもそも読みたい論文を探すところから高校生にはハードルが高いものでした。同じような悩みを抱えた高校生は日本に数多くいると思います。",
-                    "As a high school student, I've always been interested in science. Papers are essential to know the cutting edge, but finding them was a hurdle. I believe many other students face the same challenge.")}
-                </p>
-                <p>
-                  {t("そこで私は論文をもっと身近に、全員にわかりやすく、読めるようこのアプリ「Science Papers」を開発しました。このアプリではAIに要約された最新の科学ニュースや論文を「一般向け」「専門家向け」と二つの難度で読むことができます。また論文のAI検索もでき、読みたい論文にたどり着くまでの時間を大幅に短縮できます。",
-                    "I developed \"Science Papers\" to bring research closer to everyone. AI-summarized papers and news come with two levels of depth, and our AI search reduces common hurdles to accessing the unknown.")}
-                </p>
-                <p>
-                  {t("中高生には「研究という選択肢」を。社会人の方には「科学的思考のアップデート」を。このアプリが、あなたの知的好奇心を刺激する一つのきっかけになれば、これほど嬉しいことはありません。",
-                    "Options for students, updates for society. Nothing would make me happier than stimulating your intellectual curiosity.")}
-                </p>
-              </div>
-            </section>
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
+            <div className="text-xs-pro text-neutral-400">02 / Solution</div>
+            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight">
+              <p>
+                {t("このアプリ「Science Papers」は、AIが膨大な論文データベースから最新の研究を抽出し、「一般」と「専門家」の二つの視点で要約を提供します。",
+                  "Science Papers uses AI to bridge the gap between complex research and human understanding, offering dual-depth summaries for every paper.")}
+              </p>
+              <p className="text-cyan-600">
+                {t("中高生には「研究という選択肢」を。社会人の方には「科学的思考のアップデート」を。",
+                  "Providing a path to research for students, and a mental upgrade for society.")}
+              </p>
+            </div>
+          </section>
 
-            <section className="space-y-10 pt-16 border-t border-slate-200 dark:border-white/5">
-              <h3 className="text-xs font-black tracking-widest uppercase opacity-40">{t("著作権と要約について", "Usage and Copyright")}</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-sm font-bold text-slate-500 dark:text-slate-300">
-                <div className="p-8 rounded-[2rem] bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 transition-all hover:border-cyan-500/20">
-                  <h4 className="text-foreground text-base mb-4 tracking-tight">{t("オープンアクセス遵守", "CC BY Compliance")}</h4>
-                  <p>{t("本アプリで取得している論文は、著作権を遵守し、オープンアクセス（CC BY 等）の論文のみを対象としています。各論文には必ず元のソースへのリンクを表示しており、クレジットの明確化を行っています。", "We fetch only CC-BY compliant open-access papers. Links to the original source are provided for all content.")}</p>
-                </div>
-                <div className="p-8 rounded-[2rem] bg-slate-100/50 dark:bg-white/5 border border-slate-200 dark:border-white/5 transition-all hover:border-cyan-500/20">
-                  <h4 className="text-foreground text-base mb-4 tracking-tight">{t("AIによる要約について", "AI Summarization")}</h4>
-                  <p>{t("論文の要約は AI (Google Gemini) を使って生成されています。最大限正確さを期していますが、AIの特性上、稀に誤りを含む可能性があります。詳細は必ず元の論文（Full Paper）をご確認いただくようお願いいたします。", "Summaries are generated by Google Gemini. While we strive for accuracy, AI may occasionally produce errors. Please refer to the original full paper for definitive information.")}</p>
-                </div>
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-12 border-t border-neutral-100">
+            <div className="text-xs-pro text-neutral-400">03 / Identity</div>
+            <div className="md:col-span-2 flex items-center gap-6">
+              <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center text-white font-black text-xl">S</div>
+              <div>
+                <div className="text-xl font-black uppercase">Saola</div>
+                <div className="text-xs-pro text-neutral-400">Developer / High School Student</div>
               </div>
-            </section>
-          </div>
-        </article>
+            </div>
+          </section>
+        </div>
       </main>
     </div>
   );

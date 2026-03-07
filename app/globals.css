@@ -3,100 +3,68 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 :root {
-  --background: #f8fafc;
-  /* slate-50 */
-  --foreground: #0f172a;
-  /* slate-900 */
-  --accent-cyan: #0891b2;
-  /* cyan-600 */
-  --accent-blue: #2563eb;
-  /* blue-600 */
-  --card-bg: rgba(255, 255, 255, 0.8);
-  --card-border: rgba(0, 0, 0, 0.1);
-  --text-muted: #64748b;
-  /* slate-500 */
-}
-
-.dark {
-  --background: #000000;
-  /* PURE BLACK as requested */
-  --foreground: #ffffff;
-  /* PURE WHITE */
-  --accent-cyan: #22d3ee;
-  /* cyan-400 */
-  --accent-blue: #60a5fa;
-  /* blue-400 */
-  --card-bg: rgba(15, 23, 42, 0.6);
-  /* Transparent dark card */
-  --card-border: rgba(255, 255, 255, 0.1);
-  --text-muted: #94a3b8;
-  /* slate-400 */
+  --background: #ffffff;
+  --foreground: #0a0a0a;
+  --accent: #111111;
+  --muted: #737373;
+  --border: #e5e5e5;
+  --secondary: #f5f5f5;
+  --cyan: #06b6d4;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
   overflow-x: hidden;
 }
 
-/* Ensure text visibility in dark mode */
-.dark body {
-  color: #ffffff;
-}
+/* 
+   PRO DESIGN SYSTEM: 
+   Minimalism, razor-sharp borders, sophisticated spacing.
+*/
 
-/* Custom Scrollbar for Pro feel */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 10px;
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: #334155;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
-
-/* Typography refinements */
 h1,
 h2,
 h3,
 h4 {
-  letter-spacing: -0.02em;
-  color: var(--foreground);
+  letter-spacing: -0.01em;
+  font-weight: 800;
 }
 
-p,
-span,
-div {
-  color: inherit;
+/* Horizontal Scrollbar styling for a cleaner look */
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-.dark p,
-.dark span,
-.dark div {
-  color: #e2e8f0;
-  /* slate-200 for normal text in dark */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.dark h1,
-.dark h2,
-.dark h3,
-.dark h4 {
-  color: #ffffff;
+.pro-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--border);
+}
+
+.pro-card:hover {
+  border-color: var(--foreground);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+}
+
+/* Professional Typography */
+.text-xs-pro {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+input:focus {
+  outline: none;
 }
