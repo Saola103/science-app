@@ -22,16 +22,24 @@ export async function POST(req: NextRequest) {
         // RPC match_papers を呼び出して類似論文を取得
         const { data: papers, error } = await supabase.rpc("match_papers", {
             query_embedding: queryEmbedding,
-            match_threshold: 0.5, // 類似度のしきい値（適宜調整）
+            match_threshold: 0.1, // しきい値を下げてマッチしやすくする
             match_count: limit,
         });
 
         if (error) {
-            console.error("Supabase RPC error:", error);
-            return NextResponse.json(
-                { error: "Failed to fetch matching papers" },
-                { status: 500 }
-            );
+            console.error("Supabase RPC error (likely function missing):", error.message);
+            // Fallback: 簡易的なキーワード検索（タイトルまたは要約）
+            const { data: fallbackPapers, error: fallbackError } = await supabase
+                .from("papers")
+                .select("id, title, journal, url, published_at, summary, summary_general, summary_expert")
+                .or(`title.ilike.%${query}%,summary.ilike.%${query}%`)
+                .limit(limit);
+
+            if (fallbackError) {
+                console.error("Fallback search error:", fallbackError.message);
+                return NextResponse.json({ papers: [] });
+            }
+            return NextResponse.json({ papers: fallbackPapers });
         }
 
         return NextResponse.json({ papers });

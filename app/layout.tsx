@@ -27,8 +27,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-slate-50 text-slate-900 selection:bg-cyan-100`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#030712] text-slate-300 selection:bg-cyan-500/30`}
       >
+        <div className="fixed inset-0 -z-10 h-full w-full bg-[#030712] bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.15),rgba(255,255,255,0))]"></div>
         <LanguageProvider>
           <div className="min-h-screen flex flex-col">
             <Header />

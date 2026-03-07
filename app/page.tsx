@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { PaperCard, type PaperCardData } from "@/components/PaperCard";
+import { NewsCard, type NewsCardData } from "@/components/NewsCard";
 import { useLanguage } from "@/components/LanguageProvider";
 import { fetchLatestPapers } from "@/app/actions";
 
@@ -63,70 +64,35 @@ const CATEGORIES = [
     }
 ];
 
-// 分野ごとのニュース
-const NEWS_BY_CATEGORY: Record<string, { date: string; ja: string; en: string }[]> = {
-    all: [
-        { date: "2024-10-10", ja: "2024年ノーベル化学賞、タンパク質設計とタンパク質構造予測の研究に授与", en: "2024 Nobel Prize in Chemistry awarded for protein design and protein structure prediction" },
-        { date: "2024-10-08", ja: "2024年ノーベル物理学賞、人工ニューラルネットワークによる機械学習の基盤的発見に授与", en: "2024 Nobel Prize in Physics for foundational discoveries enabling machine learning with artificial neural networks" },
-        { date: "2024-05-08", ja: "Google DeepMind『AlphaFold 3』を発表。生命分子の構造と相互作用を高精度に予測", en: "Google DeepMind announces AlphaFold 3, predicting structures and interactions of all life molecules" },
-    ],
-    physics: [
-        { date: "2024-10-08", ja: "2024年ノーベル物理学賞、人工ニューラルネットワークによる機械学習を可能にした基盤的発見に授与", en: "2024 Nobel Prize in Physics for foundational discoveries enabling machine learning with artificial neural networks" },
-        { date: "2024-04-10", ja: "CERN、大型ハドロン衝突型加速器(LHC) Run 3 で新たな粒子崩壊モードを観測", en: "CERN observes new particle decay modes in LHC Run 3" },
-        { date: "2023-10-03", ja: "アト秒パルスの生成法の研究が2023年ノーベル物理学賞を受賞", en: "2023 Nobel Prize in Physics for attosecond pulse generation methods" },
-    ],
-    biology: [
-        { date: "2024-10-07", ja: "2024年ノーベル生理学・医学賞、マイクロRNAの発見とその遺伝子制御メカニズムの解明に授与", en: "2024 Nobel Prize in Physiology or Medicine for the discovery of microRNA and its role in gene regulation" },
-        { date: "2024-05-08", ja: "AlphaFold 3 が全生命分子のタンパク質構造予測を可能に", en: "AlphaFold 3 enables protein structure prediction for all life molecules" },
-        { date: "2024-01-15", ja: "ヒトゲノムの完全解読から新たなテロメア領域の発見が報告される", en: "New telomere region discoveries reported from the complete human genome sequencing" },
-    ],
-    neuroscience: [
-        { date: "2024-10-07", ja: "2024年ノーベル生理学・医学賞、マイクロRNAの発見が神経発生研究にも波及", en: "2024 Nobel Prize in Physiology or Medicine: microRNA discovery impacts neurodevelopment research" },
-        { date: "2024-06-12", ja: "脳オルガノイドを用いた意識研究の倫理ガイドラインが国際学会で採択", en: "International ethics guidelines adopted for consciousness research using brain organoids" },
-        { date: "2024-03-01", ja: "Neuralink、初のヒト被験者への脳インプラント埋め込みに成功と発表", en: "Neuralink announces successful first human brain implant" },
-    ],
-    computer_science: [
-        { date: "2024-12-11", ja: "Google、量子コンピュータチップ「Willow」を発表。エラー訂正で飛躍的性能向上", en: "Google announces quantum computing chip 'Willow' with breakthrough error correction" },
-        { date: "2024-10-08", ja: "2024年ノーベル物理学賞が機械学習の基盤技術に授与され、CS分野で話題に", en: "2024 Nobel Physics Prize for ML foundations sparks discussion in CS community" },
-        { date: "2024-02-15", ja: "OpenAI Sora 発表、テキストから高品質動画を生成するAIモデル", en: "OpenAI announces Sora, an AI model generating high-quality videos from text" },
-    ],
-    math: [
-        { date: "2024-07-01", ja: "フィールズ賞候補の研究がラングランズ予想の一部を解決と報告", en: "Fields Medal candidate research reportedly solves part of the Langlands conjecture" },
-        { date: "2024-03-14", ja: "円周率の日：AIを活用した新たな円周率計算手法が105兆桁を達成", en: "Pi Day: New AI-powered computation method reaches 105 trillion digits of Pi" },
-        { date: "2023-11-20", ja: "DeepMind AlphaGeometry、数学オリンピックレベルの幾何学問題を解くAIを開発", en: "DeepMind develops AlphaGeometry AI solving Math Olympiad geometry problems" },
-    ],
-    chemistry: [
-        { date: "2024-10-10", ja: "2024年ノーベル化学賞、タンパク質設計と構造予測AI（AlphaFold等）の研究に授与", en: "2024 Nobel Prize in Chemistry for protein design and AI structure prediction (AlphaFold)" },
-        { date: "2024-06-20", ja: "室温超伝導体の再現実験が複数の研究グループで進む", en: "Room-temperature superconductor replication experiments progress across multiple research groups" },
-        { date: "2024-01-22", ja: "プラスチック分解酵素の改良型が開発され、循環型経済への期待が高まる", en: "Improved plastic-degrading enzymes developed, raising hopes for circular economy" },
-    ],
-};
-
-function getNewsForCategory(categoryId: string) {
-    if (categoryId === "all") return NEWS_BY_CATEGORY.all;
-    // Check if direct match
-    if (NEWS_BY_CATEGORY[categoryId]) return NEWS_BY_CATEGORY[categoryId];
-    // Find parent category for sub-categories
-    for (const cat of CATEGORIES) {
-        for (const sub of cat.sub) {
-            if (sub.id === categoryId) {
-                return NEWS_BY_CATEGORY[cat.id] || NEWS_BY_CATEGORY.all;
-            }
-        }
-    }
-    return NEWS_BY_CATEGORY.all;
-}
-
-function getCategoryLabel(id: string): { ja: string; en: string } {
-    if (id === "all") return { ja: "すべて", en: "All" };
-    for (const cat of CATEGORIES) {
-        if (cat.id === id) return { ja: cat.ja, en: cat.en };
-        for (const sub of cat.sub) {
-            if (sub.id === id) return { ja: sub.ja, en: sub.en };
-        }
-    }
-    return { ja: "すべて", en: "All" };
-}
+const SCIENCE_NEWS: NewsCardData[] = [
+    {
+        id: "news-1",
+        title: "Google DeepMind「AlphaFold 3」を発表 — すべての生命分子の構造・相互作用を高精度に予測可能に",
+        source: "Nature",
+        url: "https://www.nature.com/articles/s41586-024-07487-w",
+        published_at: "2024-05-08",
+        summary_general: "Google DeepMindが開発したAlphaFold 3は、タンパク質だけでなくDNA・RNA・リガンドなどあらゆる生体分子の3D構造と相互作用を高精度に予測できるAIモデル。創薬や生命科学研究に革命をもたらすと期待されている。",
+        summary_expert: "AlphaFold 3は、拡散ベースのアーキテクチャを採用し、タンパク質、核酸、小分子、イオン、および修飾残基を含む広範な生体分子系の構造予測を可能にした。従来のAF2と比較し、タンパク質-リガンド相互作用や核酸構造の予測精度が大幅に向上しており、物理学的なポテンシャル学習とデータ駆動型アプローチを高度に融合させている。",
+    },
+    {
+        id: "news-2",
+        title: "2024年ノーベル物理学賞 — 人工ニューラルネットワークによる機械学習の基盤的発見に授与",
+        source: "Nobel Prize",
+        url: "https://www.nobelprize.org/prizes/physics/2024/",
+        published_at: "2024-10-08",
+        summary_general: "ジョン・ホップフィールドとジェフリー・ヒントンが受賞。ホップフィールドネットワークとボルツマンマシンという、現代の深層学習の礎となった発見が評価された。物理学賞がAI研究に与えられたのは異例。",
+        summary_expert: "John Hopfieldは、物理学におけるスピン系の統計力学を応用し、連想記憶を実現するHopfieldネットワークを提唱した。一方、Geoffrey Hintonは統計物理学のエネルギーベースモデルを拡張し、多層的な特徴抽出を可能にするBoltzmannマシンを開発。これらの研究は、現在の生成AIや深層学習の数学的・概念的基盤を形成している。",
+    },
+    {
+        id: "news-3",
+        title: "Neuralink、初のヒト被験者への脳インプラント埋め込みに成功",
+        source: "Neuralink Blog",
+        url: "https://neuralink.com",
+        published_at: "2024-01-30",
+        summary_general: "イーロン・マスク率いるNeuralinkが、初めて人間の脳にブレイン・コンピュータ・インターフェース（BCI）チップを埋め込むことに成功。四肢麻痺の患者が思考だけでデバイスを操作できるようになることを目指す。",
+        summary_expert: "Neuralinkの「N1」インプラントは、1024個の電極を持つ極薄のリード線を運動野に埋め込み、ニューロンのスパイク電位をリアルタイムでデジタル信号に変換する。低消費電力のカスタムASICによるオンチップ処理と無線充電・通信を実現しており、高帯域幅の双方向脳コンピュータインターフェースとしての臨床的有効性が注目されている。",
+    },
+];
 
 export default function Home() {
     const { t } = useLanguage();
@@ -135,8 +101,8 @@ export default function Home() {
     const [error, setError] = useState("");
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
     const [showOnboarding, setShowOnboarding] = useState(false);
+    const [activeTab, setActiveTab] = useState<"papers" | "news">("papers");
 
-    // Onboarding UI state
     const [onboardingStep, setOnboardingStep] = useState<1 | 2>(1);
     const [tempParentCategory, setTempParentCategory] = useState<string | null>(null);
 
@@ -152,22 +118,23 @@ export default function Home() {
     useEffect(() => {
         if (selectedCategory === null) return;
 
-        const fetchPapers = async () => {
-            console.log("Fetching papers... category:", selectedCategory);
+        const load = async () => {
+            console.log("[Home] Fetching papers... category:", selectedCategory);
             setIsLoading(true);
             setError("");
             try {
+                // Fetch papers - we might handle category filtering here if needed,
+                // but let's prioritize showing real data first.
                 const data = await fetchLatestPapers(10);
-                console.log("Data received:", data);
-                setPapers(data as PaperCardData[]);
+                console.log("[Home] Data received:", data?.length, "rows");
+                setPapers((data || []) as PaperCardData[]);
             } catch (err) {
-                console.error("Failed to fetch papers:", err);
-                setError(t("データの取得に失敗しました。", "Failed to fetch data."));
+                console.error("[Home] Fetch error:", err);
+                setError(t("データの取得に失敗しました。しばらくしてから再度お試しください。", "Failed to fetch data. Please try again later."));
             }
             setIsLoading(false);
         };
-
-        fetchPapers();
+        load();
     }, [selectedCategory, t]);
 
     const handleSelectParent = (id: string) => {
@@ -186,27 +153,26 @@ export default function Home() {
         setOnboardingStep(1);
     };
 
-    const newsItems = getNewsForCategory(selectedCategory || "all");
-    const catLabel = getCategoryLabel(selectedCategory || "all");
-
     return (
-        <div className="min-h-screen pb-32">
+        <div className="min-h-screen text-slate-300 pb-32">
             {/* Onboarding Overlay */}
             {showOnboarding && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-md p-6">
-                    <div className="w-full max-w-3xl bg-white border border-slate-200 rounded-3xl p-8 sm:p-12 shadow-2xl relative text-center flex flex-col items-center">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-xl p-6">
+                    <div className="w-full max-w-3xl bg-[#030712]/90 border border-white/10 rounded-3xl p-8 sm:p-12 shadow-[0_0_50px_rgba(34,211,238,0.15)] relative text-center flex flex-col items-center">
+                        <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-cyan-500/10 blur-[100px] rounded-full pointer-events-none"></div>
+
                         {onboardingStep === 1 ? (
                             <>
-                                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
-                                    {t("興味のある分野は？", "What interests you?")}
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 relative z-10">
+                                    {t("興味のある分野は？", "What is your main interest?")}
                                 </h2>
-                                <p className="text-slate-500 mb-10 text-lg">
-                                    {t("分野を選ぶと、関連する論文とニュースをお届けします。", "Select a field to get related papers and news.")}
+                                <p className="text-slate-400 mb-10 text-lg relative z-10">
+                                    {t("大きな分野を選んでください。", "Select a broad field.")}
                                 </p>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 w-full relative z-10">
                                     <button
                                         onClick={() => handleSelectParent("all")}
-                                        className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-cyan-50 hover:border-cyan-300 transition-all font-semibold text-lg text-slate-700"
+                                        className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
                                     >
                                         <div className="text-2xl">🌍</div>
                                         {t("すべて", "All fields")}
@@ -215,7 +181,7 @@ export default function Home() {
                                         <button
                                             key={cat.id}
                                             onClick={() => handleSelectParent(cat.id)}
-                                            className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-cyan-50 hover:border-cyan-300 transition-all font-semibold text-lg text-slate-700"
+                                            className="px-4 py-6 flex flex-col items-center justify-center gap-2 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
                                         >
                                             <div className="text-2xl">{cat.icon}</div>
                                             {t(cat.ja, cat.en)}
@@ -227,20 +193,20 @@ export default function Home() {
                             <>
                                 <button
                                     onClick={() => setOnboardingStep(1)}
-                                    className="absolute top-8 left-8 text-slate-400 hover:text-slate-900 transition-colors font-medium"
+                                    className="absolute top-8 left-8 text-slate-400 hover:text-white transition-colors"
                                 >
                                     ← {t("戻る", "Back")}
                                 </button>
-                                <h2 className="text-3xl sm:text-4xl font-extrabold text-slate-900 tracking-tight mb-4">
+                                <h2 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight mb-4 relative z-10">
                                     {t("さらに詳しく！", "More specifically!")}
                                 </h2>
-                                <p className="text-slate-500 mb-10 text-lg">
+                                <p className="text-slate-400 mb-10 text-lg relative z-10">
                                     {t("より具体的なトピックを選んでください。", "Choose a more specific topic.")}
                                 </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl relative z-10">
                                     <button
                                         onClick={() => handleFinalSelect(tempParentCategory!)}
-                                        className="px-4 py-5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-cyan-50 hover:border-cyan-300 transition-all font-semibold text-lg text-slate-700"
+                                        className="px-4 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
                                     >
                                         {t("全体", "General")} {t(CATEGORIES.find(c => c.id === tempParentCategory)?.ja, CATEGORIES.find(c => c.id === tempParentCategory)?.en)}
                                     </button>
@@ -248,7 +214,7 @@ export default function Home() {
                                         <button
                                             key={sub.id}
                                             onClick={() => handleFinalSelect(sub.id)}
-                                            className="px-4 py-5 rounded-2xl border border-slate-200 bg-slate-50 hover:bg-cyan-50 hover:border-cyan-300 transition-all font-semibold text-lg text-slate-700"
+                                            className="px-4 py-5 rounded-2xl border border-white/10 bg-white/5 hover:bg-cyan-500/10 hover:border-cyan-500/50 hover:text-cyan-400 transition-all font-semibold text-lg"
                                         >
                                             {t(sub.ja, sub.en)}
                                         </button>
@@ -260,100 +226,73 @@ export default function Home() {
                 </div>
             )}
 
-            <main className="mx-auto w-full max-w-5xl px-6 pt-12">
-                {/* Welcome Section */}
-                <section className="flex flex-col sm:flex-row items-start sm:items-end justify-between mb-12 gap-6">
-                    <div>
-                        <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-slate-900">
-                            {t("最新の科学を探求しよう", "Explore the forefront of science")}
-                        </h1>
-                        <p className="mt-2 text-lg text-slate-500 font-medium">
-                            {t("ワンクリックで科学の世界へ。", "Dive into the world of science with a single click.")}
-                        </p>
-                    </div>
-                    {selectedCategory && (
-                        <button
-                            onClick={() => setShowOnboarding(true)}
-                            className="shrink-0 px-4 py-2 rounded-full border border-slate-200 bg-white hover:bg-slate-50 text-sm font-medium transition-colors flex items-center gap-2 text-slate-700 shadow-sm"
-                        >
-                            <span className="w-2 h-2 rounded-full bg-cyan-500"></span>
-                            {t("分野: ", "Field: ")}{t(catLabel.ja, catLabel.en)}
-                        </button>
-                    )}
+            <main className="mx-auto w-full max-w-4xl px-6 pt-12">
+                {/* Hero */}
+                <section className="mb-12">
+                    <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-white drop-shadow-md">
+                        {t("最新の科学を探求しよう", "Explore the forefront of science")}
+                    </h1>
+                    <p className="mt-4 text-xl text-slate-400 font-medium">
+                        {t("ワンクリックで科学の世界へ。", "Dive into the world of science with a single click.")}
+                    </p>
                 </section>
 
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                    {/* Main Content (Recent Papers) */}
-                    <div className="lg:col-span-2">
-                        <div className="flex items-center justify-between mb-6 border-b border-slate-200 pb-3">
-                            <h2 className="text-xl font-semibold text-slate-900 tracking-tight flex items-center gap-3">
-                                <div className="w-1 h-5 bg-cyan-500 rounded-full"></div>
-                                {t("最近の論文", "Recent Papers")}
-                            </h2>
-                        </div>
+                {/* Tab Switcher */}
+                <div className="flex items-center gap-2 mb-8">
+                    <button
+                        onClick={() => setActiveTab("papers")}
+                        className={`px-6 py-3 rounded-full text-sm font-bold transition-all duration-300 ${activeTab === "papers"
+                            ? "bg-cyan-500 text-white shadow-[0_0_20px_rgba(34,211,238,0.3)]"
+                            : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white"
+                            }`}
+                    >
+                        📄 {t("最新の論文", "Latest Papers")}
+                    </button>
+                    <button
+                        onClick={() => setActiveTab("news")}
+                        className={`px-6 py-3 rounded-full text-sm font-bold transition-all duration-300 ${activeTab === "news"
+                            ? "bg-amber-500 text-white shadow-[0_0_20px_rgba(245,158,11,0.3)]"
+                            : "bg-white/5 text-slate-400 border border-white/10 hover:bg-white/10 hover:text-white"
+                            }`}
+                    >
+                        🔬 {t("科学ニュース", "Science News")}
+                    </button>
+                </div>
 
+                {/* Content */}
+                {activeTab === "papers" ? (
+                    <>
                         {error && (
-                            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 mb-6">
+                            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-400 mb-6">
                                 {error}
                             </div>
                         )}
-
                         {isLoading ? (
                             <div className="flex justify-center py-24">
                                 <div className="relative">
-                                    <div className="w-10 h-10 rounded-full absolute border-4 border-slate-200"></div>
-                                    <div className="w-10 h-10 rounded-full animate-spin absolute border-4 border-cyan-500 border-t-transparent"></div>
+                                    <div className="w-12 h-12 rounded-full absolute border-4 border-slate-700"></div>
+                                    <div className="w-12 h-12 rounded-full animate-spin absolute border-4 border-cyan-500 border-t-transparent"></div>
                                 </div>
                             </div>
                         ) : papers.length === 0 ? (
-                            <div className="py-20 text-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+                            <div className="py-24 text-center text-slate-500 bg-white/5 rounded-3xl border border-white/5">
                                 {t("論文データがありません。", "No papers found.")}
                             </div>
                         ) : (
-                            <div className="flex flex-col gap-5">
+                            <div className="flex flex-col gap-6">
                                 {papers.map((paper) => (
                                     <PaperCard key={paper.id} paper={paper} />
                                 ))}
                             </div>
                         )}
+                    </>
+                ) : (
+                    <div className="flex flex-col gap-6">
+                        {SCIENCE_NEWS.map((news) => (
+                            <NewsCard key={news.id} news={news} />
+                        ))}
                     </div>
-
-                    {/* Sidebar */}
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-24 space-y-6">
-                            {/* News */}
-                            <div className="border border-slate-200 bg-white rounded-2xl p-6 shadow-sm">
-                                <h2 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
-                                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-cyan-500">
-                                        <path fillRule="evenodd" d="M12 2.25c-5.385 0-9.75 4.365-9.75 9.75s4.365 9.75 9.75 9.75 9.75-4.365 9.75-9.75S17.385 2.25 12 2.25ZM12.75 6a.75.75 0 0 0-1.5 0v6c0 .414.336.75.75.75h4.5a.75.75 0 0 0 0-1.5h-3.75V6Z" clipRule="evenodd" />
-                                    </svg>
-                                    {t("科学ニュース", "Science News")}
-                                </h2>
-                                <ul className="flex flex-col gap-4">
-                                    {newsItems.map((news, idx) => (
-                                        <li key={idx} className="flex flex-col gap-1 p-3 rounded-xl hover:bg-slate-50 transition border border-transparent hover:border-slate-100">
-                                            <span className="text-xs text-cyan-600 font-mono tracking-wider">{news.date}</span>
-                                            <span className="text-sm font-medium text-slate-700 leading-relaxed">
-                                                {t(news.ja, news.en)}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-
-                            {/* Tips */}
-                            <div className="border border-cyan-100 bg-cyan-50/50 rounded-2xl p-6">
-                                <h2 className="text-base font-semibold text-cyan-700 mb-2">💡 {t("ヒント", "Tip")}</h2>
-                                <p className="text-sm text-slate-600 leading-relaxed">
-                                    {t(
-                                        "上部の「AI検索」を使うと、自然言語でピンポイントな論文を探せます。例: 「脳の可塑性について知りたい」",
-                                        "Use 'AI Search' in the navigation to find papers with natural language. e.g. 'I want to learn about brain plasticity'"
-                                    )}
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                )}
             </main>
         </div>
     );
