@@ -148,9 +148,13 @@ export async function generateText(prompt: string): Promise<string> {
 export async function embedText(text: string): Promise<number[]> {
   try {
     const client = getClient();
-    // ListModelsで確認できた正式なモデル名「gemini-embedding-001」を使用
-    const model = client.getGenerativeModel({ model: "gemini-embedding-001" });
-    const result = await model.embedContent(text);
+    // 最新モデル text-embedding-004 を使用し、Supabaseのテーブル定義(768)に合わせる
+    const model = client.getGenerativeModel({ model: "text-embedding-004" });
+    const result = await model.embedContent({
+      content: { parts: [{ text }], role: "user" },
+      outputDimensionality: 768,
+    } as any);
+
     if (!result.embedding || !result.embedding.values) {
       throw new Error("Invalid embedding response from Gemini API");
     }

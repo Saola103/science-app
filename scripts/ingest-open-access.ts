@@ -1,7 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { fetchArxivOpenAccessPapers } from "../lib/sources/arxiv";
-import { summarize } from "../lib/llm/summarize";
+import { summarize, CATEGORY_IMAGES } from "../lib/llm/summarize";
 import { embedText } from "../lib/llm/index";
 import { upsertPaperToSupabase } from "../lib/supabase/serviceClient";
 
@@ -53,21 +53,37 @@ async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
         const abstract = paper.abstract || paper.title;
 
         // Professional Summaries with retries/error handling
-        console.log("  - Generating summaries...");
+        console.log("  - Generating summaries and detecting category...");
         let summaryGeneral = "";
         let summaryExpert = "";
         try {
           summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
           summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
         } catch (sumErr) {
-          console.error("  ❌ Summarization failed for this paper. Skipping summaries.");
-          summaryGeneral = abstract.slice(0, 500); // Fallback to raw abstract
+          console.error("  ❌ Summarization failed for this paper. skipping.");
+          continue;
         }
+
+        // Category & Image Detection
+        // summaryGeneral の末尾に含まれるはずのカテゴリを抽出
+        let detectedCategory = "other";
+        const categoryMatch = summaryGeneral.match(/\[(physics|biology|it_ai|medicine|other)\]/i);
+        if (categoryMatch) {
+          detectedCategory = categoryMatch[1].toLowerCase();
+          // 要約テキストからカテゴリ名タグを削除してクリーンにする
+          summaryGeneral = summaryGeneral.replace(/\[(physics|biology|it_ai|medicine|other)\]/i, "").trim();
+        }
+
+        // 画像のランダム選択
+        const images = CATEGORY_IMAGES[detectedCategory] || CATEGORY_IMAGES["other"];
+        const imageUrl = images[Math.floor(Math.random() * images.length)];
+        console.log(`  - Detected Category: ${detectedCategory}, Image: ${imageUrl}`);
 
         let summaryEmbedding: number[] | undefined;
         try {
-          console.log("  - Generating embedding...");
+          console.log("  - Generating embedding (768d)...");
           summaryEmbedding = await embedText(summaryGeneral);
+          console.log(`  - Embedding success: dim=${summaryEmbedding.length}`);
         } catch (embErr) {
           console.warn("  ⚠️ Embedding failed, skipping vector search capability for this paper.");
         }
@@ -80,14 +96,17 @@ async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
           summaryGeneral,
           summaryExpert,
           summaryEmbedding,
+          imageUrl,
         });
         console.log("  ✅ Successfully ingested.");
 
         // Wait to avoid rate limits (Gemini 429 is common on free tier)
-        await new Promise(r => setTimeout(r, 3000));
+        await new Promise(r => setTimeout(r, 4000));
       } catch (paperErr) {
         console.error(`  ❌ Failed to process paper "${paper.title.slice(0, 30)}":`, paperErr instanceof Error ? paperErr.message : paperErr);
-        continue; // Next paper
+        // Wait a bit longer if failed (might be a 429)
+        await new Promise(r => setTimeout(r, 5000));
+        continue;
       }
     }
   } catch (err) {

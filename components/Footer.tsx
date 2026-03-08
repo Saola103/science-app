@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useLanguage } from "./LanguageProvider";
 
 export function Footer() {
@@ -12,9 +13,16 @@ export function Footer() {
 
                 {/* Brand Info */}
                 <div className="space-y-6">
-                    <Link href="/" className="group flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-slate-900 flex items-center justify-center text-white text-[11px] font-black italic shadow-lg shadow-slate-900/10 transition-transform group-hover:rotate-6">PD</div>
-                        <span className="text-xl font-black tracking-tighter text-slate-900 italic uppercase">
+                    <Link href="/" className="group flex items-center gap-4">
+                        <div className="relative w-11 h-11 flex-none rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
+                            <Image
+                                src="/logo.png"
+                                alt="Pocket Dive Logo"
+                                fill
+                                className="object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                        </div>
+                        <span className="text-xl font-black tracking-tighter text-slate-900 italic uppercase leading-none">
                             Pocket <span className="text-sky-600">Dive</span>
                         </span>
                     </Link>
@@ -38,7 +46,7 @@ export function Footer() {
 
                 {/* Navigation Links */}
                 <div className="space-y-6">
-                    <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">{t("探索する", "Explore")}</h3>
+                    <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">{t("メニュー", "Menu")}</h3>
                     <ul className="space-y-4 text-[11px] font-black tracking-widest uppercase">
                         <li><Link href="/" className="text-slate-400 hover:text-sky-600 transition-colors">{t("ホーム", "Home")}</Link></li>
                         <li><Link href="/news" className="text-slate-400 hover:text-sky-600 transition-colors">{t("最新ニュース", "News")}</Link></li>
