@@ -131,21 +131,33 @@ export async function generateText(prompt: string): Promise<string> {
 
   try {
     const modelName = await resolveModelName();
-    // “シンプルなモデル名” を指定して呼び出し（SDK が内部で models/ を解決）
     const model = client.getGenerativeModel({ model: modelName });
     const result = await model.generateContent(prompt);
-    return result.response.text();
+    const response = await result.response;
+    return response.text();
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-
+    console.error(`[Gemini generateText Error]:`, err);
     throw err;
   }
 }
 
+/**
+ * Text Embedding using Google Gemini (text-embedding-004)
+ * Default dimension: 768
+ */
 export async function embedText(text: string): Promise<number[]> {
-  const client = getClient();
-  const model = client.getGenerativeModel({ model: "text-embedding-004" });
-  const result = await model.embedContent(text);
-  return result.embedding.values;
+  try {
+    const client = getClient();
+    // より安定した互換性のあるモデル（embedding-001）を使用
+    const model = client.getGenerativeModel({ model: "embedding-001" });
+    const result = await model.embedContent(text);
+    if (!result.embedding || !result.embedding.values) {
+      throw new Error("Invalid embedding response from Gemini API");
+    }
+    return result.embedding.values;
+  } catch (err) {
+    console.error(`[Gemini embedText Error]:`, err);
+    throw err;
+  }
 }
 

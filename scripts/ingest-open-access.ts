@@ -48,34 +48,50 @@ async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
     console.log(`Found ${papers.length} papers.`);
 
     for (const paper of papers) {
-      console.log(`Processing: ${paper.title.slice(0, 50)}...`);
-      const abstract = paper.abstract || paper.title;
-
-      // Professional Summaries
-      const summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
-      const summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
-
-      let summaryEmbedding: number[] | undefined;
       try {
-        summaryEmbedding = await embedText(summaryGeneral);
-      } catch (embErr) {
-        console.warn("Embedding failed, skipping vector.");
+        console.log(`\n[${cat.id}] Processing: ${paper.title.slice(0, 50)}...`);
+        const abstract = paper.abstract || paper.title;
+
+        // Professional Summaries with retries/error handling
+        console.log("  - Generating summaries...");
+        let summaryGeneral = "";
+        let summaryExpert = "";
+        try {
+          summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
+          summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
+        } catch (sumErr) {
+          console.error("  ❌ Summarization failed for this paper. Skipping summaries.");
+          summaryGeneral = abstract.slice(0, 500); // Fallback to raw abstract
+        }
+
+        let summaryEmbedding: number[] | undefined;
+        try {
+          console.log("  - Generating embedding...");
+          summaryEmbedding = await embedText(summaryGeneral);
+        } catch (embErr) {
+          console.warn("  ⚠️ Embedding failed, skipping vector search capability for this paper.");
+        }
+
+        console.log("  - Upserting to Supabase...");
+        await upsertPaperToSupabase({
+          ...paper,
+          source: "arxiv",
+          summary: summaryGeneral,
+          summaryGeneral,
+          summaryExpert,
+          summaryEmbedding,
+        });
+        console.log("  ✅ Successfully ingested.");
+
+        // Wait to avoid rate limits
+        await new Promise(r => setTimeout(r, 1500));
+      } catch (paperErr) {
+        console.error(`  ❌ Failed to process paper "${paper.title.slice(0, 30)}":`, paperErr instanceof Error ? paperErr.message : paperErr);
+        continue; // Next paper
       }
-
-      await upsertPaperToSupabase({
-        ...paper,
-        source: "arxiv",
-        summary: summaryGeneral, // Default summary
-        summaryGeneral,
-        summaryExpert,
-        summaryEmbedding,
-      });
-
-      // Wait to avoid rate limits
-      await new Promise(r => setTimeout(r, 2000));
     }
   } catch (err) {
-    console.error(`Error in category ${cat.id}:`, err);
+    console.error(`❌ Critical error in category ${cat.id}:`, err);
   }
 }
 

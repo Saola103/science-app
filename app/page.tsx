@@ -1,132 +1,227 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { useLanguage } from "@/components/LanguageProvider";
 
 /**
- * Pocket Dive Home Page
- * 4 Vertical Banners for main functions
+ * Pocket Dive Home Page - Full Renewal
+ * Clean, structured, two-column layouts, alternating backgrounds.
  */
 export default function Home() {
     const { t } = useLanguage();
+    const router = useRouter();
+    const [searchQuery, setSearchQuery] = useState("");
 
-    const sections = [
-        {
-            title: t("最新科学ニュース", "Latest Science News"),
-            desc: t("世界中で起きている「今」の科学をキャッチアップ。", "Dive into what's happening in the world of science right now."),
-            btn: t("ニュースへダイブ", "Dive into News"),
-            href: "/news",
-            color: "from-amber-400 to-orange-600",
-            icon: "🔥",
-            tag: "UPDATED DAILY"
-        },
-        {
-            title: t("新着論文", "New Research Papers"),
-            desc: t("最先端の研究成果を、あなたに最適なカテゴリで。", "High-quality research across various categories selected for you."),
-            btn: t("論文へダイブ", "Dive into Papers"),
-            href: "/papers",
-            color: "from-cyan-500 to-blue-600",
-            icon: "📄",
-            tag: "CURATED"
-        },
-        {
-            title: t("AI検索", "Search with AI"),
-            desc: t("読みたい論文を、AIが的確に見つけ出します。", "Let our AI find the exact research paper you're looking for."),
-            btn: t("AIにまかせる", "Search with AI"),
-            href: "/search",
-            color: "from-indigo-500 to-purple-600",
-            icon: "🧬",
-            tag: "GEN AI"
-        },
-        {
-            title: t("メルマガ（ニュースレター）登録", "Newsletter"),
-            desc: t("毎週、厳選した科学の「徳」をメールでお届け。", "Weekly dose of scientific wisdom delivered straight to your inbox."),
-            btn: t("購読を申し込む", "Subscribe"),
-            href: "#newsletter",
-            color: "from-slate-800 to-slate-950",
-            icon: "📧",
-            tag: "COMMUNITY"
+    const handleQuickSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
+        } else {
+            router.push(`/search`);
         }
-    ];
+    };
 
     return (
-        <div className="min-h-screen bg-white">
-            {/* Hero / Concept Section */}
-            <section className="px-6 pt-20 pb-12 flex flex-col items-center text-center space-y-4">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-slate-100 text-[10px] font-black tracking-widest text-slate-500 uppercase">
-                    {t("ポケットから科学へダイブ", "DIVE INTO SCIENCE FROM YOUR POCKET")}
+        <div className="min-h-screen bg-white text-slate-900 leading-relaxed font-sans">
+
+            {/* 1. Introduction Section (White) */}
+            <section className="py-24 px-6 md:py-32">
+                <div className="max-w-4xl mx-auto text-center space-y-8">
+                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none">
+                        Pocket <span className="text-sky-600">Dive</span>
+                    </h1>
+                    <div className="space-y-6">
+                        <p className="text-xl md:text-2xl font-bold text-slate-700 leading-tight">
+                            {t("ポケットから、身近な科学の世界へダイブできる。", "Dive into the world of science right from your pocket.")}
+                        </p>
+                        <p className="text-base text-slate-500 max-w-2xl mx-auto leading-relaxed">
+                            {t(
+                                "「科学って難しそう」。そんな常識を、私たちは変えていきたい。最先端の研究や驚きのニュースを、わかりやすく、面白く、すべての人にお届けします。科学の「徳」をすべての人へ還元するために生まれたプラットフォームです。",
+                                "Science shouldn't feel distant. Our mission is to transform complex academic research and breakthrough news into engaging, accessible insights for everyone. Built to bring the value of scientific discovery to all."
+                            )}
+                        </p>
+                    </div>
                 </div>
-                <h1 className="text-6xl sm:text-9xl font-black tracking-tighter uppercase leading-[0.8] text-slate-900 italic">
-                    Pocket<br /><span className="text-cyan-600">Dive</span>
-                </h1>
-                <p className="max-w-xl text-lg font-bold text-slate-500 leading-tight">
-                    {t("科学の「面白さ」をすべての人へ。最新ニュースと論文の要約プラットフォーム。", "Bringing the fascination of science to everyone. Your gateway to research and news.")}
-                </p>
             </section>
 
-            {/* Vertical Banners Grid */}
-            <main className="max-w-5xl mx-auto px-6 pb-32 space-y-6">
-                {sections.map((section, idx) => (
-                    <Link
-                        key={idx}
-                        href={section.href}
-                        id={section.href === "#newsletter" ? "newsletter-banner" : undefined}
-                        className={`group relative block w-full overflow-hidden rounded-[2.5rem] bg-gradient-to-br ${section.color} p-8 sm:p-14 text-white shadow-2xl transition-all hover:scale-[1.02] active:scale-[0.98] animate-in slide-in-from-bottom duration-700`}
-                        style={{ animationDelay: `${idx * 100}ms` }}
-                    >
-                        {/* Background Ornament */}
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/2 blur-3xl group-hover:scale-125 transition-transform duration-700"></div>
-                        <div className="absolute bottom-0 left-0 w-32 h-32 bg-black/10 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl"></div>
-
-                        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-10">
-                            <div className="space-y-4 text-center sm:text-left flex-1">
-                                <span className="text-[10px] font-black tracking-[0.2em] bg-white/20 px-3 py-1 rounded-full uppercase">
-                                    {section.tag}
-                                </span>
-                                <div className="flex flex-col gap-2">
-                                    <h2 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase leading-none italic">
-                                        {section.title}
-                                    </h2>
-                                    <p className="max-w-md text-lg font-medium text-white/80 leading-tight">
-                                        {section.desc}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <div className="flex flex-col items-center gap-6">
-                                <div className="text-7xl sm:text-9xl group-hover:rotate-12 transition-transform duration-500 drop-shadow-xl">
-                                    {section.icon}
-                                </div>
-                                <div className="px-8 py-4 rounded-full bg-white text-slate-900 font-black text-xs tracking-widest uppercase shadow-xl">
-                                    {section.btn}
-                                </div>
-                            </div>
+            {/* 2. Latest News Section (Sky 50) */}
+            <section className="bg-sky-50 py-24 px-6">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20">
+                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+                        <Image
+                            src="https://picsum.photos/seed/tech/800/800"
+                            alt="Science News"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+                    <div className="flex-1 space-y-6">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                            {t("最新ニュース", "Latest News")}
+                        </h2>
+                        <p className="text-base text-slate-600 leading-relaxed">
+                            {t(
+                                "世界中で日々刻々と進化するテクノロジーや科学の「今」をキャッチしましょう。AIが要約したニュースで、効率的に知識をアップデート。",
+                                "Catch up on the rapidly evolving world of technology and science. Get daily updates summarized by AI to keep your knowledge current and sharp."
+                            )}
+                        </p>
+                        <div className="pt-2">
+                            <Link
+                                href="/news"
+                                className="inline-block px-10 py-4 bg-sky-600 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-700 transition-colors shadow-lg shadow-sky-600/10"
+                            >
+                                {t("全て見る", "VIEW ALL")}
+                            </Link>
                         </div>
-                    </Link>
-                ))}
+                    </div>
+                </div>
+            </section>
 
-                {/* Newsletter Form anchor point */}
-                <div id="newsletter" className="pt-12 scroll-mt-24">
-                    <div className="bg-slate-50 border border-slate-100 rounded-[3rem] p-10 sm:p-20 text-center space-y-8">
-                        <div className="space-y-2">
-                            <h3 className="text-3xl font-black uppercase tracking-tight">{t("最新の徳を、ダイレクトに。", "Subscribe for scientific wisdom.")}</h3>
-                            <p className="text-slate-500 font-bold max-w-md mx-auto">{t("AIが厳選した最新の研究トピックを毎週月曜日にお届けします。", "Weekly curated research and news delivered directly to your inbox.")}</p>
+            {/* 3. Research Papers Section (White) */}
+            <section className="bg-white py-24 px-6 border-b border-slate-50">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row-reverse items-center gap-12 sm:gap-20">
+                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+                        <Image
+                            src="https://picsum.photos/seed/space/800/800"
+                            alt="Research Papers"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+                    <div className="flex-1 space-y-6">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                            {t("新着論文", "Research Papers")}
+                        </h2>
+                        <p className="text-base text-slate-600 leading-relaxed">
+                            {t(
+                                "arXivやPubMedから届く膨大な論文から、価値のある研究をセレクト。専門家向けと一般向けの二段階要約で、深い学びを提供します。",
+                                "Selected high-impact research from clinical and academic sources. We provide dual-level summaries for both experts and curious beginners."
+                            )}
+                        </p>
+                        <div className="pt-2">
+                            <Link
+                                href="/papers"
+                                className="inline-block px-10 py-4 bg-sky-600 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-700 transition-colors shadow-lg shadow-sky-600/10"
+                            >
+                                {t("全て見る", "VIEW ALL")}
+                            </Link>
                         </div>
-                        <form className="max-w-md mx-auto flex flex-col sm:flex-row gap-3">
+                    </div>
+                </div>
+            </section>
+
+            {/* 4. AI Search Section (Sky 50) */}
+            <section className="bg-sky-50 py-24 px-6">
+                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20">
+                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+                        <Image
+                            src="https://picsum.photos/seed/ai/800/800"
+                            alt="AI Integration"
+                            fill
+                            className="object-cover"
+                        />
+                    </div>
+                    <div className="flex-1 space-y-8">
+                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+                            {t("知のリサーチを、", "Next Generation")}<br />
+                            <span className="text-sky-600">{t("もっとダイレクトに。", "AI Search.")}</span>
+                        </h2>
+                        <p className="text-base text-slate-600 leading-relaxed">
+                            {t(
+                                "キーワード検索を超え、意味で論文を探す。AIへの問いかけが、あなたのリサーチの扉を開きます。膨大なアーカイブから瞬時に回答を見つけましょう。",
+                                "Go beyond keywords. Search for papers by their meaning. Ask questions directly to our AI and get immediate academic insights from our complete archive."
+                            )}
+                        </p>
+
+                        <form onSubmit={handleQuickSearch} className="flex flex-col sm:flex-row gap-3 pt-2">
                             <input
-                                type="email"
-                                placeholder="EMAIL@EXAMPLE.COM"
-                                className="flex-1 bg-white border border-slate-200 px-6 py-4 rounded-2xl font-black text-xs uppercase focus:border-cyan-500 transition-colors outline-none"
-                                required
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder={t("キーワードや質問を入力...", "Search by theme or question...")}
+                                className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-lg text-base font-medium outline-none focus:border-sky-600 transition-colors placeholder:text-slate-400"
                             />
-                            <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black text-xs tracking-widest uppercase hover:bg-cyan-600 transition-all">
-                                {t("購読する", "SUBSCRIBE")}
+                            <button
+                                type="submit"
+                                className="h-14 px-10 bg-slate-900 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-600 transition-colors shadow-xl shadow-slate-900/10 whitespace-nowrap"
+                            >
+                                {t("検索", "SEARCH")}
                             </button>
                         </form>
                     </div>
                 </div>
-            </main>
+            </section>
+
+            {/* 5. Newsletter Section (White with Divider) */}
+            <div className="max-w-6xl mx-auto px-6">
+                <hr className="border-slate-100" />
+            </div>
+            <section className="bg-white py-24 px-6 text-center">
+                <div className="max-w-2xl mx-auto space-y-8">
+                    <div className="space-y-4">
+                        <h2 className="text-3xl font-black tracking-tight text-slate-900 uppercase">
+                            {t("最新の知を、ダイレクトに。", "Stay Updated.")}
+                        </h2>
+                        <p className="text-base text-slate-500 font-bold leading-relaxed px-4">
+                            {t(
+                                "AIが厳選した最新の研究トピックや科学ニュースを、毎週月曜日にお届けします。",
+                                "Receive weekly curated research topics and science news delivered manually by AI every Monday morning."
+                            )}
+                        </p>
+                    </div>
+                    <form className="flex flex-col sm:flex-row gap-3">
+                        <input
+                            type="email"
+                            placeholder="EMAIL@EXAMPLE.COM"
+                            className="flex-1 h-14 px-6 bg-slate-50 border border-slate-100 rounded-lg text-sm font-black uppercase outline-none focus:border-sky-600 focus:bg-white transition-all"
+                            required
+                        />
+                        <button className="h-14 px-10 bg-sky-600 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-700 transition-all shadow-lg shadow-sky-600/10">
+                            {t("購読する", "SUBSCRIBE")}
+                        </button>
+                    </form>
+                </div>
+            </section>
+
+            {/* 6. Bottom Summary Items */}
+            <section className="bg-slate-50 py-24 px-6 border-t border-slate-100">
+                <div className="max-w-6xl mx-auto space-y-16">
+                    <div className="flex items-center justify-between border-b border-slate-200 pb-4">
+                        <h2 className="text-xl font-black tracking-[0.2em] text-slate-900 uppercase italic">
+                            {t("ピックアップ", "Recommended Stories")}
+                        </h2>
+                        <Link href="/news" className="text-xs font-black tracking-widest text-sky-600 hover:text-sky-700 uppercase">
+                            {t("全て見る", "View All")} &rarr;
+                        </Link>
+                    </div>
+
+                    {/* Items Grid (Placeholder for real data) */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
+                        {[1, 2, 3, 4, 5, 6].map(i => (
+                            <div key={i} className="group space-y-4 cursor-pointer">
+                                <div className="aspect-[16/10] bg-slate-200 rounded-xl overflow-hidden relative">
+                                    <Image
+                                        src={`https://picsum.photos/seed/item-${i}/600/400`}
+                                        alt="item"
+                                        fill
+                                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <div className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase">SCIENCE FEATURE</div>
+                                    <h3 className="text-lg font-black leading-snug group-hover:text-sky-600 transition-colors">
+                                        {t("人工知能が予見する、次世代のクリーンエネルギー革命とその課題", "The AI Vision for Next-Gen Clean Energy Revolution and its Challenges.")}
+                                    </h3>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+
         </div>
     );
 }

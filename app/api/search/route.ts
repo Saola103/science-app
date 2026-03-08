@@ -14,7 +14,14 @@ export async function POST(req: NextRequest) {
         }
 
         // 検索クエリをベクトル化
-        const queryEmbedding = await embedText(query);
+        let queryEmbedding: number[] = [];
+        try {
+            queryEmbedding = await embedText(query);
+        } catch (embErr) {
+            console.error("[Search API] Embedding generation failed:", embErr);
+            // embedding失敗時は強制的にフォールバックへ
+            throw new Error("EMBEDDING_FAILED");
+        }
 
         // Supabase クライアントを取得
         const supabase = getSupabaseServerClient();
@@ -22,32 +29,42 @@ export async function POST(req: NextRequest) {
         // RPC match_papers を呼び出して類似論文を取得
         const { data: papers, error } = await supabase.rpc("match_papers", {
             query_embedding: queryEmbedding,
-            match_threshold: 0.1, // しきい値を下げてマッチしやすくする
+            match_threshold: 0.1,
             match_count: limit,
         });
 
         if (error) {
-            console.error("Supabase RPC error (likely function missing):", error.message);
-            // Fallback: 簡易的なキーワード検索（タイトルまたは要約）
+            console.error("[Search API] Supabase RPC match_papers error:", error.message, error.details, error.hint);
+            // RPCが失敗した場合はフォールバック検索（ilike）を実行
             const { data: fallbackPapers, error: fallbackError } = await supabase
                 .from("papers")
                 .select("id, title, journal, url, published_at, summary, summary_general, summary_expert")
                 .or(`title.ilike.%${query}%,summary.ilike.%${query}%`)
+                .order("published_at", { ascending: false })
                 .limit(limit);
 
             if (fallbackError) {
-                console.error("Fallback search error:", fallbackError.message);
-                return NextResponse.json({ papers: [] });
+                console.error("[Search API] Fallback search also failed:", fallbackError.message);
+                return NextResponse.json({ papers: [], error: "Search failed" });
             }
-            return NextResponse.json({ papers: fallbackPapers });
+            return NextResponse.json({ papers: fallbackPapers, warning: "Using keyword search fallback" });
         }
 
         return NextResponse.json({ papers });
-    } catch (error) {
-        console.error("Search API error:", error);
-        return NextResponse.json(
-            { error: "Internal Server Error" },
-            { status: 500 }
-        );
+    } catch (error: any) {
+        console.error("[Search API] Fatal error:", error);
+
+        // フォールバック（キーワード検索のみ）を試みる（最終手段）
+        try {
+            const supabase = getSupabaseServerClient();
+            const { data } = await supabase
+                .from("papers")
+                .select("id, title, journal, url, published_at, summary, summary_general, summary_expert")
+                .or(`title.ilike.%${req.nextUrl.searchParams.get("query") || ""}%`)
+                .limit(10);
+            return NextResponse.json({ papers: data || [] });
+        } catch (inner) {
+            return NextResponse.json({ error: "Search service unavailable" }, { status: 500 });
+        }
     }
 }
