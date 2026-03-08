@@ -6,16 +6,18 @@ import { embedText } from "../lib/llm/index";
 import { upsertPaperToSupabase } from "../lib/supabase/serviceClient";
 
 const CATEGORIES = [
-  { id: "physics", query: "physics" },
-  { id: "biology", query: "biology" },
-  { id: "chemistry", query: "chemistry" },
-  { id: "computer_science", query: "computer science machine learning" },
-  { id: "neuroscience", query: "neuroscience" },
+  { id: "physics", query: "physics quantum relativity" },
+  { id: "biology", query: "biology genetics evolution" },
+  { id: "chemistry", query: "chemistry materials" },
+  { id: "it_ai", query: "artificial intelligence machine learning computer science" },
+  { id: "neuroscience", query: "neuroscience brain cognition" },
   { id: "medicine", query: "medicine health" },
-  { id: "math", query: "mathematics" },
+  { id: "mathematics", query: "mathematics" },
   { id: "astronomy", query: "astronomy astrophysics" },
   { id: "energy", query: "energy fusion renewable" },
-  { id: "environment", query: "environment ecology climate" }
+  { id: "environment", query: "environment ecology climate" },
+  { id: "psychology", query: "psychology behavior" },
+  { id: "robotics", query: "robotics automation" }
 ];
 
 function loadEnvLocal(): void {

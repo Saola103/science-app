@@ -50,9 +50,9 @@ export function Footer() {
                     <ul className="space-y-4 text-[11px] font-black tracking-widest uppercase">
                         <li><Link href="/" className="text-slate-400 hover:text-sky-600 transition-colors">{t("ホーム", "Home")}</Link></li>
                         <li><Link href="/news" className="text-slate-400 hover:text-sky-600 transition-colors">{t("最新ニュース", "News")}</Link></li>
-                        <li><Link href="/papers" className="text-slate-400 hover:text-sky-600 transition-colors">{t("新着論文", "Papers")}</Link></li>
+                        <li><Link href="/papers" className="text-slate-400 hover:text-sky-600 transition-colors">{t("最新論文", "Papers")}</Link></li>
                         <li><Link href="/search" className="text-slate-400 hover:text-sky-600 transition-colors">{t("AI検索", "AI Search")}</Link></li>
-                        <li><Link href="/about" className="text-slate-400 hover:text-sky-600 transition-colors">{t("プロジェクトについて", "About")}</Link></li>
+                        <li><Link href="/about" className="text-slate-400 hover:text-sky-600 transition-colors">{t("このアプリについて", "About")}</Link></li>
                     </ul>
                 </div>
 

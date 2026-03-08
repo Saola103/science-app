@@ -23,6 +23,7 @@ export const CATEGORIES_HIERARCHY: MajorCategory[] = [
             { id: "neuroscience", ja: "脳・神経科学", en: "Neuroscience", icon: "🧠" },
             { id: "medicine", ja: "医学・医療", en: "Medicine", icon: "🏥" },
             { id: "genetics", ja: "遺伝学", en: "Genetics", icon: "🧬" },
+            { id: "bio_tech", ja: "バイオテクノロジー", en: "BioTech", icon: "🧪" },
         ]
     },
     {
@@ -34,6 +35,7 @@ export const CATEGORIES_HIERARCHY: MajorCategory[] = [
             { id: "chemistry", ja: "化学", en: "Chemistry", icon: "🧪" },
             { id: "math", ja: "数学", en: "Mathematics", icon: "📐" },
             { id: "astronomy", ja: "天文学", en: "Astronomy", icon: "🪐" },
+            { id: "material_science", ja: "材料科学", en: "Materials", icon: "💎" },
         ]
     },
     {
@@ -45,6 +47,29 @@ export const CATEGORIES_HIERARCHY: MajorCategory[] = [
             { id: "machine_learning", ja: "機械学習・AI", en: "Machine Learning / AI", icon: "🤖" },
             { id: "quantum", ja: "量子情報・計算", en: "Quantum Computing", icon: "⚛️" },
             { id: "robotics", ja: "ロボティクス", en: "Robotics", icon: "🦾" },
+            { id: "cyber_security", ja: "セキュリティ", en: "Security", icon: "🛡️" },
+        ]
+    },
+    {
+        id: "environment_earth",
+        nameJa: "環境・地球科学",
+        nameEn: "Environment & Earth",
+        minors: [
+            { id: "climate", ja: "気候変動・環境", en: "Climate change", icon: "🌍" },
+            { id: "ecology", ja: "生態学", en: "Ecology", icon: "🎋" },
+            { id: "energy", ja: "エネルギー", en: "Energy", icon: "⚡" },
+            { id: "geology", ja: "地質学", en: "Geology", icon: "🌋" },
+        ]
+    },
+    {
+        id: "humanities_social",
+        nameJa: "人文・社会科学",
+        nameEn: "Humanities & Social",
+        minors: [
+            { id: "psychology", ja: "心理学", en: "Psychology", icon: "💭" },
+            { id: "sociology", ja: "社会学", en: "Sociology", icon: "👥" },
+            { id: "economics", ja: "経済学", en: "Economics", icon: "📈" },
+            { id: "linguistics", ja: "言語学", en: "Linguistics", icon: "🗣️" },
         ]
     }
 ];

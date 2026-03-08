@@ -57,24 +57,24 @@ export default function PapersPage() {
                         <Link href="/" className="inline-flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-black transition-colors">
                             &larr; {t("ホームへ戻る", "BACK TO HOME")}
                         </Link>
-                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none">{t("論文ダイブ", "Research Dive")}</h1>
+                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none">{t("最新論文", "Latest Papers")}</h1>
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest leading-tight">
-                            {t("最先端の知を、選ぶ。", "CHOOSE YOUR DOORWAY.")}
+                            {t("最先端の知へ、ダイブする。", "DIVE INTO THE FOREFRONT.")}
                         </p>
                     </div>
 
                     <div className="space-y-10">
                         {/* Major Category Selection (Drill Down Step 1) */}
                         <div className="space-y-4">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-cyan-600 uppercase italic">Step 1: Select Realm</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">Step 1: Select Realm</h3>
                             <div className="grid grid-cols-1 gap-2">
                                 {CATEGORIES_HIERARCHY.map(major => (
                                     <button
                                         key={major.id}
                                         onClick={() => setActiveMajor(major.id)}
                                         className={`w-full text-left px-6 py-4 rounded-2xl border transition-all font-black text-xs uppercase tracking-widest ${activeMajor === major.id
-                                                ? "bg-slate-900 text-white border-slate-900 shadow-xl"
-                                                : "bg-slate-50 border-slate-100 text-slate-400 hover:border-cyan-500/30 hover:text-slate-900"
+                                            ? "bg-slate-900 text-white border-slate-900 shadow-xl"
+                                            : "bg-slate-50 border-slate-100 text-slate-400 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
                                         {t(major.nameJa, major.nameEn)}
@@ -85,15 +85,15 @@ export default function PapersPage() {
 
                         {/* Minor Category Selection (Drill Down Step 2) */}
                         <div className="space-y-4 animate-in slide-in-from-left duration-500">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-cyan-600 uppercase italic">Step 2: Choose Fields</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">Step 2: Choose Fields</h3>
                             <div className="flex flex-wrap gap-2">
                                 {activeMajorData.minors.map(minor => (
                                     <button
                                         key={minor.id}
                                         onClick={() => toggleMinor(minor.id)}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-[11px] font-black uppercase tracking-wider ${selectedMinors.includes(minor.id)
-                                                ? "bg-cyan-500 text-white border-cyan-500 shadow-md shadow-cyan-500/20"
-                                                : "bg-white border-slate-200 text-slate-500 hover:border-cyan-500/30 hover:text-slate-900"
+                                            ? "bg-sky-600 text-white border-sky-600 shadow-md shadow-sky-600/20"
+                                            : "bg-white border-slate-200 text-slate-500 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
                                         <span className="text-lg">{minor.icon}</span>
@@ -112,7 +112,7 @@ export default function PapersPage() {
                 <main className="flex-1 space-y-12">
                     {isLoading ? (
                         <div className="py-32 flex flex-col items-center gap-6">
-                            <div className="w-10 h-10 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                            <div className="w-10 h-10 border-4 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
                             <span className="text-xs font-black tracking-widest text-slate-400 uppercase animate-pulse">Accessing Matrix...</span>
                         </div>
                     ) : (
@@ -122,7 +122,7 @@ export default function PapersPage() {
                                     {t("該当する論文が見つかりませんでした。", "No records found in this category.")}
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {displayedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
                                 </div>
                             )}

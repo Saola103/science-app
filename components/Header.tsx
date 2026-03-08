@@ -29,10 +29,10 @@ export function Header() {
 
     const navItems = [
         { name: t("ホーム", "Home"), href: "/" },
-        { name: t("ニュース", "News"), href: "/news" },
-        { name: t("論文", "Papers"), href: "/papers" },
-        { name: t("検索", "Search"), href: "/search" },
-        { name: t("このページについて", "About"), href: "/about" },
+        { name: t("最新ニュース", "News"), href: "/news" },
+        { name: t("最新論文", "Papers"), href: "/papers" },
+        { name: t("AI検索", "AI Search"), href: "/search" },
+        { name: t("このアプリについて", "About"), href: "/about" },
     ];
 
     return (
@@ -46,8 +46,8 @@ export function Header() {
                             key={item.href}
                             href={item.href}
                             className={`text-[11px] font-black tracking-widest uppercase transition-all ${pathname === item.href
-                                    ? "text-sky-600 border-b-2 border-sky-600 pb-1"
-                                    : "text-slate-400 hover:text-slate-900"
+                                ? "text-sky-600 border-b-2 border-sky-600 pb-1"
+                                : "text-slate-400 hover:text-slate-900"
                                 }`}
                         >
                             {item.name}
