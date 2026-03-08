@@ -45,7 +45,7 @@ export function Header() {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`text-[11px] font-black tracking-widest uppercase transition-all ${pathname === item.href
+                            className={`text-[11px] font-bold tracking-widest uppercase transition-all ${pathname === item.href
                                 ? "text-sky-600 border-b-2 border-sky-600 pb-1"
                                 : "text-slate-400 hover:text-slate-900"
                                 }`}
@@ -71,8 +71,8 @@ export function Header() {
 
                 {/* Center: Brand Logo & Text */}
                 <div className="flex-none">
-                    <Link href="/" className="flex items-center gap-4 group">
-                        <div className="relative w-11 h-11 flex-none rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
+                    <Link href="/" className="flex items-center gap-3 md:gap-4 group">
+                        <div className="relative w-9 h-9 md:w-11 md:h-11 flex-none rounded-xl md:rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
                             <Image
                                 src="/logo.png"
                                 alt="Pocket Dive Logo"
@@ -82,8 +82,8 @@ export function Header() {
                             />
                         </div>
                         <div className="flex flex-col leading-none">
-                            <span className="text-xl font-black tracking-tighter text-slate-900 transition-colors uppercase italic">
-                                Pocket <span className="text-sky-600">Dive</span>
+                            <span className="text-lg md:text-xl font-black tracking-tighter text-slate-900 transition-colors uppercase italic">
+                                POCKET <span className="text-sky-600">DIVE</span>
                             </span>
                         </div>
                     </Link>
@@ -100,19 +100,19 @@ export function Header() {
                     </Link>
 
                     {user ? (
-                        <Link href="/profile" className="flex items-center gap-2 px-3 py-1.5 border border-slate-100 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
-                            <div className="w-5 h-5 rounded-full bg-sky-500 flex items-center justify-center text-[8px] font-bold text-white uppercase italic">
+                        <Link href="/profile" className="flex items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 border border-slate-100 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
+                            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-sky-500 flex items-center justify-center text-[7px] md:text-[8px] font-bold text-white uppercase italic">
                                 {user.email?.[0]}
                             </div>
                         </Link>
                     ) : (
-                        <Link href="/login" className="px-4 py-2 bg-slate-900 text-white font-black tracking-widest text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10">
+                        <Link href="/login" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10">
                             {t("ログイン", "LOGIN")}
                         </Link>
                     )}
 
                     {/* Language Switcher */}
-                    <div className="flex items-center gap-3 text-[10px] font-black ml-4">
+                    <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold ml-2 md:ml-4">
                         <button onClick={() => setLanguage("ja")} className={`transition-colors ${language === "ja" ? "text-sky-600" : "text-slate-300 hover:text-slate-900"}`}>JA</button>
                         <button onClick={() => setLanguage("en")} className={`transition-colors ${language === "en" ? "text-sky-600" : "text-slate-300 hover:text-slate-900"}`}>EN</button>
                     </div>
@@ -127,7 +127,7 @@ export function Header() {
                             key={item.href}
                             href={item.href}
                             onClick={() => setIsMenuOpen(false)}
-                            className="text-2xl font-black text-slate-900 uppercase tracking-tighter hover:text-sky-600 transition-colors"
+                            className="text-2xl font-bold text-slate-900 uppercase tracking-tighter hover:text-sky-600 transition-colors"
                         >
                             {item.name}
                         </Link>

@@ -30,8 +30,8 @@ export default function Home() {
             {/* 1. Introduction Section (White) */}
             <section className="py-24 px-6 md:py-32">
                 <div className="max-w-4xl mx-auto text-center space-y-8">
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none">
-                        Pocket <span className="text-sky-600">Dive</span>
+                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none italic uppercase">
+                        POCKET <span className="text-sky-600">DIVE</span>
                     </h1>
                     <div className="space-y-6">
                         <p className="text-xl md:text-2xl font-bold text-slate-700 leading-tight">
@@ -39,7 +39,7 @@ export default function Home() {
                         </p>
                         <p className="text-base text-slate-500 max-w-2xl mx-auto leading-relaxed">
                             {t(
-                                "「科学って難しそう」。そんな常識を、私たちは変えていきたい。最先端の研究や驚きのニュースを、わかりやすく、面白く、すべての人にお届けします。科学の「徳」をすべての人へ還元するために生まれたプラットフォームです。",
+                                "「科学って難しそう」。そんな常識を、私たちは変えていきたい。最先端の研究や驚きのニュースを、わかりやすく、面白く、すべての人にお届けします。科学の「価値」をすべての人へ還元するために生まれたプラットフォームです。",
                                 "Science shouldn't feel distant. Our mission is to transform complex academic research and breakthrough news into engaging, accessible insights for everyone. Built to bring the value of scientific discovery to all."
                             )}
                         </p>

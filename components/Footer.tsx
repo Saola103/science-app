@@ -23,7 +23,7 @@ export function Footer() {
                             />
                         </div>
                         <span className="text-xl font-black tracking-tighter text-slate-900 italic uppercase leading-none">
-                            Pocket <span className="text-sky-600">Dive</span>
+                            POCKET <span className="text-sky-600">DIVE</span>
                         </span>
                     </Link>
                     <div className="space-y-4">

@@ -17,7 +17,7 @@ export function BottomNav() {
         { name: t("ニュース", "News"), href: "/news" },
         { name: t("論文", "Papers"), href: "/papers" },
         { name: t("検索", "Search"), href: "/search" },
-        { name: t("マイ", "My"), href: "/profile" },
+        { name: t("マイページ", "My Page"), href: "/profile" },
     ];
 
     return (
@@ -27,14 +27,14 @@ export function BottomNav() {
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`relative flex flex-col items-center justify-center min-w-[64px] h-full transition-all ${pathname === item.href ? "text-cyan-600" : "text-slate-400"
+                        className={`relative flex flex-col items-center justify-center min-w-[64px] h-full transition-all ${pathname === item.href ? "text-sky-600" : "text-slate-400"
                             }`}
                     >
-                        <span className={`text-[10px] font-black uppercase tracking-widest transition-transform ${pathname === item.href ? "scale-110" : ""}`}>
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-transform ${pathname === item.href ? "scale-105" : ""}`}>
                             {item.name}
                         </span>
                         {pathname === item.href && (
-                            <div className="absolute bottom-2 w-5 h-0.5 rounded-full bg-cyan-600"></div>
+                            <div className="absolute bottom-2 w-5 h-0.5 rounded-full bg-sky-600"></div>
                         )}
                     </Link>
                 ))}
