@@ -12,9 +12,10 @@ export function Footer() {
 
                 {/* Brand */}
                 <div className="space-y-6">
-                    <Link href="/" className="group">
-                        <span className="text-xl font-black tracking-tighter text-black">
-                            Science<span className="text-cyan-600">Papers</span>
+                    <Link href="/" className="group flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white text-[10px] font-black italic">PD</div>
+                        <span className="text-xl font-black tracking-tighter text-black italic">
+                            Pocket<span className="text-amber-500 uppercase">Dive.</span>
                         </span>
                     </Link>
                     <div className="space-y-2">

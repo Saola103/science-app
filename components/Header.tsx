@@ -65,11 +65,11 @@ export function Header() {
                 {/* Center: Logo */}
                 <div className="flex flex-col items-center">
                     <Link href="/" className="flex items-center gap-2 group">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-lg shadow-cyan-500/20 group-hover:scale-110 transition-transform">
-                            <span className="font-black text-xs">SP</span>
+                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-orange-600 flex items-center justify-center text-white shadow-lg shadow-amber-500/20 group-hover:scale-110 transition-transform italic">
+                            <span className="font-black text-xs">PD</span>
                         </div>
-                        <span className="text-xl font-black tracking-tighter text-slate-900 group-hover:text-cyan-600 transition-colors">
-                            Science<span className="text-cyan-500 font-extrabold">Papers</span>
+                        <span className="text-xl font-black tracking-tighter text-slate-900 group-hover:text-amber-600 transition-colors italic">
+                            Pocket<span className="text-amber-500 font-extrabold uppercase">Dive.</span>
                         </span>
                     </Link>
                 </div>

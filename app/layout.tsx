@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProvider } from "@/components/LanguageProvider";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
+import { BottomNav } from "@/components/BottomNav";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -16,8 +17,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Science Papers",
-  description: "ワンクリックで科学の最前線へ飛べるプラットフォーム",
+  title: "Pocket Dive | ポケットから科学の世界へ",
+  description: "ポケットから、身近な科学の世界へダイブできる。最新論文とニュースの収集・要約プラットフォーム。",
 };
 
 export default function RootLayout({
@@ -39,10 +40,11 @@ export default function RootLayout({
         <AppProvider>
           <div className="min-h-screen flex flex-col">
             <Header />
-            <main className="flex-1">
+            <main className="flex-1 pb-20 lg:pb-0">
               {children}
             </main>
             <Footer />
+            <BottomNav />
           </div>
         </AppProvider>
       </body>
