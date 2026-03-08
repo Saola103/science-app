@@ -83,8 +83,8 @@ async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
         });
         console.log("  ✅ Successfully ingested.");
 
-        // Wait to avoid rate limits
-        await new Promise(r => setTimeout(r, 1500));
+        // Wait to avoid rate limits (Gemini 429 is common on free tier)
+        await new Promise(r => setTimeout(r, 3000));
       } catch (paperErr) {
         console.error(`  ❌ Failed to process paper "${paper.title.slice(0, 30)}":`, paperErr instanceof Error ? paperErr.message : paperErr);
         continue; // Next paper

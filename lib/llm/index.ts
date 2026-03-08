@@ -148,8 +148,8 @@ export async function generateText(prompt: string): Promise<string> {
 export async function embedText(text: string): Promise<number[]> {
   try {
     const client = getClient();
-    // より安定した互換性のあるモデル（embedding-001）を使用
-    const model = client.getGenerativeModel({ model: "embedding-001" });
+    // ListModelsで確認できた正式なモデル名「gemini-embedding-001」を使用
+    const model = client.getGenerativeModel({ model: "gemini-embedding-001" });
     const result = await model.embedContent(text);
     if (!result.embedding || !result.embedding.values) {
       throw new Error("Invalid embedding response from Gemini API");
