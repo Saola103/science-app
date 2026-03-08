@@ -31,7 +31,8 @@ export function Header() {
         { name: t("ホーム", "Home"), href: "/" },
         { name: t("ニュース", "News"), href: "/news" },
         { name: t("論文", "Papers"), href: "/papers" },
-        { name: t("AI検索", "AI Search"), href: "/search" },
+        { name: t("検索", "Search"), href: "/search" },
+        { name: t("このページについて", "About"), href: "/about" },
     ];
 
     return (
@@ -67,28 +68,18 @@ export function Header() {
                 {/* Center: Brand Logo & Text */}
                 <div className="flex-none">
                     <Link href="/" className="flex items-center gap-3 group">
-                        {/* 
-                           Logo Image (Genspark AI generated)
-                           Assuming /logo-icon.png exists. 
-                           If not, falling back to a placeholder styled div.
-                        */}
-                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 overflow-hidden flex-none">
+                        <div className="relative w-10 h-10 sm:w-12 sm:h-12 flex-none">
                             <Image
                                 src="/logo.png"
                                 alt="Pocket Dive Logo"
                                 fill
                                 className="object-contain group-hover:scale-105 transition-transform duration-500"
                                 priority
-                                unoptimized // To handle potential dynamic sources or simple public folder usage
-                                onError={(e) => {
-                                    // Fallback if image not found
-                                    const target = e.target as HTMLImageElement;
-                                    target.style.display = 'none';
-                                }}
+                                unoptimized
                             />
                         </div>
                         <span className="text-xl sm:text-2xl font-black tracking-tighter text-slate-900 group-hover:text-cyan-500 transition-colors whitespace-nowrap italic leading-none">
-                            Pocket<span className="text-cyan-400 uppercase ml-1">Dive.</span>
+                            Pocket<span className="text-cyan-400 uppercase ml-1">Dive</span>
                         </span>
                     </Link>
                 </div>
@@ -129,7 +120,7 @@ export function Header() {
             </nav>
 
             {/* Dropdown Menu Overlay */}
-            <div className={`absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-2xl border-b border-slate-100 transition-all duration-500 ease-in-out overflow-hidden ${isMenuOpen ? 'max-h-[500px] opacity-100 py-10 shadow-2xl' : 'max-h-0 opacity-0'}`}>
+            <div className={`absolute top-20 left-0 right-0 bg-white/95 backdrop-blur-2xl border-b border-slate-100 transition-all duration-500 ease-in-out overflow-hidden ${isMenuOpen ? 'max-h-[600px] opacity-100 py-10 shadow-2xl' : 'max-h-0 opacity-0'}`}>
                 <div className="mx-auto max-w-4xl px-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {navItems.map((item) => (
                         <Link

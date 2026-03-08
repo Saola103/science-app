@@ -58,7 +58,7 @@ export default function Home() {
                     {t("ポケットから科学へダイブ", "DIVE INTO SCIENCE FROM YOUR POCKET")}
                 </div>
                 <h1 className="text-6xl sm:text-9xl font-black tracking-tighter uppercase leading-[0.8] text-slate-900 italic">
-                    Pocket<br /><span className="text-cyan-600">Dive.</span>
+                    Pocket<br /><span className="text-cyan-600">Dive</span>
                 </h1>
                 <p className="max-w-xl text-lg font-bold text-slate-500 leading-tight">
                     {t("科学の「面白さ」をすべての人へ。最新ニュースと論文の要約プラットフォーム。", "Bringing the fascination of science to everyone. Your gateway to research and news.")}

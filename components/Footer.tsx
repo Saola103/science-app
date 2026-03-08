@@ -15,7 +15,7 @@ export function Footer() {
                     <Link href="/" className="group flex items-center gap-2">
                         <div className="w-8 h-8 rounded-lg bg-slate-900 flex items-center justify-center text-white text-[10px] font-black italic">PD</div>
                         <span className="text-xl font-black tracking-tighter text-black italic">
-                            Pocket<span className="text-cyan-500 uppercase">Dive.</span>
+                            Pocket<span className="text-cyan-500 uppercase">Dive</span>
                         </span>
                     </Link>
                     <div className="space-y-4">
@@ -44,6 +44,7 @@ export function Footer() {
                         <li><Link href="/news" className="text-slate-400 hover:text-cyan-500 transition-colors">{t("最新ニュース", "News")}</Link></li>
                         <li><Link href="/papers" className="text-slate-400 hover:text-cyan-500 transition-colors">{t("新着論文", "Papers")}</Link></li>
                         <li><Link href="/search" className="text-slate-400 hover:text-cyan-500 transition-colors">{t("AI検索", "AI Search")}</Link></li>
+                        <li><Link href="/about" className="text-slate-400 hover:text-cyan-500 transition-colors">{t("このページについて", "About")}</Link></li>
                     </ul>
                 </div>
 
