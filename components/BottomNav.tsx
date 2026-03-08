@@ -6,17 +6,18 @@ import { useLanguage } from "./LanguageProvider";
 
 /**
  * Mobile-only Bottom Navigation for Pocket Dive
+ * Refined version: Text-only for a professional, professional look.
  */
 export function BottomNav() {
     const pathname = usePathname();
     const { t } = useLanguage();
 
     const items = [
-        { name: t("ホーム", "Home"), href: "/", icon: "🏠" },
-        { name: t("ニュース", "News"), href: "/news", icon: "🔥" },
-        { name: t("論文", "Papers"), href: "/papers", icon: "📄" },
-        { name: t("検索", "Search"), href: "/search", icon: "🔍" },
-        { name: t("マイ", "My"), href: "/profile", icon: "👤" },
+        { name: t("ホーム", "Home"), href: "/" },
+        { name: t("ニュース", "News"), href: "/news" },
+        { name: t("論文", "Papers"), href: "/papers" },
+        { name: t("検索", "Search"), href: "/search" },
+        { name: t("マイ", "My"), href: "/profile" },
     ];
 
     return (
@@ -26,13 +27,14 @@ export function BottomNav() {
                     <Link
                         key={item.href}
                         href={item.href}
-                        className={`flex flex-col items-center gap-1 min-w-[64px] transition-all ${pathname === item.href ? "text-cyan-600 scale-110" : "text-slate-400"
+                        className={`relative flex flex-col items-center justify-center min-w-[64px] h-full transition-all ${pathname === item.href ? "text-cyan-600" : "text-slate-400"
                             }`}
                     >
-                        <span className="text-xl">{item.icon}</span>
-                        <span className="text-[10px] font-black uppercase tracking-tighter">{item.name}</span>
+                        <span className={`text-[10px] font-black uppercase tracking-widest transition-transform ${pathname === item.href ? "scale-110" : ""}`}>
+                            {item.name}
+                        </span>
                         {pathname === item.href && (
-                            <div className="absolute -top-1 w-1 h-1 rounded-full bg-cyan-600"></div>
+                            <div className="absolute bottom-2 w-5 h-0.5 rounded-full bg-cyan-600"></div>
                         )}
                     </Link>
                 ))}

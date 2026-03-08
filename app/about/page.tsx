@@ -1,63 +1,76 @@
 "use client";
 
 import { useLanguage } from "@/components/LanguageProvider";
+import Link from "next/link";
 
 export default function AboutPage() {
   const { t } = useLanguage();
 
   return (
-    <div className="min-h-screen bg-white pb-32">
+    <div className="min-h-screen bg-white pb-32 font-sans">
       <section className="mx-auto max-w-4xl px-6 pt-24 pb-16 space-y-8">
-        <div className="text-xs-pro text-cyan-600">Vision</div>
-        <h1 className="text-5xl sm:text-8xl font-black tracking-tighter uppercase leading-[0.85]">
-          Democratizing<br />
-          <span className="text-neutral-300">Science.</span>
+        <div className="text-[10px] font-black tracking-widest text-cyan-500 uppercase italic">Concept / Vision</div>
+        <h1 className="text-6xl sm:text-9xl font-black tracking-tighter uppercase leading-[0.8] italic">
+          Pocket<br />
+          <span className="text-cyan-500">Dive.</span>
         </h1>
-        <p className="max-w-xl text-lg font-bold leading-tight text-neutral-500">
-          {t("「科学論文は難しすぎる」。そんな常識を、高校生がAI技術を使って塗り替えました。", "Redefining the accessibility of research using AI. A project born from a high schooler's curiosity.")}
+        <p className="max-w-xl text-xl font-bold leading-tight text-slate-500">
+          {t("「科学を、もっと身近なものに」。そんな想いから、AIを駆使した探索プラットフォームは生まれました。", "Bringing science closer to everyone. A next-gen exploration platform powered by AI.")}
         </p>
       </section>
 
       <main className="mx-auto max-w-4xl px-6">
-        <div className="border-t border-black pt-12 space-y-24">
+        <div className="border-t border-slate-100 pt-16 space-y-24">
+
           <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-xs-pro text-neutral-400">01 / Motivation</div>
-            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight">
+            <div className="text-[10px] font-black tracking-widest text-slate-300 uppercase">01 / Motivation</div>
+            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight text-slate-800">
               <p>
-                {t("私は高校生で以前から科学の世界に興味を持っていました。最先端の科学の世界を知るには論文は欠かせません。しかし、論文を読みこなすだけでなく、そもそも読みたい論文を探すところから高いハードルがありました。",
-                  "As a high school student fascinated by science, I found that accessing cutting-edge papers was surprisingly difficult—not just reading them, but even locating the right ones.")}
+                {t("最先端の科学の世界を知るには論文は欠かせません。しかし、専門用語の壁や、膨大な量の中から自分に合ったものを探すハードルは依然として高いままです。",
+                  "Original research is the heartbeat of science. Yet, the wall of jargon and the sheer volume of papers make it inaccessible for many.")}
               </p>
               <p>
-                {t("同じような悩みを抱えた学生は日本に、そして世界中に数多くいるはずです。科学は一部の専門家だけのものではなく、好奇心を持つすべての人に開かれているべきだと信じています。",
-                  "I believe science shouldn't be gated. It should be open to anyone with the drive to learn, regardless of their background or age.")}
+                {t("科学は一部の専門家だけのものではなく、好奇心を持つすべての人に開かれているべきだと信じています。私たちは、その「入り口」をポケットの中に作りました。",
+                  "We believe science belongs to everyone with a curious mind. We built the gateway right in your pocket.")}
               </p>
             </div>
           </section>
 
           <section className="grid grid-cols-1 md:grid-cols-3 gap-12">
-            <div className="text-xs-pro text-neutral-400">02 / Solution</div>
-            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight">
+            <div className="text-[10px] font-black tracking-widest text-slate-300 uppercase">02 / Solution</div>
+            <div className="md:col-span-2 space-y-8 text-xl font-bold leading-tight text-slate-800">
               <p>
-                {t("このアプリ「Science Papers」は、AIが膨大な論文データベースから最新の研究を抽出し、「一般」と「専門家」の二つの視点で要約を提供します。",
-                  "Science Papers uses AI to bridge the gap between complex research and human understanding, offering dual-depth summaries for every paper.")}
+                {t("Pocket Diveは、AIが膨大な論文データベースから価値ある知見を抽出し、「一般」と「専門家」の二つの視点で要約を提供します。",
+                  "Pocket Dive uses AI to distill vast research databases into dual-depth summaries, catering to both curious minds and experts.")}
               </p>
-              <p className="text-cyan-600">
-                {t("中高生には「研究という選択肢」を。社会人の方には「科学的思考のアップデート」を。",
-                  "Providing a path to research for students, and a mental upgrade for society.")}
-              </p>
-            </div>
-          </section>
-
-          <section className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-12 border-t border-neutral-100">
-            <div className="text-xs-pro text-neutral-400">03 / Identity</div>
-            <div className="md:col-span-2 flex items-center gap-6">
-              <div className="w-16 h-16 rounded-full bg-black flex items-center justify-center text-white font-black text-xl">S</div>
-              <div>
-                <div className="text-xl font-black uppercase">Saola</div>
-                <div className="text-xs-pro text-neutral-400">Developer / High School Student</div>
+              <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
+                <p className="text-cyan-600">
+                  {t("中高生には「研究という選択肢」を。社会人には「科学的思考のアップデート」を。",
+                    "Opening the path of research for students, and upgrading scientific literacy for everyone.")}
+                </p>
+                <p className="text-xs text-slate-400 font-medium italic">
+                  {t("*本サービスのロゴデザインは、Genspark AIによって生成されたものです。", "*The logo design for this service was generated by Genspark AI.")}
+                </p>
               </div>
             </div>
           </section>
+
+          <section className="grid grid-cols-1 md:grid-cols-3 gap-12 pt-16 border-t border-slate-100">
+            <div className="text-[10px] font-black tracking-widest text-slate-300 uppercase">03 / Identity</div>
+            <div className="md:col-span-2 flex items-center gap-6">
+              <div className="w-16 h-16 rounded-3xl bg-slate-900 border-2 border-slate-100 flex items-center justify-center text-white font-black text-2xl italic">S</div>
+              <div>
+                <div className="text-xl font-black uppercase text-slate-900">Saola</div>
+                <div className="text-[10px] font-black tracking-widest text-slate-400 uppercase">Developer / High School Student</div>
+              </div>
+            </div>
+          </section>
+
+          <div className="flex justify-center pt-12">
+            <Link href="/" className="px-10 py-5 rounded-full bg-slate-900 text-white font-black text-[10px] tracking-widest uppercase hover:bg-cyan-600 transition-all shadow-xl shadow-slate-900/10">
+              {t("ホームへ戻る", "Back to Home")}
+            </Link>
+          </div>
         </div>
       </main>
     </div>
