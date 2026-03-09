@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { summarize } from "../../../../lib/llm/summarize";
+import { summarize } from "../../../lib/llm/summarize";
 
 // arXiv API Base URL
 const ARXIV_BASE_URL = "http://export.arxiv.org/api/query";
@@ -13,15 +13,12 @@ export async function POST(req: NextRequest) {
         }
 
         if (mode === "deep") {
-            // Handle Deep Search (Conversational) - This will be a more complex multi-turn logic
-            // For now, let's implement the search part first.
-            // In a real app, we might use a session id to track state.
             return handleDeepSearch(query);
         }
 
         // 1. Build arXiv Query
         let searchQuery = query;
-        if (timeRange !== "all") {
+        if (timeRange && timeRange !== "all") {
             const dateFilter = getDateFilter(timeRange);
             searchQuery = `${query} AND lastUpdatedDate:[${dateFilter} TO 99991231235959]`;
         }
@@ -48,18 +45,29 @@ export async function POST(req: NextRequest) {
 
             if (format === "summary") {
                 try {
-                    // Use Gemini to summarize (Japanese ですます調 as requested)
-                    content = await summarize(paper.summary, { tone: "casual", maxLength: 300 });
+                    // Prompt for copyright-safe and brand-consistent summarization
+                    const prompt = `あなたは「Pocket Dive」の専属サイエンスライターです。
+以下の論文概要（Abstract）をもとに、300文字程度の日本語で要約を作成してください。
+
+【制約事項】:
+1. 原文の表現をそのままコピーせず、事実に基づいてあなたの言葉で再構築（リフレーズ）してください（著作権保護）。
+2. 文体は知的で親しみやすい「です・ます調」を徹底してください。
+3. 専門用語は一般の人にもわかるよう、必要に応じて噛み砕いて説明してください。
+
+【対象】:
+${paper.summary}`;
+
+                    content = await summarize(prompt, { maxLength: 400 });
                 } catch (err) {
                     console.error("Summarization failed:", err);
-                    // fallback to original or simplified
                 }
             } else if (format === "title") {
-                content = ""; // Just title and links
+                content = "";
             }
 
             return {
                 ...paper,
+                summary_general: content, // Use this as the main display
                 displayContent: content,
                 format: format
             };
@@ -97,36 +105,45 @@ function parseArxivXml(xml: string) {
         const summary = entry.match(/<summary>([\s\S]*?)<\/summary>/)?.[1]?.trim() || "No Abstract";
         const id = entry.match(/<id>([\s\S]*?)<\/id>/)?.[1]?.trim() || "";
         const publishedAt = entry.match(/<published>([\s\S]*?)<\/published>/)?.[1]?.trim() || "";
+        const journal = "arXiv"; // Arxiv specific
         const pdfUrl = entry.match(/<link title="pdf" href="([\s\S]*?)"/)?.[1] ||
             entry.match(/<link href="([\s\S]*?)" rel="alternate"/)?.[1] || id;
 
-        // Clean title from newlines
         const cleanTitle = title.replace(/\s+/g, " ");
 
         return {
             id,
             title: cleanTitle,
-            summary, // This is the original abstract
+            summary,
             published_at: publishedAt,
             url: pdfUrl,
-            source: "arXiv"
+            journal: journal
         };
     }).slice(0, 10);
 }
 
 async function handleDeepSearch(query: string) {
     try {
-        const prompt = `あなたは科学論文の専門家です。ユーザーが「${query}」という内容に興味を持っていますが、具体的なキーワードがまだはっきりしていないかもしれません。
-        ユーザーに対して、興味を深めるための質問を2つ投げかけ、${query}に関連する研究分野（例えば量子物理学、分子生物学など）を示唆してください。
-        回答は「Pocket Dive」のブランドトーンに合わせ、知的で丁寧な日本語（です・ます調）で返してください。`;
+        const prompt = `あなたは科学論文の専門家コンシェルジュです。
+ユーザーの好奇心「${query}」を深掘りし、最適な研究分野へ導くための対話を行ってください。
 
-        const response = await summarize(prompt, { maxLength: 400 });
+【回答ルール】:
+1. 知的で丁寧な日本語（です・ます調）を使用してください。
+2. 回答の冒頭には、ユーザーの興味に対する肯定的なフィードバックと、関連する研究分野の示唆（例：量子物理学、認知心理学など）を入れてください。
+3. ユーザーの考えを整理するために、2つ程度の具体的な質問を投げかけてください。
+4. 回答はマークダウン形式で、見出しを活用して読みやすく構成してください。
+
+【ブランドトーン】:
+Pocket Dive - 知の最前線へ、美しくダイブする。`;
+
+        const response = await summarize(prompt, { maxLength: 600 });
 
         return NextResponse.json({
             message: response,
-            papers: []
+            papers: [] // Initial engagement might not have papers yet
         });
     } catch (err) {
         return NextResponse.json({ error: "Deep search intelligence failed." }, { status: 500 });
     }
 }
+

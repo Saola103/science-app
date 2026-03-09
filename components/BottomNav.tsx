@@ -1,3 +1,4 @@
+'use client';
 import { useTranslations } from 'next-intl';
 import { Link, usePathname } from '../i18n/routing';
 
@@ -36,7 +37,7 @@ export function BottomNav() {
                         className={`relative flex flex-col items-center justify-center min-w-[64px] h-full transition-all ${pathname === item.href ? "text-sky-600" : "text-slate-400"
                             }`}
                     >
-                        <span className={`text-[10px] font-black uppercase tracking-widest transition-transform ${pathname === item.href ? "scale-105" : ""}`}>
+                        <span className={`text-[10px] font-bold uppercase tracking-widest transition-transform ${pathname === item.href ? "scale-105" : ""}`}>
                             {item.name}
                         </span>
                         {pathname === item.href && (

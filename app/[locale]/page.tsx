@@ -3,14 +3,16 @@ import { useTranslations } from 'next-intl';
 import { Link, useRouter } from "../../i18n/routing";
 import Image from "next/image";
 import { useState } from "react";
+import { Search, ArrowRight } from "lucide-react";
 
 export default function Home() {
     const t = useTranslations('Home');
+    const st = useTranslations('Search');
     const ct = useTranslations('Common');
     const router = useRouter();
     const [searchQuery, setSearchQuery] = useState("");
 
-    const handleQuickSearch = (e: React.FormEvent) => {
+    const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) {
             router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
@@ -22,152 +24,169 @@ export default function Home() {
     return (
         <div className="min-h-screen bg-white text-slate-900 leading-relaxed font-sans">
 
-            {/* 1. Introduction Section (White) */}
-            <section className="py-24 px-6 md:py-32">
-                <div className="max-w-4xl mx-auto text-center space-y-8">
-                    <h1 className="text-5xl md:text-7xl font-black tracking-tighter text-slate-900 leading-none italic uppercase">
-                        POCKET <span className="text-sky-600">DIVE</span>
-                    </h1>
+            {/* 1. Hero Section (White) */}
+            <section className="relative pt-32 pb-24 px-6 md:pt-48 md:pb-40 overflow-hidden">
+                <div className="max-w-5xl mx-auto text-center space-y-12 relative z-10">
                     <div className="space-y-6">
-                        <p className="text-xl md:text-2xl font-bold text-slate-700 leading-tight">
+                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 leading-none italic uppercase">
+                            POCKET <span className="text-sky-600">DIVE</span>
+                        </h1>
+                        <p className="text-xl md:text-3xl font-bold text-slate-700 max-w-3xl mx-auto leading-tight">
                             {t("subtitle")}
                         </p>
-                        <p className="text-base text-slate-500 max-w-2xl mx-auto leading-relaxed">
-                            {t("description")}
-                        </p>
                     </div>
+
+                    <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
+                        {t("description")}
+                    </p>
+
+                    {/* Prominent Search Bar */}
+                    <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative group">
+                        <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
+                            <Search className="w-5 h-5 text-slate-400 group-focus-within:text-sky-600 transition-colors" />
+                        </div>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder={ct("searchPlaceholder")}
+                            className="w-full h-16 md:h-20 pl-16 pr-40 bg-white border-2 border-slate-100 rounded-2xl md:rounded-3xl text-lg font-bold outline-none focus:border-sky-600 focus:ring-4 focus:ring-sky-600/5 transition-all shadow-xl shadow-slate-200/40 placeholder:text-slate-400"
+                        />
+                        <button
+                            type="submit"
+                            className="absolute right-2 top-2 bottom-2 px-8 bg-slate-900 text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-sky-600 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-slate-900/10"
+                        >
+                            {ct("search")}
+                            <ArrowRight className="w-4 h-4" />
+                        </button>
+                    </form>
                 </div>
+
+                {/* Background Decor (Subtle) */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-50 rounded-full blur-[120px] opacity-50 -z-0"></div>
             </section>
 
-            {/* 2. Latest News Section (Sky 50) */}
-            <section className="bg-sky-50 py-24 px-6">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20">
-                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+            {/* 2. Latest News Section (Sky 50) - Zig: Image Left, Text Right */}
+            <section className="bg-sky-50 py-24 px-6 md:py-32">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
+                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
                         <Image
-                            src="https://picsum.photos/seed/tech/800/800"
+                            src="https://picsum.photos/seed/science1/1200/900"
                             alt="Science News"
                             fill
-                            className="object-cover"
+                            className="object-cover hover:scale-105 transition-transform duration-1000"
                         />
                     </div>
-                    <div className="flex-1 space-y-6">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                    <div className="flex-1 space-y-8 text-center md:text-left">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
+                            Insights
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("newsTitle")}
                         </h2>
-                        <p className="text-base text-slate-600 leading-relaxed">
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
                             {t("newsDesc")}
                         </p>
-                        <div className="pt-2">
+                        <div className="pt-4">
                             <Link
                                 href="/news"
-                                className="inline-block px-10 py-4 bg-sky-600 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-700 transition-colors shadow-lg shadow-sky-600/10"
+                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
                             >
                                 {ct("viewMore")}
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 3. Research Papers Section (White) */}
-            <section className="bg-white py-24 px-6 border-b border-slate-50">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row-reverse items-center gap-12 sm:gap-20">
-                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+            {/* 3. Research Papers Section (White) - Zag: Text Left, Image Right */}
+            <section className="bg-white py-24 px-6 md:py-32">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
+                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-900/5 border border-slate-100">
                         <Image
-                            src="https://picsum.photos/seed/space/800/800"
+                            src="https://picsum.photos/seed/science2/1200/900"
                             alt="Research Papers"
                             fill
-                            className="object-cover"
+                            className="object-cover hover:scale-105 transition-transform duration-1000"
                         />
                     </div>
-                    <div className="flex-1 space-y-6">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900">
+                    <div className="flex-1 space-y-8 text-center md:text-left">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-slate-900/5 text-slate-500 text-[10px] font-black tracking-[0.2em] uppercase">
+                            Academic
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("papersTitle")}
                         </h2>
-                        <p className="text-base text-slate-600 leading-relaxed">
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
                             {t("papersDesc")}
                         </p>
-                        <div className="pt-2">
+                        <div className="pt-4">
                             <Link
                                 href="/papers"
-                                className="inline-block px-10 py-4 bg-sky-600 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-700 transition-colors shadow-lg shadow-sky-600/10"
+                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
                             >
                                 {ct("viewMore")}
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
                     </div>
                 </div>
             </section>
 
-            {/* 4. AI Search Section (Sky 50) */}
-            <section className="bg-sky-50 py-24 px-6">
-                <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center gap-12 sm:gap-20">
-                    <div className="flex-1 w-full aspect-video md:aspect-square relative rounded-2xl overflow-hidden shadow-sm">
+            {/* 4. AI Search Concept Section (Sky 50) - Zig: Image Left, Text Right */}
+            <section className="bg-sky-50 py-24 px-6 md:py-32">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
+                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
                         <Image
-                            src="https://picsum.photos/seed/ai/800/800"
+                            src="https://picsum.photos/seed/science3/1200/900"
                             alt="AI Integration"
                             fill
-                            className="object-cover"
+                            className="object-cover hover:scale-105 transition-transform duration-1000"
                         />
                     </div>
-                    <div className="flex-1 space-y-8">
-                        <h2 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">
+                    <div className="flex-1 space-y-8 text-center md:text-left">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
+                            Next-Gen
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("searchTitle")}<br />
                             <span className="text-sky-600">{t("searchSubtitle")}</span>
                         </h2>
-                        <p className="text-base text-slate-600 leading-relaxed">
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
                             {t("searchDesc")}
                         </p>
-
-                        <form onSubmit={handleQuickSearch} className="flex flex-col sm:flex-row gap-3 pt-2">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder={ct("searchPlaceholder")}
-                                className="flex-1 h-14 px-6 bg-white border border-slate-200 rounded-lg text-base font-medium outline-none focus:border-sky-600 transition-colors placeholder:text-slate-400"
-                            />
-                            <button
-                                type="submit"
-                                className="h-14 px-10 bg-slate-900 text-white font-black text-sm uppercase tracking-widest rounded-lg hover:bg-sky-600 transition-colors shadow-xl shadow-slate-900/10 whitespace-nowrap"
+                        <div className="pt-4">
+                            <Link
+                                href="/search"
+                                className="px-10 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/20 active:scale-95"
                             >
-                                {ct("search")}
-                            </button>
-                        </form>
+                                {st("modeDeep")}
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>
 
-            {/* 6. Bottom Summary Items */}
-            <section className="bg-slate-50 py-24 px-6 border-t border-slate-100">
-                <div className="max-w-6xl mx-auto space-y-16">
-                    <div className="flex items-center justify-between border-b border-slate-200 pb-4">
-                        <h2 className="text-xl font-black tracking-[0.2em] text-slate-900 uppercase italic">
-                            FEATURED STORIES
-                        </h2>
-                        <Link href="/news" className="text-xs font-black tracking-widest text-sky-600 hover:text-sky-700 uppercase">
-                            {ct("viewMore")} &rarr;
-                        </Link>
-                    </div>
-
-                    {/* Items Grid (Placeholder for real data) */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-                        {[1, 2, 3, 4, 5, 6].map(i => (
-                            <div key={i} className="group space-y-4 cursor-pointer">
-                                <div className="aspect-[16/10] bg-slate-200 rounded-xl overflow-hidden relative">
-                                    <Image
-                                        src={`https://picsum.photos/seed/item-${i}/600/400`}
-                                        alt="item"
-                                        fill
-                                        className="object-cover group-hover:scale-105 transition-transform duration-700"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <div className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase">SCIENCE FEATURE</div>
-                                    <h3 className="text-lg font-black leading-snug group-hover:text-sky-600 transition-colors">
-                                        Next-Gen Insights into Clean Energy Revolution and AI.
-                                    </h3>
-                                </div>
+            {/* 5. Values / Philosophy (White) */}
+            <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50">
+                <div className="max-w-4xl mx-auto space-y-12">
+                    <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 uppercase italic">
+                        Knowledge for <span className="text-sky-600">Everyone.</span>
+                    </h2>
+                    <p className="text-lg md:text-xl text-slate-500 font-bold leading-relaxed">
+                        We believe that the frontier of human understanding should be accessible to all.
+                        Pocket Dive bridges the gap between deep research and everyday curiosity.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
+                        {[
+                            { label: "Accuracy", value: "Verified data from arXiv & PubMed" },
+                            { label: "Clarity", value: "AI-powered dual-level summaries" },
+                            { label: "Speed", value: "Real-time updates on latest facts" }
+                        ].map((item, i) => (
+                            <div key={i} className="p-8 rounded-[2rem] bg-slate-50 border border-slate-100 space-y-3">
+                                <div className="text-xs font-black tracking-widest text-sky-600 uppercase italic">{item.label}</div>
+                                <div className="text-sm font-bold text-slate-900 leading-tight">{item.value}</div>
                             </div>
                         ))}
                     </div>
@@ -177,3 +196,4 @@ export default function Home() {
         </div>
     );
 }
+

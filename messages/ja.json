@@ -58,7 +58,8 @@
         "last10yr": "過去10年",
         "formatTitle": "タイトルのみ",
         "formatSummary": "AI要約",
-        "formatAbstract": "アブストラクト"
+        "formatAbstract": "アブストラクト",
+        "searchSubtitle": "知のリサーチを、もっとダイレクトに。"
     },
     "Contact": {
         "title": "お問い合わせ",

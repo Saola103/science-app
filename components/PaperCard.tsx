@@ -119,8 +119,18 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
             {paper.url ? <a href={paper.url} target="_blank" rel="noreferrer" className="hover:underline">{paper.title}</a> : paper.title}
           </h2>
           <div className="flex flex-wrap gap-4 text-[10px] font-black text-slate-400 tracking-widest uppercase">
-            {paper.journal && <span className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-slate-300"></span>{paper.journal}</span>}
-            {published && <span className="flex items-center gap-1.5"><span className="w-1 h-1 rounded-full bg-slate-300"></span>{published}</span>}
+            {paper.journal && (
+              <span className="flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-sky-500"></span>
+                出典: {paper.journal}
+              </span>
+            )}
+            {published && (
+              <span className="flex items-center gap-1.5">
+                <span className="w-1 h-1 rounded-full bg-slate-300"></span>
+                {published}
+              </span>
+            )}
           </div>
         </div>
 

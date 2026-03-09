@@ -58,7 +58,8 @@
         "last10yr": "Last 10 Years",
         "formatTitle": "Title Only",
         "formatSummary": "AI Summary",
-        "formatAbstract": "Abstract"
+        "formatAbstract": "Abstract",
+        "searchSubtitle": "Next Generation AI Search."
     },
     "Contact": {
         "title": "Contact Us",

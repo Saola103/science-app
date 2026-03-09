@@ -1,52 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
 import { useTranslations } from "next-intl";
-import { Search, Sparkles, Clock, FileText, Send, User, Bot, ArrowRight } from "lucide-react";
+import { Search, Sparkles, Clock, FileText, Send, Loader2, BookOpen, Quote } from "lucide-react";
 
-export default function SearchPage() {
-  const t = useTranslations('Common');
+interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+  papers?: PaperCardData[];
+}
+
+function SearchContent() {
+  const t = useTranslations();
+  const searchParams = useSearchParams();
+
   const [query, setQuery] = useState("");
   const [mode, setMode] = useState<"keyword" | "deep">("keyword");
   const [timeRange, setTimeRange] = useState("all");
   const [format, setFormat] = useState("summary");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<PaperCardData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Chat states for Deep Search
-  const [messages, setMessages] = useState<{ role: 'user' | 'assistant', content: string }[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
 
-  const handleKeywordSearch = async (e?: React.FormEvent) => {
+  useEffect(() => {
+    const q = searchParams.get("q");
+    if (q) {
+      setQuery(q);
+      handleKeywordSearch(undefined, q);
+    }
+  }, [searchParams]);
+
+  const handleKeywordSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
     if (e) e.preventDefault();
-    if (!query.trim()) return;
+    const searchTerms = overrideQuery || query;
+    if (!searchTerms.trim()) return;
 
     setIsLoading(true);
     setError("");
+    setResults([]);
 
     try {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query, timeRange, format, mode: "keyword" }),
+        body: JSON.stringify({ query: searchTerms, timeRange, format, mode: "keyword" }),
       });
 
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
       setResults(data.papers || []);
       if (data.papers?.length === 0) {
-        setError("No papers found for this query and filters.");
+        setError("No papers found matching your criteria.");
       }
     } catch (err) {
-      console.error(err);
-      setError("An error occurred during search.");
+      setError("An error occurred during keyword search. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleChatSubmit = async (e: React.FormEvent) => {
+  const handleDeepSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
 
@@ -56,234 +73,228 @@ export default function SearchPage() {
     setIsLoading(true);
 
     try {
-      // In Deep Search, we'd ideally hit a different or same endpoint with conversation history
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: userMsg, mode: "deep" }),
       });
+
+      if (!res.ok) throw new Error("Deep search failed");
       const data = await res.json();
 
-      // For now, simulating assistant response if backend is simple
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: data.message || "I understand you're looking for research on that. Could you specify which aspect interests you most?"
+        content: data.message || "I've analyzed your request. Here are some relevant research paths...",
+        papers: data.papers
       }]);
     } catch (err) {
-      setError("Chat error occurred.");
+      setError("Deep search encountered an error.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-slate-950 transition-colors duration-500">
-      {/* 1. Header & Mode Switcher */}
-      <section className="mx-auto max-w-4xl px-6 pt-24 pb-8 space-y-12">
-        <div className="text-center space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/20 bg-sky-500/5 text-[10px] font-black tracking-widest text-sky-600 uppercase">
-            AI REDESIGN v2.0
+    <div className="min-h-screen bg-white text-slate-900">
+      <section className="pt-24 pb-12 px-6 border-b border-slate-50">
+        <div className="max-w-4xl mx-auto space-y-10 text-center">
+          <div className="space-y-4">
+            <h1 className="text-4xl md:text-6xl font-black tracking-tight uppercase italic">
+              AI <span className="text-sky-600">DISCOVERY</span>
+            </h1>
+            <p className="text-base font-bold text-slate-500 uppercase tracking-widest">
+              {t("Search.searchSubtitle")}
+            </p>
           </div>
-          <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 dark:text-white uppercase italic leading-[1.1]">
-            {mode === "keyword" ? 'Keyword Search' : 'Deep Search'}
-          </h1>
 
-          {/* Simple Tab Switcher */}
-          <div className="inline-flex p-1 bg-slate-100 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-white/5">
+          <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
             <button
-              onClick={() => { setMode("keyword"); setResults([]); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white dark:bg-slate-800 text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+              onClick={() => { setMode("keyword"); setError(""); }}
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Search size={14} />
-              Keyword
+              <Search size={16} />
+              {t("Search.modeKeyword")}
             </button>
             <button
-              onClick={() => { setMode("deep"); setResults([]); }}
-              className={`flex items-center gap-2 px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white dark:bg-slate-800 text-sky-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
+              onClick={() => { setMode("deep"); setError(""); }}
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Sparkles size={14} />
-              Deep Search
+              <Sparkles size={16} />
+              {t("Search.modeDeep")}
             </button>
           </div>
         </div>
+      </section>
 
-        {/* 2. Keyword Search Interface */}
-        {mode === "keyword" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <form onSubmit={handleKeywordSearch} className="relative group">
+      <section className="max-w-6xl mx-auto px-6 py-12">
+        {mode === "keyword" ? (
+          <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <form onSubmit={handleKeywordSearch} className="max-w-4xl mx-auto relative group">
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Quantum computing, Neural networks..."
-                className="w-full h-20 rounded-3xl border border-slate-200 dark:border-white/10 bg-white/70 dark:bg-white/5 px-8 pr-40 text-lg font-bold text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-sky-600 backdrop-blur-md transition-all shadow-2xl shadow-slate-200/50"
+                placeholder={t("Search.placeholder")}
+                className="w-full h-16 md:h-24 pl-8 pr-44 bg-white border-2 border-slate-100 rounded-[2rem] text-xl font-bold outline-none focus:border-sky-600 focus:ring-4 focus:ring-sky-600/5 transition-all shadow-2xl shadow-slate-200/40"
               />
               <button
                 type="submit"
                 disabled={isLoading}
-                className="absolute right-3 top-3 bottom-3 rounded-2xl bg-slate-900 dark:bg-sky-600 text-white px-8 font-black text-xs tracking-widest uppercase hover:scale-[1.02] active:scale-95 disabled:opacity-50 transition-all flex items-center gap-2"
+                className="absolute right-3 top-3 bottom-3 px-10 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-sky-600 transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
               >
-                {isLoading ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> : "Search"}
-                {!isLoading && <ArrowRight size={14} />}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("Common.search")}
               </button>
             </form>
 
-            {/* Filters Row */}
-            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 py-4 border-y border-slate-100 dark:border-white/5">
-              {/* Time Range */}
-              <div className="flex items-center gap-3">
-                <Clock size={16} className="text-slate-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Time:</span>
+            <div className="flex flex-wrap items-center justify-center gap-12 py-8 border-y border-slate-100">
+              <div className="flex items-center gap-4">
+                <Clock className="w-5 h-5 text-sky-600" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Search.filterTime")}</span>
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
-                  className="bg-transparent text-[11px] font-black text-slate-900 dark:text-white uppercase outline-none cursor-pointer hover:text-sky-600"
+                  className="bg-transparent text-[11px] font-black text-slate-900 uppercase italic outline-none cursor-pointer border-b-2 border-transparent hover:border-sky-600 transition-all"
                 >
-                  <option value="all">Any Time</option>
-                  <option value="6mo">Last 6 Months</option>
-                  <option value="1yr">Last Year</option>
-                  <option value="5yr">Last 5 Years</option>
+                  <option value="all">{t("Search.anyTime")}</option>
+                  <option value="6mo">{t("Search.last6mo")}</option>
+                  <option value="1yr">{t("Search.last1yr")}</option>
+                  <option value="5yr">{t("Search.last5yr")}</option>
+                  <option value="10yr">{t("Search.last10yr")}</option>
                 </select>
               </div>
 
-              {/* Format */}
-              <div className="flex items-center gap-3">
-                <FileText size={16} className="text-slate-400" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Output:</span>
-                <div className="flex gap-4">
-                  {['title', 'summary', 'abstract'].map((f) => (
-                    <label key={f} className="flex items-center gap-1.5 cursor-pointer group">
-                      <input
-                        type="radio"
-                        name="format"
-                        value={f}
-                        checked={format === f}
-                        onChange={() => setFormat(f)}
-                        className="hidden"
-                      />
-                      <span className={`text-[10px] font-black uppercase tracking-widest transition-colors ${format === f ? 'text-sky-600' : 'text-slate-300 group-hover:text-slate-500'}`}>
-                        {f}
-                      </span>
-                    </label>
+              <div className="flex items-center gap-4">
+                <FileText className="w-5 h-5 text-sky-600" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Search.filterFormat")}</span>
+                <div className="flex gap-6">
+                  {[
+                    { val: 'title', label: t("Search.formatTitle") },
+                    { val: 'summary', label: t("Search.formatSummary") },
+                    { val: 'abstract', label: t("Search.formatAbstract") }
+                  ].map((f) => (
+                    <button
+                      key={f.val}
+                      onClick={() => setFormat(f.val)}
+                      className={`text-[11px] font-black uppercase tracking-widest transition-all ${format === f.val ? 'text-sky-600 border-b-2 border-sky-600' : 'text-slate-300 hover:text-slate-500'}`}
+                    >
+                      {f.label}
+                    </button>
                   ))}
                 </div>
               </div>
             </div>
-          </div>
-        )}
 
-        {/* 3. Deep Search Interface (Conversational) */}
-        {mode === "deep" && (
-          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <div className="aspect-[4/3] md:aspect-[2/1] bg-slate-50 dark:bg-slate-900/50 rounded-[2.5rem] border border-slate-100 dark:border-white/5 flex flex-col overflow-hidden shadow-inner">
-              {/* Messages Area */}
-              <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-6">
+            {error && (
+              <div className="max-w-2xl mx-auto p-6 bg-red-50 rounded-2xl border border-red-100 flex items-center gap-4 text-red-600 animate-in zoom-in duration-300">
+                <div className="p-2 bg-white rounded-lg shadow-sm">⚠️</div>
+                <p className="text-sm font-bold uppercase tracking-tight">{error}</p>
+              </div>
+            )}
+
+            <div className="space-y-12">
+              {results.map((paper, idx) => (
+                <div key={paper.id || idx} className="animate-in fade-in slide-in-from-bottom-8 duration-700" style={{ animationDelay: `${idx * 100}ms` }}>
+                  <PaperCard paper={paper} />
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-500">
+            <div className="bg-slate-50 rounded-[2.5rem] p-8 md:p-12 min-h-[500px] flex flex-col shadow-inner">
+              <div className="flex-1 space-y-8 overflow-y-auto mb-8 pr-4 custom-scrollbar">
                 {messages.length === 0 && (
-                  <div className="h-full flex flex-col items-center justify-center text-center space-y-4 opacity-50">
-                    <Bot size={48} className="text-sky-600 mb-2" />
-                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase italic">Deep Intelligence</h3>
-                    <p className="max-w-xs text-xs font-bold text-slate-500 leading-relaxed">
-                      Tell me what you're curious about in natural language. I'll help narrow down the perfect papers for you.
+                  <div className="h-full flex flex-col items-center justify-center text-center space-y-6 opacity-40 py-20">
+                    <Sparkles size={48} className="text-sky-600 animate-pulse" />
+                    <p className="text-sm font-black uppercase tracking-[0.2em] max-w-xs leading-loose italic">
+                      Start a scientific journey. Ask me anything to begin your deep dive.
                     </p>
                   </div>
                 )}
-                {messages.map((m, idx) => (
-                  <div key={idx} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
-                    <div className={`max-w-[80%] flex items-start gap-4 p-5 rounded-3xl ${m.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-white/5 text-slate-900 dark:text-white rounded-tl-none shadow-sm'}`}>
-                      <div className={`mt-1 flex-none w-6 h-6 rounded-full flex items-center justify-center ${m.role === 'user' ? 'bg-sky-500' : 'bg-slate-200 dark:bg-slate-700'}`}>
-                        {m.role === 'user' ? <User size={12} /> : <Bot size={12} />}
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in slide-in-from-bottom-2 duration-300`}>
+                    <div className={`max-w-[85%] p-6 md:p-8 rounded-[2rem] shadow-sm ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none' : 'bg-white border border-slate-100 rounded-tl-none'}`}>
+                      <div className="flex items-center gap-3 mb-4 opacity-50">
+                        {msg.role === 'user' ? <div className="text-[10px] font-black uppercase tracking-widest">Researcher</div> : <div className="text-[10px] font-black uppercase tracking-widest text-sky-600">AI Concierge</div>}
                       </div>
-                      <p className="text-sm font-bold leading-relaxed">{m.content}</p>
+                      <div className="prose prose-slate max-w-none text-base md:text-lg leading-relaxed font-medium">
+                        {msg.content}
+                      </div>
+                      {msg.papers && msg.papers.length > 0 && (
+                        <div className="mt-8 space-y-6 pt-8 border-t border-slate-100">
+                          <div className="flex items-center gap-2 text-sky-600 mb-4">
+                            <BookOpen size={16} />
+                            <span className="text-[10px] font-black uppercase tracking-widest">Recommended Sources</span>
+                          </div>
+                          {msg.papers.map(p => (
+                            <PaperCard key={p.id} paper={p} />
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
+                {isLoading && (
+                  <div className="flex justify-start animate-pulse">
+                    <div className="bg-white p-6 rounded-[2rem] rounded-tl-none border border-slate-100 flex items-center gap-4">
+                      <div className="flex gap-1.5">
+                        <div className="w-2 h-2 bg-sky-600 rounded-full animate-bounce"></div>
+                        <div className="w-2 h-2 bg-sky-600 rounded-full animate-bounce delay-75"></div>
+                        <div className="w-2 h-2 bg-sky-600 rounded-full animate-bounce delay-150"></div>
+                      </div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Synthesizing...</span>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Input Area */}
-              <form onSubmit={handleChatSubmit} className="p-6 md:p-8 bg-white dark:bg-slate-900 border-t border-slate-100 dark:border-white/5">
-                <div className="relative group">
-                  <input
-                    type="text"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                    placeholder="Type your message..."
-                    className="w-full h-14 pl-6 pr-16 bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-white/5 rounded-2xl text-sm font-bold text-slate-900 dark:text-white outline-none focus:border-sky-600 transition-all"
-                  />
-                  <button
-                    type="submit"
-                    disabled={isLoading || !query.trim()}
-                    className="absolute right-2 top-2 bottom-2 w-10 h-10 bg-slate-900 dark:bg-sky-600 text-white rounded-xl flex items-center justify-center hover:scale-105 active:scale-95 disabled:opacity-30 transition-all"
-                  >
-                    <Send size={16} />
-                  </button>
-                </div>
+              <form onSubmit={handleDeepSearchSubmit} className="relative">
+                <input
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="I want to know about..."
+                  className="w-full h-16 md:h-20 pl-8 pr-24 bg-white border-2 border-slate-200 rounded-3xl text-lg font-bold outline-none focus:border-sky-600 transition-all shadow-xl shadow-slate-200/50"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !query.trim()}
+                  className="absolute right-2.5 top-2.5 bottom-2.5 w-12 md:w-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center hover:bg-sky-600 transition-all disabled:opacity-50 shadow-lg"
+                >
+                  <Send size={20} />
+                </button>
               </form>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-4">
+              <div className="p-8 bg-sky-50/50 rounded-3xl border border-sky-100/50 space-y-4">
+                <Quote className="text-sky-600 opacity-20" size={32} />
+                <p className="text-sm font-bold text-slate-600 leading-relaxed italic">
+                  "Knowledge is power. Deep searching allows you to explore the nuances of complex topics with ease."
+                </p>
+              </div>
+              <div className="p-8 bg-slate-50/50 rounded-3xl border border-slate-100 space-y-4">
+                <BookOpen className="text-slate-400 opacity-20" size={32} />
+                <p className="text-sm font-bold text-slate-600 leading-relaxed italic">
+                  "Stay curious. Our AI is designed to guide you through the latest academic findings across all domains."
+                </p>
+              </div>
             </div>
           </div>
         )}
       </section>
-
-      {/* 4. Results Section */}
-      <main className="mx-auto max-w-6xl px-6 pb-32">
-        {error && (
-          <div className="mx-auto max-w-2xl text-center p-8 rounded-[2rem] bg-red-500/10 border border-red-500/20 text-red-500 font-bold mb-12">
-            {error}
-          </div>
-        )}
-
-        {results.length > 0 && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-in fade-in duration-1000">
-            {results.map((paper, idx) => (
-              <div key={paper.id} style={{ animationDelay: `${idx * 100}ms` }} className="animate-in fade-in slide-in-from-bottom-4 fill-mode-both">
-                <article className="group h-full bg-white dark:bg-slate-900/50 border border-slate-100 dark:border-white/5 rounded-[2.5rem] p-8 hover:border-sky-500/30 transition-all duration-500 hover:shadow-2xl hover:shadow-sky-500/5 flex flex-col gap-6">
-                  <div className="flex justify-between items-start gap-4">
-                    <span className="px-3 py-1 rounded-full bg-sky-500/10 text-sky-600 text-[10px] font-black tracking-widest uppercase">{paper.source}</span>
-                    <span className="text-[10px] font-black text-slate-300 uppercase">{paper.published_at.split('T')[0]}</span>
-                  </div>
-                  <h2 className="text-xl font-black text-slate-900 dark:text-white leading-snug group-hover:text-sky-600 transition-colors">
-                    {paper.title}
-                  </h2>
-                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 leading-relaxed flex-1">
-                    {paper.displayContent || paper.summary.slice(0, 200) + '...'}
-                  </p>
-                  <div className="flex items-center justify-between pt-4 border-t border-slate-50 dark:border-white/5">
-                    <div className="flex gap-2">
-                      <a
-                        href={paper.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-sky-600"
-                      >
-                        Original Paper &rarr;
-                      </a>
-                    </div>
-                    <button className="text-[10px] font-black uppercase tracking-widest text-slate-900 dark:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                      Dive Deep
-                    </button>
-                  </div>
-                </article>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isLoading && results.length === 0 && !error && mode === "keyword" && (
-          <div className="py-24 text-center space-y-6 animate-pulse">
-            <div className="text-6xl grayscale opacity-20">🔎</div>
-            <p className="text-[10px] font-black tracking-[0.4em] uppercase text-slate-300">EXPLORE THE ARCHIVE</p>
-          </div>
-        )}
-
-        {isLoading && mode === "keyword" && results.length === 0 && (
-          <div className="py-24 space-y-12">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {[1, 2, 4, 6].map(i => (
-                <div key={i} className="h-64 rounded-[2.5rem] bg-slate-50 dark:bg-slate-900 animate-pulse"></div>
-              ))}
-            </div>
-          </div>
-        )}
-      </main>
     </div>
+  );
+}
+
+export default function SearchPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-sky-600" />
+      </div>
+    }>
+      <SearchContent />
+    </Suspense>
   );
 }
