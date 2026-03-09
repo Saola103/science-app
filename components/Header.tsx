@@ -1,3 +1,4 @@
+'use client';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '../i18n/routing';
 import { useState, useEffect } from "react";
