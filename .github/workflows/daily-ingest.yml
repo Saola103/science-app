@@ -20,8 +20,9 @@ jobs:
         run: npm install
         
       - name: Run Ingest Script
+        run: npx tsx scripts/ingest-open-access.ts "Neuroscience" 5
         env:
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: npx ts-node --project tsconfig.json scripts/ingest-open-access.ts 5
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          SUPABASE_PAPERS_TABLE: ${{ secrets.SUPABASE_PAPERS_TABLE }}

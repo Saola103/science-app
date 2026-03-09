@@ -13,7 +13,8 @@ interface Message {
 }
 
 function SearchContent() {
-  const t = useTranslations();
+  const t = useTranslations("Search");
+  const ct = useTranslations("Common");
   const searchParams = useSearchParams();
 
   const [query, setQuery] = useState("");
@@ -103,7 +104,7 @@ function SearchContent() {
               AI <span className="text-sky-600">DISCOVERY</span>
             </h1>
             <p className="text-base font-bold text-slate-500 uppercase tracking-widest">
-              {t("Search.searchSubtitle")}
+              {t("searchSubtitle")}
             </p>
           </div>
 
@@ -113,14 +114,14 @@ function SearchContent() {
               className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
               <Search size={16} />
-              {t("Search.modeKeyword")}
+              {t("modeKeyword")}
             </button>
             <button
               onClick={() => { setMode("deep"); setError(""); }}
               className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
               <Sparkles size={16} />
-              {t("Search.modeDeep")}
+              {t("modeDeep")}
             </button>
           </div>
         </div>
@@ -134,7 +135,7 @@ function SearchContent() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("Search.placeholder")}
+                placeholder={t("placeholder")}
                 className="w-full h-16 md:h-24 pl-8 pr-44 bg-white border-2 border-slate-100 rounded-[2rem] text-xl font-bold outline-none focus:border-sky-600 focus:ring-4 focus:ring-sky-600/5 transition-all shadow-2xl shadow-slate-200/40"
               />
               <button
@@ -142,35 +143,35 @@ function SearchContent() {
                 disabled={isLoading}
                 className="absolute right-3 top-3 bottom-3 px-10 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-sky-600 transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
               >
-                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : t("Common.search")}
+                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : ct("search")}
               </button>
             </form>
 
             <div className="flex flex-wrap items-center justify-center gap-12 py-8 border-y border-slate-100">
               <div className="flex items-center gap-4">
                 <Clock className="w-5 h-5 text-sky-600" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Search.filterTime")}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterTime")}</span>
                 <select
                   value={timeRange}
                   onChange={(e) => setTimeRange(e.target.value)}
                   className="bg-transparent text-[11px] font-black text-slate-900 uppercase italic outline-none cursor-pointer border-b-2 border-transparent hover:border-sky-600 transition-all"
                 >
-                  <option value="all">{t("Search.anyTime")}</option>
-                  <option value="6mo">{t("Search.last6mo")}</option>
-                  <option value="1yr">{t("Search.last1yr")}</option>
-                  <option value="5yr">{t("Search.last5yr")}</option>
-                  <option value="10yr">{t("Search.last10yr")}</option>
+                  <option value="all">{t("anyTime")}</option>
+                  <option value="6mo">{t("last6mo")}</option>
+                  <option value="1yr">{t("last1yr")}</option>
+                  <option value="5yr">{t("last5yr")}</option>
+                  <option value="10yr">{t("last10yr")}</option>
                 </select>
               </div>
 
               <div className="flex items-center gap-4">
                 <FileText className="w-5 h-5 text-sky-600" />
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("Search.filterFormat")}</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterFormat")}</span>
                 <div className="flex gap-6">
                   {[
-                    { val: 'title', label: t("Search.formatTitle") },
-                    { val: 'summary', label: t("Search.formatSummary") },
-                    { val: 'abstract', label: t("Search.formatAbstract") }
+                    { val: 'title', label: t("formatTitle") },
+                    { val: 'summary', label: t("formatSummary") },
+                    { val: 'abstract', label: t("formatAbstract") }
                   ].map((f) => (
                     <button
                       key={f.val}

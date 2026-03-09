@@ -21,10 +21,8 @@ export function BottomNav() {
     // Overriding the profile name specifically if I want it consistent
     const refinedItems = [
         { name: t("home"), href: "/" },
-        { name: t("news"), href: "/news" },
-        { name: t("papers"), href: "/papers" },
         { name: t("search"), href: "/search" },
-        { name: "MY PAGE", href: "/profile" },
+        { name: t("about"), href: "/about" },
     ];
 
     return (
