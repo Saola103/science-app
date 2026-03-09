@@ -1,3 +1,4 @@
+'use client';
 import { useTranslations } from 'next-intl';
 import { Link, useRouter } from '@/i18n/routing';
 import Image from "next/image";
