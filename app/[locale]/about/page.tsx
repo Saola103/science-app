@@ -1,6 +1,6 @@
 "use client";
 
-import { useLanguage } from "@/components/LanguageProvider";
+import { useLanguage } from "../../../components/LanguageProvider";
 import Link from "next/link";
 
 export default function AboutPage() {

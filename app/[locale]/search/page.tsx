@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PaperCard, type PaperCardData } from "@/components/PaperCard";
+import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
 import { useTranslations } from "next-intl";
 import { Search, Sparkles, Clock, FileText, Send, User, Bot, ArrowRight } from "lucide-react";
 

@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "@/i18n/routing";
-import { PaperCard, type PaperCardData } from "@/components/PaperCard";
+import { Link } from "../../../i18n/routing";
+import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
 import { useTranslations } from "next-intl";
-import { fetchLatestPapers } from "@/app/actions";
-import { CATEGORIES_HIERARCHY } from "@/lib/categories";
+import { fetchLatestPapers } from "../../actions";
+import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
 
 export default function PapersPage() {
     const t = useTranslations('Papers');

@@ -2,7 +2,7 @@
 
 import { useTranslations, useLocale } from 'next-intl';
 import { useState } from 'react';
-import { submitInquiry } from '@/lib/actions/inquiry';
+import { submitInquiry } from "../../../lib/actions/inquiry";
 import { Send, CheckCircle2 } from 'lucide-react';
 
 export default function ContactPage() {

@@ -1,7 +1,7 @@
 import { useTranslations, useLocale } from 'next-intl';
-import { Link, usePathname, useRouter } from '@/i18n/routing';
+import { Link, usePathname, useRouter } from '../i18n/routing';
 import { useState, useEffect } from "react";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "../lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 import Image from "next/image";
 import { Globe, ChevronDown } from "lucide-react";

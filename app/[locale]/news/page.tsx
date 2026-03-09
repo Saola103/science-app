@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { Link } from "@/i18n/routing";
-import { NewsCard, type NewsCardData } from "@/components/NewsCard";
+import { Link } from "../../../i18n/routing";
+import { NewsCard, type NewsCardData } from "../../../components/NewsCard";
 import { useTranslations } from "next-intl";
-import { CATEGORIES_HIERARCHY } from "@/lib/categories";
+import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
 
 const LATEST_NEWS_2026: (NewsCardData & { tags: string[] })[] = [
     {

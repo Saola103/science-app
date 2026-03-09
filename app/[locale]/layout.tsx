@@ -1,13 +1,13 @@
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { routing } from '@/i18n/routing';
+import { routing } from '../../i18n/routing';
 
-import "./globals.css";
-import { AppProvider } from "@/components/LanguageProvider";
-import { Header } from "@/components/Header";
-import { Footer } from "@/components/Footer";
-import { BottomNav } from "@/components/BottomNav";
+import "../globals.css";
+import { AppProvider } from "../../components/LanguageProvider";
+import { Header } from "../../components/Header";
+import { Footer } from "../../components/Footer";
+import { BottomNav } from "../../components/BottomNav";
 import { Geist, Geist_Mono } from "next/font/google";
 
 const geistSans = Geist({

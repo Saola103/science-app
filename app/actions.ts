@@ -1,6 +1,6 @@
 "use server";
 
-import { getSupabaseServerClient } from "@/lib/supabase/serviceClient";
+import { getSupabaseServerClient } from "../lib/supabase/serviceClient";
 
 export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     console.log("[fetchLatestPapers] Fetching, limit:", limit, "categories:", categories);

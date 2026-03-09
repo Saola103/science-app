@@ -1,7 +1,7 @@
 "use server";
 
-import { saveInquiryToSupabase } from "@/lib/supabase/serviceClient";
-import { redirect } from "@/i18n/routing";
+import { saveInquiryToSupabase } from "../supabase/serviceClient";
+import { redirect } from "../../i18n/routing";
 
 export async function submitInquiry(formData: FormData, locale: string) {
     const topic = formData.get("topic") as string;

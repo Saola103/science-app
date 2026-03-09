@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getSupabaseClient } from "@/lib/supabase/client";
-import { useLanguage } from "@/components/LanguageProvider";
+import { getSupabaseClient } from "../../../lib/supabase/client";
+import { useLanguage } from "../../../components/LanguageProvider";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { PaperCard, type PaperCardData } from "@/components/PaperCard";
+import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
 
 export default function ProfilePage() {
     const { t } = useLanguage();

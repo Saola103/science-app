@@ -1,6 +1,6 @@
 "use client";
 
-import { useLanguage } from "@/components/LanguageProvider";
+import { useLanguage } from "../../../components/LanguageProvider";
 
 export default function TermsPage() {
     const { t } = useLanguage();

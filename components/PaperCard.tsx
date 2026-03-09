@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useEffect } from "react";
 import { useLanguage } from "./LanguageProvider";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { getSupabaseClient } from "../lib/supabase/client";
 
 export type PaperCardData = {
   id: string;

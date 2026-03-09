@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { summarize } from "@/lib/llm/summarize";
+import { summarize } from "../../../../lib/llm/summarize";
 
 // arXiv API Base URL
 const ARXIV_BASE_URL = "http://export.arxiv.org/api/query";
