@@ -1,0 +1,73 @@
+{
+    "Common": {
+        "home": "ホーム",
+        "news": "最新ニュース",
+        "papers": "最新論文",
+        "search": "AI検索",
+        "contact": "お問い合わせ",
+        "about": "このアプリについて",
+        "login": "ログイン",
+        "getStarted": "はじめる",
+        "language": "言語",
+        "backToHome": "ホームへ戻る",
+        "viewMore": "全て見る",
+        "searchPlaceholder": "キーワードや質問を入力..."
+    },
+    "Home": {
+        "subtitle": "ポケットから、身近な科学の世界へダイブできる。",
+        "description": "「科学って難しそう」。そんな常識を、私たちは変えていきたい。最先端の研究や驚きのニュースを、わかりやすく、面白く、すべての人にお届けします。科学の「価値」をすべての人へ還元するために生まれたプラットフォームです。",
+        "newsTitle": "最新ニュース",
+        "newsDesc": "世界中で日々刻々と進化するテクノロジーや科学の「今」をキャッチしましょう。AIが要約したニュースで、効率的に知識をアップデート。",
+        "papersTitle": "新着論文",
+        "papersDesc": "arXivやPubMedから届く膨大な論文から、価値のある研究をセレクト。専門家向けと一般向けの二段階要約で、深い学びを提供します。",
+        "searchTitle": "知のリサーチを、",
+        "searchSubtitle": "もっとダイレクトに。",
+        "searchDesc": "キーワード検索を超え、意味で論文を探す。AIへの問いかけが、あなたのリサーチの扉を開きます。膨大なアーカイブから瞬時に回答を見つけましょう。"
+    },
+    "News": {
+        "title": "最新ニュース",
+        "description": "世界中で日々刻々と進化するテクノロジーや科学の「今」をキャッチしましょう。AIが要約したニュースで、効率的に知識をアップデート。",
+        "diveTitle": "ニュースダイブ",
+        "diveSubtitle": "最先端の事実を、知る。",
+        "step1": "ステップ1: トピック選択",
+        "step2": "ステップ2: 絞り込み",
+        "latestStories": "最新の話題",
+        "noNews": "該当するニュースが見つかりませんでした。"
+    },
+    "Papers": {
+        "title": "新着論文",
+        "description": "arXivやPubMedから届く膨大な論文から、価値のある研究をセレクト。一般向けと専門家向けの二段階要約で、深い学びを提供します。",
+        "diveTitle": "論文ダイブ",
+        "diveSubtitle": "知の最前線へ、潜る。",
+        "latestPapers": "最新の論文",
+        "noPapers": "該当する論文が見つかりませんでした。"
+    },
+    "Search": {
+        "title": "AI検索",
+        "subtitle": "知のリサーチを、もっとダイレクトに。",
+        "description": "キーワードだけでなく「意味」で論文を検索。あなたの問いに対する最適な学術的回答を見つけます。",
+        "placeholder": "興味のあるテーマを入力...",
+        "modeKeyword": "キーワード検索",
+        "modeDeep": "ディープ検索",
+        "filterTime": "期間",
+        "filterFormat": "形式",
+        "anyTime": "全期間",
+        "last6mo": "過去6ヶ月",
+        "last1yr": "過去1年",
+        "last5yr": "過去5年",
+        "last10yr": "過去10年",
+        "formatTitle": "タイトルのみ",
+        "formatSummary": "AI要約",
+        "formatAbstract": "アブストラクト"
+    },
+    "Contact": {
+        "title": "お問い合わせ",
+        "subtitle": "分野の追加リクエストや、サイトへの感想をお寄せください。",
+        "formTopic": "トピック",
+        "formEmail": "メールアドレス (任意)",
+        "formMessage": "メッセージ",
+        "formSubmit": "送信する",
+        "successTitle": "送信完了",
+        "successMessage": "メッセージを受け付けました。ありがとうございます。"
+    }
+}

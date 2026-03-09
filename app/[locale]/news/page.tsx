@@ -1,9 +1,9 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { NewsCard, type NewsCardData } from "@/components/NewsCard";
-import { useLanguage } from "@/components/LanguageProvider";
+import { useTranslations } from "next-intl";
 import { CATEGORIES_HIERARCHY } from "@/lib/categories";
 
 const LATEST_NEWS_2026: (NewsCardData & { tags: string[] })[] = [
@@ -40,12 +40,13 @@ const LATEST_NEWS_2026: (NewsCardData & { tags: string[] })[] = [
         summary_general: "中米パナマで発見された巨大なナマケモノの化石から、先史時代の生態系を再構築。かつてここにはゾウほどの大きさの哺乳類が生息していたことが判明しました。",
         tags: ["biology", "environment"],
         category: "PALEONTOLOGY",
-        image_url: null // Placeholder or fallback
+        image_url: null
     }
 ];
 
 export default function NewsPage() {
-    const { t } = useLanguage();
+    const t = useTranslations('News');
+    const ct = useTranslations('Common');
     const [selectedMinors, setSelectedMinors] = useState<string[]>([]);
     const [displayCount, setDisplayCount] = useState(6);
     const [activeMajor, setActiveMajor] = useState<string>(CATEGORIES_HIERARCHY[0].id);
@@ -85,29 +86,29 @@ export default function NewsPage() {
                 <aside className="w-full lg:w-80 flex-none space-y-12">
                     <div className="space-y-4">
                         <Link href="/" className="inline-flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-black transition-colors">
-                            &larr; {t("ホームへ戻る", "BACK TO HOME")}
+                            &larr; {ct("backToHome")}
                         </Link>
-                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none text-slate-900">{t("ニュースダイブ", "News Dive")}</h1>
+                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none text-slate-900">{t("diveTitle")}</h1>
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest leading-tight">
-                            {t("最先端の事実を、知る。", "REALTIME ACCESS TO FACTS.")}
+                            {t("diveSubtitle")}
                         </p>
                     </div>
 
                     <div className="space-y-10">
                         {/* Major Category Selection */}
                         <div className="space-y-4">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-cyan-600 uppercase italic">Step 1: Select Topic</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">{t("step1")}</h3>
                             <div className="grid grid-cols-1 gap-2">
                                 {CATEGORIES_HIERARCHY.map(major => (
                                     <button
                                         key={major.id}
                                         onClick={() => setActiveMajor(major.id)}
                                         className={`w-full text-left px-6 py-4 rounded-xl border transition-all font-black text-xs uppercase tracking-widest ${activeMajor === major.id
-                                                ? "bg-slate-900 text-white border-slate-900"
-                                                : "bg-slate-50 border-slate-100 text-slate-400 hover:border-cyan-500/30 hover:text-slate-900"
+                                            ? "bg-slate-900 text-white border-slate-900"
+                                            : "bg-slate-50 border-slate-100 text-slate-400 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
-                                        {t(major.nameJa, major.nameEn)}
+                                        {major.nameEn}
                                     </button>
                                 ))}
                             </div>
@@ -115,19 +116,19 @@ export default function NewsPage() {
 
                         {/* Minor Category Selection */}
                         <div className="space-y-4 animate-in slide-in-from-left duration-500">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-cyan-600 uppercase italic">Step 2: Narrow Down</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">{t("step2")}</h3>
                             <div className="flex flex-wrap gap-2">
                                 {activeMajorData.minors.map(minor => (
                                     <button
                                         key={minor.id}
                                         onClick={() => toggleMinor(minor.id)}
                                         className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all text-[11px] font-black uppercase tracking-wider ${selectedMinors.includes(minor.id)
-                                                ? "bg-cyan-500 text-white border-cyan-500 shadow-md shadow-cyan-500/20"
-                                                : "bg-white border-slate-200 text-slate-500 hover:border-cyan-500/30 hover:text-slate-900"
+                                            ? "bg-sky-500 text-white border-sky-500 shadow-md shadow-sky-500/20"
+                                            : "bg-white border-slate-200 text-slate-500 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
                                         <span className="text-base">{minor.icon}</span>
-                                        {t(minor.ja, minor.en)}
+                                        {minor.en}
                                     </button>
                                 ))}
                             </div>
@@ -139,13 +140,13 @@ export default function NewsPage() {
                 <main className="flex-1 space-y-20">
                     <header className="border-b-2 border-slate-900 pb-4">
                         <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-900">
-                            {t("最新の話題", "Latest Stories")}
+                            {t("latestStories")}
                         </h2>
                     </header>
 
                     {displayedNews.length === 0 ? (
                         <div className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                            {t("該当するニュースが見つかりませんでした。", "No records found in this category.")}
+                            {t("noNews")}
                         </div>
                     ) : (
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-20">
@@ -157,9 +158,9 @@ export default function NewsPage() {
                         <div className="flex justify-center pt-8 border-t border-slate-100">
                             <button
                                 onClick={() => setDisplayCount(prev => prev + 12)}
-                                className="px-12 py-5 rounded-2xl bg-slate-900 text-white font-black text-xs tracking-[0.2em] uppercase hover:bg-cyan-600 hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
+                                className="px-12 py-5 rounded-2xl bg-slate-900 text-white font-black text-xs tracking-[0.2em] uppercase hover:bg-sky-600 hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
                             >
-                                {t("全て見る", "Explore Everything")}
+                                {ct("viewMore")}
                             </button>
                         </div>
                     )}

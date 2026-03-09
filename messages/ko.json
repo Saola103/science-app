@@ -1,0 +1,21 @@
+{
+    "Common": {
+        "home": "홈",
+        "news": "최신 뉴스",
+        "papers": "최신 논문",
+        "search": "AI 검색",
+        "about": "앱 정보",
+        "contact": "문의하기",
+        "login": "로그인",
+        "subscribe": "구독",
+        "searchPlaceholder": "키워드나 질문을 입력하세요...",
+        "viewMore": "전체 보기",
+        "backToHome": "홈으로 돌아가기"
+    },
+    "Home": {
+        "title": "POCKET DIVE",
+        "subtitle": "주머니 속에서 바로 펼쳐지는 과학의 세계로 다이브하세요.",
+        "description": "복잡한 학술 연구와 획기적인 뉴스를 누구나 이해하기 쉬운 통찰로 바꿉니다. 모든 사람에게 과학적 발견의 가치를 전달하기 위해 만들어졌습니다.",
+        "newsTitle": "최신 뉴스"
+    }
+}

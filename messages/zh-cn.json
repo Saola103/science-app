@@ -1,0 +1,21 @@
+{
+    "Common": {
+        "home": "首页",
+        "news": "最新消息",
+        "papers": "论文",
+        "search": "AI搜索",
+        "about": "关于本应用",
+        "contact": "联系我们",
+        "login": "登录",
+        "subscribe": "订阅",
+        "searchPlaceholder": "输入关键词或问题...",
+        "viewMore": "查看全部",
+        "backToHome": "返回首页"
+    },
+    "Home": {
+        "title": "POCKET DIVE",
+        "subtitle": "从您的口袋，潜入科学的世界。",
+        "description": "我们将复杂的学术研究转化为通俗易懂的见解。旨在将科学发现的价值带给每一个人。",
+        "newsTitle": "最新消息"
+    }
+}

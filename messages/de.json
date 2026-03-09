@@ -1,0 +1,21 @@
+{
+    "Common": {
+        "home": "Startseite",
+        "news": "Neuigkeiten",
+        "papers": "Artikel",
+        "search": "KI-Suche",
+        "about": "Über uns",
+        "contact": "Kontakt",
+        "login": "Anmelden",
+        "subscribe": "Abonnieren",
+        "searchPlaceholder": "Stichworte eingeben...",
+        "viewMore": "Alles ansehen",
+        "backToHome": "Zurück zur Startseite"
+    },
+    "Home": {
+        "title": "POCKET DIVE",
+        "subtitle": "Tauchen Sie direkt aus Ihrer Tasche in die Welt der Wissenschaft ein.",
+        "description": "Wir verwandeln komplexe akademische Forschung in verständliche Erkenntnisse für alle. Entwickelt, um den Wert wissenschaftlicher Entdeckungen jedem zugänglich zu machen.",
+        "newsTitle": "Neueste Nachrichten"
+    }
+}

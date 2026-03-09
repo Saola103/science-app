@@ -1,14 +1,15 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import Link from "next/link";
+import { Link } from "@/i18n/routing";
 import { PaperCard, type PaperCardData } from "@/components/PaperCard";
-import { useLanguage } from "@/components/LanguageProvider";
+import { useTranslations } from "next-intl";
 import { fetchLatestPapers } from "@/app/actions";
 import { CATEGORIES_HIERARCHY } from "@/lib/categories";
 
 export default function PapersPage() {
-    const { t } = useLanguage();
+    const t = useTranslations('Papers');
+    const ct = useTranslations('Common');
     const [papers, setPapers] = useState<PaperCardData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedMinors, setSelectedMinors] = useState<string[]>([]);
@@ -55,11 +56,11 @@ export default function PapersPage() {
                 <aside className="w-full lg:w-80 flex-none space-y-12">
                     <div className="space-y-4">
                         <Link href="/" className="inline-flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-400 uppercase hover:text-black transition-colors">
-                            &larr; {t("ホームへ戻る", "BACK TO HOME")}
+                            &larr; {ct("backToHome")}
                         </Link>
-                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none">{t("最新論文", "Latest Papers")}</h1>
+                        <h1 className="text-4xl sm:text-6xl font-black tracking-tighter uppercase italic leading-none">{t("diveTitle")}</h1>
                         <p className="text-sm font-bold text-slate-500 uppercase tracking-widest leading-tight">
-                            {t("最先端の知へ、ダイブする。", "DIVE INTO THE FOREFRONT.")}
+                            {t("diveSubtitle")}
                         </p>
                     </div>
 
@@ -77,7 +78,7 @@ export default function PapersPage() {
                                             : "bg-slate-50 border-slate-100 text-slate-400 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
-                                        {t(major.nameJa, major.nameEn)}
+                                        {major.nameEn}
                                     </button>
                                 ))}
                             </div>
@@ -97,13 +98,10 @@ export default function PapersPage() {
                                             }`}
                                     >
                                         <span className="text-lg">{minor.icon}</span>
-                                        {t(minor.ja, minor.en)}
+                                        {minor.en}
                                     </button>
                                 ))}
                             </div>
-                            <p className="text-[9px] font-bold text-slate-400 uppercase italic tracking-widest pt-2">
-                                * {t("複数選択可能です", "Multiple selection enabled")}
-                            </p>
                         </div>
                     </div>
                 </aside>
@@ -119,7 +117,7 @@ export default function PapersPage() {
                         <div className="space-y-12">
                             {displayedPapers.length === 0 ? (
                                 <div className="py-20 text-center text-slate-400 font-bold uppercase tracking-widest text-xs">
-                                    {t("該当する論文が見つかりませんでした。", "No records found in this category.")}
+                                    {t("noPapers")}
                                 </div>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -131,9 +129,9 @@ export default function PapersPage() {
                                 <div className="flex justify-center pt-8">
                                     <button
                                         onClick={() => setDisplayCount(prev => prev + 12)}
-                                        className="px-12 py-5 rounded-2xl bg-slate-900 text-white font-black text-xs tracking-[0.2em] uppercase hover:bg-cyan-600 hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
+                                        className="px-12 py-5 rounded-2xl bg-slate-900 text-white font-black text-xs tracking-[0.2em] uppercase hover:bg-sky-600 hover:scale-105 transition-all shadow-xl shadow-slate-900/10"
                                     >
-                                        {t("全て見る", "View More Articles")}
+                                        {ct("viewMore")}
                                     </button>
                                 </div>
                             )}

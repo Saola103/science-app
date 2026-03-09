@@ -95,3 +95,28 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
   }
 }
 
+
+/**
+ * Supabase の `inquiries` テーブルに問い合わせ内容を保存する。
+ */
+export async function saveInquiryToSupabase(input: {
+  topic: string;
+  email?: string;
+  message: string;
+}): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  const schema = process.env.SUPABASE_SCHEMA ?? "public";
+
+  const { error } = await supabase
+    .schema(schema)
+    .from("inquiries")
+    .insert({
+      topic: input.topic,
+      email: input.email ?? null,
+      message: input.message,
+    });
+
+  if (error) {
+    throw new Error(`Inquiry submission failed: ${error.message}`);
+  }
+}

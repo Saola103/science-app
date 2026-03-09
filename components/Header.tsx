@@ -1,17 +1,18 @@
-"use client";
-
-import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useLanguage } from "./LanguageProvider";
+import { useTranslations, useLocale } from 'next-intl';
+import { Link, usePathname, useRouter } from '@/i18n/routing';
 import { useState, useEffect } from "react";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { User } from "@supabase/supabase-js";
 import Image from "next/image";
+import { Globe, ChevronDown } from "lucide-react";
 
 export function Header() {
+    const t = useTranslations('Common');
     const pathname = usePathname();
-    const { language, setLanguage, t } = useLanguage();
+    const router = useRouter();
+    const locale = useLocale();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isLangOpen, setIsLangOpen] = useState(false);
     const [user, setUser] = useState<User | null>(null);
 
     useEffect(() => {
@@ -28,23 +29,42 @@ export function Header() {
     }, []);
 
     const navItems = [
-        { name: t("ホーム", "Home"), href: "/" },
-        { name: t("最新ニュース", "News"), href: "/news" },
-        { name: t("最新論文", "Papers"), href: "/papers" },
-        { name: t("AI検索", "AI Search"), href: "/search" },
-        { name: t("このアプリについて", "About"), href: "/about" },
+        { name: t("home"), href: "/" },
+        { name: t("news"), href: "/news" },
+        { name: t("papers"), href: "/papers" },
+        { name: t("search"), href: "/search" },
+        { name: t("contact"), href: "/contact" },
+        { name: t("about"), href: "/about" },
     ];
+
+    const languages = [
+        { code: 'ja', name: '日本語' },
+        { code: 'en', name: 'English (US)' },
+        { code: 'en-gb', name: 'English (UK)' },
+        { code: 'zh-cn', name: '简体中文' },
+        { code: 'ko', name: '한국어' },
+        { code: 'it', name: 'Italiano' },
+        { code: 'es', name: 'Español' },
+        { code: 'fr', name: 'Français' },
+        { code: 'de', name: 'Deutsch' },
+        { code: 'ar', name: 'العربية' },
+    ];
+
+    const handleLanguageChange = (newLocale: string) => {
+        router.replace(pathname, { locale: newLocale });
+        setIsLangOpen(false);
+    };
 
     return (
         <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-md">
             <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 h-20">
 
                 {/* Left: Desktop Nav */}
-                <div className="flex-1 hidden lg:flex items-center gap-8">
+                <div className="flex-1 hidden lg:flex items-center gap-6">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
-                            href={item.href}
+                            href={item.href as any}
                             className={`text-[11px] font-bold tracking-widest uppercase transition-all ${pathname === item.href
                                 ? "text-sky-600 border-b-2 border-sky-600 pb-1"
                                 : "text-slate-400 hover:text-slate-900"
@@ -62,9 +82,9 @@ export function Header() {
                         className="p-3 text-slate-600 hover:text-sky-600 transition-colors"
                     >
                         <div className="flex flex-col gap-1 w-6">
-                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? 'rotate-45 translate-y-1.5' : ''}`}></span>
+                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? 'rotate-45 translate-y-2' : ''}`}></span>
                             <span className={`h-0.5 w-full bg-current ${isMenuOpen ? 'opacity-0' : ''}`}></span>
-                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? '-rotate-45 -translate-y-1.5' : ''}`}></span>
+                            <span className={`h-0.5 w-full bg-current transition-all ${isMenuOpen ? '-rotate-45 -translate-y-2' : ''}`}></span>
                         </div>
                     </button>
                 </div>
@@ -90,14 +110,7 @@ export function Header() {
                 </div>
 
                 {/* Right: Actions */}
-                <div className="flex-1 flex justify-end items-center gap-6">
-                    {/* Newsletter (Hidden on mobile) */}
-                    <Link
-                        href="/#newsletter"
-                        className="hidden md:flex items-center gap-2 text-[11px] font-black tracking-widest text-slate-400 hover:text-sky-600 uppercase transition-colors"
-                    >
-                        {t("購読", "SUBSCRIBE")}
-                    </Link>
+                <div className="flex-1 flex justify-end items-center gap-4 md:gap-6">
 
                     {user ? (
                         <Link href="/profile" className="flex items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 border border-slate-100 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
@@ -106,15 +119,38 @@ export function Header() {
                             </div>
                         </Link>
                     ) : (
-                        <Link href="/login" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10">
-                            {t("ログイン", "LOGIN")}
+                        <Link href="/login" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10 whitespace-nowrap">
+                            {t("login")}
                         </Link>
                     )}
 
-                    {/* Language Switcher */}
-                    <div className="flex items-center gap-2 md:gap-3 text-[9px] md:text-[10px] font-bold ml-2 md:ml-4">
-                        <button onClick={() => setLanguage("ja")} className={`transition-colors ${language === "ja" ? "text-sky-600" : "text-slate-300 hover:text-slate-900"}`}>JA</button>
-                        <button onClick={() => setLanguage("en")} className={`transition-colors ${language === "en" ? "text-sky-600" : "text-slate-300 hover:text-slate-900"}`}>EN</button>
+                    {/* Language Selector Dropdown */}
+                    <div className="relative">
+                        <button
+                            onClick={() => setIsLangOpen(!isLangOpen)}
+                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all"
+                        >
+                            <Globe size={14} className="text-slate-400" />
+                            <span className="text-[10px] font-black uppercase text-slate-900 hidden md:inline">{locale}</span>
+                            <ChevronDown size={12} className={`text-slate-400 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {isLangOpen && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-100 rounded-xl shadow-2xl py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
+                                <div className="grid grid-cols-1 max-h-[300px] overflow-y-auto">
+                                    {languages.map((lang) => (
+                                        <button
+                                            key={lang.code}
+                                            onClick={() => handleLanguageChange(lang.code)}
+                                            className={`flex items-center justify-between px-4 py-2 text-[10px] font-bold transition-colors ${locale === lang.code ? 'text-sky-600 bg-sky-50' : 'text-slate-600 hover:bg-slate-50'}`}
+                                        >
+                                            {lang.name}
+                                            {locale === lang.code && <div className="w-1 h-1 rounded-full bg-sky-600"></div>}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </nav>
@@ -125,7 +161,7 @@ export function Header() {
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
-                            href={item.href}
+                            href={item.href as any}
                             onClick={() => setIsMenuOpen(false)}
                             className="text-2xl font-bold text-slate-900 uppercase tracking-tighter hover:text-sky-600 transition-colors"
                         >
@@ -134,6 +170,9 @@ export function Header() {
                     ))}
                 </div>
             </div>
+
+            {/* Backdrop for Language selector */}
+            {isLangOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)}></div>}
         </header>
     );
 }

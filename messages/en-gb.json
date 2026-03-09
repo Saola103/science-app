@@ -1,0 +1,21 @@
+{
+    "Common": {
+        "home": "Home",
+        "news": "Latest News",
+        "papers": "Latest Papers",
+        "search": "AI Search",
+        "about": "About This App",
+        "contact": "Contact",
+        "login": "Login",
+        "subscribe": "Subscribe",
+        "searchPlaceholder": "Enter keywords or questions...",
+        "viewMore": "View All",
+        "backToHome": "Back to Home"
+    },
+    "Home": {
+        "title": "POCKET DIVE",
+        "subtitle": "Dive into the world of science right from your pocket.",
+        "description": "Transforming complex academic research and breakthrough news into engaging, accessible insights for everyone. Built to bring the value of scientific discovery to all.",
+        "newsTitle": "Latest News"
+    }
+}

@@ -1,0 +1,73 @@
+{
+    "Common": {
+        "home": "Home",
+        "news": "News",
+        "papers": "Papers",
+        "search": "AI Search",
+        "contact": "Contact",
+        "about": "About",
+        "login": "Login",
+        "getStarted": "Get Started",
+        "language": "Language",
+        "backToHome": "Back to Home",
+        "viewMore": "View More",
+        "searchPlaceholder": "Search by theme or question..."
+    },
+    "Home": {
+        "subtitle": "Dive into the world of science right from your pocket.",
+        "description": "Science shouldn't feel distant. Our mission is to transform complex academic research and breakthrough news into engaging, accessible insights for everyone. Built to bring the value of scientific discovery to all.",
+        "newsTitle": "Latest News",
+        "newsDesc": "Catch up on the rapidly evolving world of technology and science. Get daily updates summarized by AI to keep your knowledge current and sharp.",
+        "papersTitle": "Research Papers",
+        "papersDesc": "Selected high-impact research from clinical and academic sources. We provide dual-level summaries for both experts and curious beginners.",
+        "searchTitle": "Next Generation",
+        "searchSubtitle": "AI Search.",
+        "searchDesc": "Go beyond keywords. Search for papers by their meaning. Ask questions directly to our AI and get immediate academic insights from our complete archive."
+    },
+    "News": {
+        "title": "Latest News",
+        "description": "Catch up on the rapidly evolving world of technology and science. Get daily updates summarized by AI to keep your knowledge current and sharp.",
+        "diveTitle": "News Dive",
+        "diveSubtitle": "REALTIME ACCESS TO FACTS.",
+        "step1": "Step 1: Select Topic",
+        "step2": "Step 2: Narrow Down",
+        "latestStories": "Latest Stories",
+        "noNews": "No records found in this category."
+    },
+    "Papers": {
+        "title": "Research Papers",
+        "description": "Selected high-impact research from clinical and academic sources. We provide dual-level summaries for both experts and curious beginners.",
+        "diveTitle": "Paper Dive",
+        "diveSubtitle": "DIVE INTO KNOWLEDGE.",
+        "latestPapers": "Latest Papers",
+        "noPapers": "No matching papers found."
+    },
+    "Search": {
+        "title": "AI Search",
+        "subtitle": "Next Generation AI Search.",
+        "description": "Search papers by meaning, not just keywords. Find the best academic answers to your questions.",
+        "placeholder": "Enter a theme or question...",
+        "modeKeyword": "Keyword Search",
+        "modeDeep": "Deep Search",
+        "filterTime": "Time Range",
+        "filterFormat": "Output Format",
+        "anyTime": "Any Time",
+        "last6mo": "Last 6 Months",
+        "last1yr": "Last Year",
+        "last5yr": "Last 5 Years",
+        "last10yr": "Last 10 Years",
+        "formatTitle": "Title Only",
+        "formatSummary": "AI Summary",
+        "formatAbstract": "Abstract"
+    },
+    "Contact": {
+        "title": "Contact Us",
+        "subtitle": "Request new domains or share your feedback with us.",
+        "formTopic": "Topic",
+        "formEmail": "Email (Optional)",
+        "formMessage": "Message",
+        "formSubmit": "Send Message",
+        "successTitle": "Message Sent",
+        "successMessage": "Thank you for your feedback! Your message has been received."
+    }
+}
