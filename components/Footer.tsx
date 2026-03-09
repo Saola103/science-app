@@ -12,9 +12,9 @@ export function Footer() {
                 {/* Brand Info */}
                 <div className="space-y-6">
                     <Link href="/" className="group flex items-center gap-4">
-                        <div className="relative w-11 h-11 flex-none rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
+                        <div className="relative w-8 h-8 flex-none rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
                             <Image
-                                src="/logo.png"
+                                src="/images/logo_icon.png"
                                 alt="Pocket Dive Logo"
                                 fill
                                 className="object-cover group-hover:scale-110 transition-transform duration-500"
@@ -85,7 +85,12 @@ export function Footer() {
             </div>
 
             <div className="mx-auto max-w-7xl px-6 mt-20 pt-12 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
-                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">© 2026 POCKET DIVE. All rights reserved.</p>
+                <div className="flex flex-col items-center sm:items-start gap-1">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">© 2026 POCKET DIVE. All rights reserved.</p>
+                    <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
+                        v{process.env.NEXT_PUBLIC_APP_VERSION} ({process.env.NEXT_PUBLIC_GIT_HASH})
+                    </p>
+                </div>
                 <div className="flex gap-8 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-300">
                     <Link href="/terms" className="hover:text-slate-900 transition-colors uppercase">Terms</Link>
                     <Link href="/privacy" className="hover:text-slate-900 transition-colors uppercase">Privacy</Link>

@@ -71,10 +71,11 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
                     <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
                         <Image
-                            src="https://picsum.photos/seed/science1/1200/900"
-                            alt="Science News"
+                            src="/images/binary_code.jpg"
+                            alt="Binary Code - Information Technology"
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-1000"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                         />
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
@@ -105,10 +106,11 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
                     <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-900/5 border border-slate-100">
                         <Image
-                            src="https://picsum.photos/seed/science2/1200/900"
-                            alt="Research Papers"
+                            src="/images/brain.jpg"
+                            alt="Brain - Neuroscience and Research"
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-1000"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                         />
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
@@ -139,10 +141,11 @@ export default function Home() {
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
                     <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
                         <Image
-                            src="https://picsum.photos/seed/science3/1200/900"
-                            alt="AI Integration"
+                            src="/images/atom.jpg"
+                            alt="Atom - Physics and AI Discovery"
                             fill
                             className="object-cover hover:scale-105 transition-transform duration-1000"
+                            sizes="(max-width: 768px) 100vw, 50vw"
                         />
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
@@ -169,8 +172,17 @@ export default function Home() {
             </section>
 
             {/* 5. Values / Philosophy (White) */}
-            <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50">
-                <div className="max-w-4xl mx-auto space-y-12">
+            <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50 overflow-hidden">
+                <div className="max-w-4xl mx-auto space-y-12 relative z-10">
+                    <div className="relative w-full h-64 md:h-96 rounded-[3rem] overflow-hidden shadow-2xl mb-16 border border-slate-100">
+                        <Image
+                            src="/images/nature.jpg"
+                            alt="Nature Landscapes - The harmony of science and nature"
+                            fill
+                            className="object-cover"
+                            sizes="100vw"
+                        />
+                    </div>
                     <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 uppercase italic">
                         Knowledge for <span className="text-sky-600">Everyone.</span>
                     </h2>

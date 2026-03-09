@@ -82,9 +82,9 @@ export function Header() {
                 {/* Center: Brand Logo & Text */}
                 <div className="flex-none">
                     <Link href="/" className="flex items-center gap-3 md:gap-4 group">
-                        <div className="relative w-9 h-9 md:w-11 md:h-11 flex-none rounded-xl md:rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
+                        <div className="relative w-8 h-8 flex-none rounded-2xl overflow-hidden shadow-md shadow-sky-600/10 bg-white border border-slate-100">
                             <Image
-                                src="/logo.png"
+                                src="/images/logo_icon.png"
                                 alt="Pocket Dive Logo"
                                 fill
                                 className="object-cover group-hover:scale-110 transition-transform duration-500"
