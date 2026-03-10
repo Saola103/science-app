@@ -46,11 +46,14 @@ function extractAllAuthors(block: string): string[] {
 export async function fetchArxivOpenAccessPapers(
   query: string,
   maxResults: number = 10,
+  sortBy: "relevance" | "lastUpdatedDate" | "submittedDate" = "submittedDate",
 ): Promise<ArxivOpenAccessPaper[]> {
   const params = new URLSearchParams({
-    search_query: `all:${query}`,
+    search_query: query.includes(':') ? query : `all:${query}`,
     start: "0",
     max_results: String(maxResults),
+    sortBy: sortBy,
+    sortOrder: "descending"
   });
 
   const url = `${ARXIV_API_BASE}?${params.toString()}`;

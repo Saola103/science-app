@@ -14,6 +14,7 @@ export type PaperCardData = {
   summary_general?: string | null;
   summary_expert?: string | null;
   image_url?: string | null;
+  abstract?: string | null;
 };
 
 function formatDate(value?: string | null): string | null {
@@ -23,7 +24,7 @@ function formatDate(value?: string | null): string | null {
   return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
 }
 
-export function PaperCard({ paper }: { paper: PaperCardData }) {
+export function PaperCard({ paper, showSummary = true, showAbstract = false }: { paper: PaperCardData, showSummary?: boolean, showAbstract?: boolean }) {
   const [mode, setMode] = useState<"general" | "expert">("general");
   const { t } = useLanguage();
   const [isBookmarked, setIsBookmarked] = useState(false);
@@ -37,12 +38,26 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
   }, []);
 
   const summary = useMemo(() => {
+    // Abstract mode
+    if (showAbstract) return paper.abstract || t("アブストラクトがありません", "No abstract available");
+    
+    // Summary mode
     if (mode === "general") return paper.summary_general || paper.summary || t("要約がありません", "No summary available");
     return paper.summary_expert || paper.summary || t("要約がありません", "No summary available");
-  }, [mode, paper, t]);
+  }, [mode, paper, t, showAbstract]);
 
   const summaryContent = useMemo(() => {
     if (!summary) return null;
+    
+    // Abstract表示の場合はそのまま表示
+    if (showAbstract) {
+      return (
+        <p className="text-sm leading-relaxed text-slate-600 font-medium whitespace-pre-wrap">
+          {summary}
+        </p>
+      );
+    }
+
     if (mode === "general" && summary.includes("- ")) {
       const parts = summary.split("\n\n");
       const bullets = parts[0].split("\n").filter((l: string) => l.trim().startsWith("-"));
@@ -73,7 +88,7 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
         {summary}
       </p>
     );
-  }, [summary, mode]);
+  }, [summary, mode, showAbstract]);
 
   const published = formatDate(paper.published_at);
 
@@ -98,7 +113,7 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
   };
 
   return (
-    <article className="w-full bg-white border border-slate-100 rounded-[2.5rem] p-8 flex flex-col justify-between overflow-hidden relative group shadow-sm hover:shadow-xl transition-all duration-500 h-[650px]">
+    <article className="w-full bg-white border border-slate-100 rounded-[2.5rem] p-8 flex flex-col justify-between overflow-hidden relative group shadow-sm hover:shadow-xl transition-all duration-500 min-h-[400px]">
       <div className="space-y-6 overflow-y-auto hide-scrollbar flex-1 pb-6">
         <div className="flex items-center justify-between">
           <span className="px-2.5 py-1 rounded-lg bg-sky-600/10 text-[10px] font-black tracking-widest text-sky-600 uppercase border border-sky-600/20">
@@ -134,27 +149,31 @@ export function PaperCard({ paper }: { paper: PaperCardData }) {
           </div>
         </div>
 
-        <div className="relative mt-2">
-          {summaryContent}
-        </div>
+        {showSummary && (
+          <div className="relative mt-2">
+            {summaryContent}
+          </div>
+        )}
       </div>
 
-      <div className="pt-6 border-t border-slate-100 flex-none">
-        <div className="inline-flex w-full items-center rounded-2xl bg-slate-50 p-1.5 text-[10px] font-black tracking-widest uppercase shadow-inner border border-slate-100">
-          <button
-            onClick={() => setMode("general")}
-            className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "general" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
-          >
-            {t("一般向け", "GENERAL")}
-          </button>
-          <button
-            onClick={() => setMode("expert")}
-            className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "expert" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
-          >
-            {t("専門家向け", "EXPERT")}
-          </button>
+      {!showAbstract && showSummary && (
+        <div className="pt-6 border-t border-slate-100 flex-none">
+          <div className="inline-flex w-full items-center rounded-2xl bg-slate-50 p-1.5 text-[10px] font-black tracking-widest uppercase shadow-inner border border-slate-100">
+            <button
+              onClick={() => setMode("general")}
+              className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "general" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
+            >
+              {t("一般向け", "GENERAL")}
+            </button>
+            <button
+              onClick={() => setMode("expert")}
+              className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "expert" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
+            >
+              {t("専門家向け", "EXPERT")}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="absolute inset-x-0 bottom-0 h-1 bg-gradient-to-r from-transparent via-sky-600/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
     </article>
