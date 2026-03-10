@@ -48,7 +48,11 @@
         "description": "キーワードだけでなく「意味」で論文を検索。あなたの問いに対する最適な学術的回答を見つけます。",
         "placeholder": "興味のあるテーマを入力...",
         "modeKeyword": "キーワード検索",
-        "modeDeep": "ディープ検索",
+        "modeDeep": "コンシェルジュ",
+        "modeDrill": "ドリルダウン",
+        "drillTitle": "カテゴリーから潜る",
+        "drillSubtitle": "興味のある分野を選択してください。",
+        "drillSearch": "この条件で検索",
         "filterTime": "期間",
         "filterFormat": "形式",
         "anyTime": "全期間",
@@ -70,13 +74,5 @@
         "formSubmit": "送信する",
         "successTitle": "送信完了",
         "successMessage": "メッセージを受け付けました。ありがとうございます。"
-    },
-    "Newsletter": {
-        "title": "ニュースレター",
-        "description": "最新の科学ニュースや要約を、あなたのメールボックスへ定期的にお届けします。",
-        "placeholder": "メールアドレスを入力...",
-        "submit": "登録する",
-        "success": "登録が完了しました！",
-        "error": "エラーが発生しました。"
     }
 }

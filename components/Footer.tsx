@@ -1,7 +1,6 @@
 import { useTranslations } from 'next-intl';
 import { Link } from '../i18n/routing';
 import Image from "next/image";
-import { NewsletterForm } from './NewsletterForm';
 
 export function Footer() {
     const t = useTranslations('Common');
@@ -79,9 +78,6 @@ export function Footer() {
                         </p>
                     </div>
                 </div>
-
-                {/* Newsletter */}
-                <NewsletterForm />
             </div>
 
             <div className="mx-auto max-w-7xl px-6 mt-20 pt-12 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">

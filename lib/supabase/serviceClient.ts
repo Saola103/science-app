@@ -120,24 +120,3 @@ export async function saveInquiryToSupabase(input: {
     throw new Error(`Inquiry submission failed: ${error.message}`);
   }
 }
-
-/**
- * Supabase の `subscribers` テーブルにメールアドレスを保存する。
- */
-export async function saveSubscriberToSupabase(email: string): Promise<void> {
-  const supabase = getSupabaseServerClient();
-  const schema = process.env.SUPABASE_SCHEMA ?? "public";
-
-  const { error } = await supabase
-    .schema(schema)
-    .from("subscribers")
-    .insert({ email });
-
-  if (error) {
-    if (error.code === "23505") {
-      // Unique violation
-      throw new Error("This email is already subscribed.");
-    }
-    throw new Error(`Subscription failed: ${error.message}`);
-  }
-}

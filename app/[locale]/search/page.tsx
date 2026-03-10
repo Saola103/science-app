@@ -17,8 +17,10 @@ function SearchContent() {
   const ct = useTranslations("Common");
   const searchParams = useSearchParams();
 
+  const [mode, setMode] = useState<"keyword" | "deep" | "drill">("keyword");
+  const [selectedMajor, setSelectedMajor] = useState<string | null>(null);
+  const [selectedMinor, setSelectedMinor] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const [mode, setMode] = useState<"keyword" | "deep">("keyword");
   const [timeRange, setTimeRange] = useState("all");
   const [format, setFormat] = useState("summary");
   const [results, setResults] = useState<PaperCardData[]>([]);
@@ -64,6 +66,32 @@ function SearchContent() {
     }
   };
 
+  const handleDrillSearch = async () => {
+    if (!selectedMinor) return;
+    setIsLoading(true);
+    setError("");
+    setResults([]);
+
+    try {
+      const res = await fetch("/api/search", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: selectedMinor, timeRange, format, mode: "keyword" }),
+      });
+
+      if (!res.ok) throw new Error("Search failed");
+      const data = await res.json();
+      setResults(data.papers || []);
+      if (data.papers?.length === 0) {
+        setError("No papers found for this category.");
+      }
+    } catch (err) {
+      setError("An error occurred during drill-down search.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleDeepSearchSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!query.trim() || isLoading) return;
@@ -77,7 +105,7 @@ function SearchContent() {
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg, mode: "deep" }),
+        body: JSON.stringify({ query: userMsg, mode: "deep", history: messages }),
       });
 
       if (!res.ok) throw new Error("Deep search failed");
@@ -110,18 +138,25 @@ function SearchContent() {
 
           <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200">
             <button
-              onClick={() => { setMode("keyword"); setError(""); }}
+              onClick={() => { setMode("keyword"); setError(""); setResults([]); }}
               className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
               <Search size={16} />
               {t("modeKeyword")}
             </button>
             <button
-              onClick={() => { setMode("deep"); setError(""); }}
+              onClick={() => { setMode("deep"); setError(""); setResults([]); }}
               className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
             >
               <Sparkles size={16} />
               {t("modeDeep")}
+            </button>
+            <button
+              onClick={() => { setMode("drill"); setError(""); setResults([]); }}
+              className={`flex items-center gap-2 px-8 py-3 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${mode === "drill" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-600"}`}
+            >
+              <BookOpen size={16} />
+              {t("modeDrill")}
             </button>
           </div>
         </div>
