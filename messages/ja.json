@@ -70,5 +70,13 @@
         "formSubmit": "送信する",
         "successTitle": "送信完了",
         "successMessage": "メッセージを受け付けました。ありがとうございます。"
+    },
+    "Newsletter": {
+        "title": "ニュースレター",
+        "description": "最新の科学ニュースや要約を、あなたのメールボックスへ定期的にお届けします。",
+        "placeholder": "メールアドレスを入力...",
+        "submit": "登録する",
+        "success": "登録が完了しました！",
+        "error": "エラーが発生しました。"
     }
 }

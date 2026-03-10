@@ -72,3 +72,23 @@ export async function fetchRecommendedPapers(userId: string, limit = 5) {
 
     return recommendations;
 }
+
+/**
+ * Handle newsletter subscription
+ */
+export async function subscribeToNewsletter(prevState: any, formData: FormData) {
+    const email = formData.get("email") as string;
+
+    if (!email || !email.includes("@")) {
+        return { success: false, message: "Invalid email address" };
+    }
+
+    try {
+        const { saveSubscriberToSupabase } = await import("../lib/supabase/serviceClient");
+        await saveSubscriberToSupabase(email);
+        return { success: true, message: "Successfully subscribed!" };
+    } catch (error: any) {
+        console.error("[subscribeToNewsletter] Error:", error.message);
+        return { success: false, message: error.message || "Failed to subscribe" };
+    }
+}

@@ -70,5 +70,13 @@
         "formSubmit": "Send Message",
         "successTitle": "Message Sent",
         "successMessage": "Thank you for your feedback! Your message has been received."
+    },
+    "Newsletter": {
+        "title": "Newsletter",
+        "description": "Get the latest science news and research summaries delivered regularly to your inbox.",
+        "placeholder": "Enter your email...",
+        "submit": "Subscribe",
+        "success": "Subscribed successfully!",
+        "error": "Something went wrong."
     }
 }
