@@ -39,11 +39,11 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
 
   const summary = useMemo(() => {
     // Abstract mode
-    if (showAbstract) return paper.abstract || t("アブストラクトがありません", "No abstract available");
+    if (showAbstract) return paper.abstract || t("noAbstract", "No abstract available");
     
     // Summary mode
-    if (mode === "general") return paper.summary_general || paper.summary || t("要約がありません", "No summary available");
-    return paper.summary_expert || paper.summary || t("要約がありません", "No summary available");
+    if (mode === "general") return paper.summary_general || paper.summary || t("noSummary", "No summary available");
+    return paper.summary_expert || paper.summary || t("noSummary", "No summary available");
   }, [mode, paper, t, showAbstract]);
 
   const summaryContent = useMemo(() => {
@@ -100,13 +100,13 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
       } catch (err) { }
     } else {
       navigator.clipboard.writeText(url);
-      alert(t("URLをコピーしました", "URL copied to clipboard"));
+      alert(t("urlCopied", "URL copied to clipboard"));
     }
   };
 
   const toggleBookmark = () => {
     if (!isUserLoggedIn) {
-      alert(t("ブックマークにはログインが必要です", "Login required"));
+      alert(t("loginRequired", "Login required"));
       return;
     }
     setIsBookmarked(!isBookmarked);
@@ -137,7 +137,7 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
             {paper.journal && (
               <span className="flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-sky-500"></span>
-                出典: {paper.journal}
+                {t("paperSource", "Source")}: {paper.journal}
               </span>
             )}
             {published && (
@@ -163,13 +163,13 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
               onClick={() => setMode("general")}
               className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "general" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
             >
-              {t("一般向け", "GENERAL")}
+              {t("general", "GENERAL")}
             </button>
             <button
               onClick={() => setMode("expert")}
               className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "expert" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
             >
-              {t("専門家向け", "EXPERT")}
+              {t("expert", "EXPERT")}
             </button>
           </div>
         </div>
