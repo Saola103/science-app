@@ -189,7 +189,7 @@ function SearchContent() {
       <section className="pt-24 pb-8 px-6 border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-20 z-30">
         <div className="max-w-4xl mx-auto text-center space-y-6">
           <h1 className="text-3xl md:text-5xl font-black tracking-tight uppercase italic">
-            AI <span className="text-sky-600">DISCOVERY</span>
+            {t("title")}
           </h1>
           
           <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
@@ -298,10 +298,9 @@ function SearchContent() {
                 <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mx-auto text-sky-600 mb-6">
                   <Sparkles size={40} />
                 </div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase italic">How can I help you dive deeper?</h3>
+                <h3 className="text-2xl font-black text-slate-900 uppercase italic">{t("deepIntroTitle")}</h3>
                 <p className="text-slate-500 font-bold max-w-lg mx-auto">
-                  I can help you clarify your research interests and find specific papers.
-                  Try asking: "I want to know about recent advancements in quantum computing."
+                  {t("deepIntroDesc")}
                 </p>
               </div>
             )}
@@ -329,7 +328,7 @@ function SearchContent() {
                <div className="flex justify-start">
                  <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl rounded-bl-none shadow-lg flex items-center gap-2">
                    <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Thinking...</span>
+                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t("deepThinking")}</span>
                  </div>
                </div>
             )}
@@ -343,7 +342,7 @@ function SearchContent() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Ask anything..."
+                placeholder={t("deepPlaceholder")}
                 className="w-full h-16 pl-6 pr-20 bg-slate-50 border border-slate-200 rounded-2xl text-base font-bold outline-none focus:border-sky-600 focus:bg-white transition-all shadow-lg"
               />
               <button
@@ -368,11 +367,11 @@ function SearchContent() {
                  onClick={() => { setSelectedCategory(null); setResults([]); }}
                  className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 transition-colors"
                >
-                 <ArrowLeft size={14} /> Back to Categories
+                 <ArrowLeft size={14} /> {t("drillBack")}
                </button>
 
                <h2 className="text-3xl font-black uppercase italic text-slate-900">
-                 Diving into <span className="text-sky-600">{selectedCategory}</span>
+                 {t("drillDiving", { category: selectedCategory })}
                </h2>
 
                {isLoading ? (

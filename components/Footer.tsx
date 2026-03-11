@@ -27,14 +27,14 @@ export function Footer() {
                         </Link>
                         <div className="space-y-4">
                             <p className="text-sm font-bold text-slate-500 leading-relaxed">
-                                POCKET DIVE: Diving into science from your pocket. A platform built to return the value of knowledge to everyone.
+                                {t("footerTagline")}
                             </p>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-black tracking-widest text-slate-400 uppercase">
-                                    Developed by Pocket Dive Project Team
+                                    {t("footerDevelopedBy")}
                                 </p>
                                 <p className="text-[9px] font-bold text-slate-300 uppercase tracking-tighter">
-                                    Logo design credit: Genspark AI
+                                    {t("footerLogoCredit")}
                                 </p>
                             </div>
                         </div>
@@ -66,7 +66,7 @@ export function Footer() {
                             contact@pocket-dive.app
                         </Link>
                         <p className="text-xs leading-relaxed text-slate-400 italic">
-                            For feedback or partnerships, feel free to contact us.
+                            {t("footerContactDesc")}
                         </p>
                     </div>
                 </div>
@@ -74,7 +74,7 @@ export function Footer() {
 
             <div className="mx-auto max-w-7xl px-6 mt-20 pt-12 border-t border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-6">
                 <div className="flex flex-col items-center sm:items-start gap-1">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">© 2026 POCKET DIVE. All rights reserved.</p>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">{t("footerRights")}</p>
                     <p className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">
                         v{process.env.NEXT_PUBLIC_APP_VERSION} ({process.env.NEXT_PUBLIC_GIT_HASH})
                     </p>

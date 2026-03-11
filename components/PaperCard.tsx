@@ -117,7 +117,7 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
       <div className="space-y-6 overflow-y-auto hide-scrollbar flex-1 pb-6">
         <div className="flex items-center justify-between">
           <span className="px-2.5 py-1 rounded-lg bg-sky-600/10 text-[10px] font-black tracking-widest text-sky-600 uppercase border border-sky-600/20">
-            Paper
+            {t("paper", "Paper")}
           </span>
           <div className="flex gap-2">
             <button onClick={toggleBookmark} className={`p-2 rounded-xl transition-all ${isBookmarked ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'}`}>
