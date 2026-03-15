@@ -3,7 +3,7 @@ import { useTranslations } from 'next-intl';
 import { Link, useRouter } from "../../i18n/routing";
 import Image from "next/image";
 import { useState } from "react";
-import { Search, ArrowRight } from "lucide-react";
+import { Search, ArrowRight, Sparkles } from "lucide-react";
 
 export default function Home() {
     const t = useTranslations('Home');
@@ -171,6 +171,70 @@ export default function Home() {
                 </div>
             </section>
 
+            {/* 4. Papers Section (Sky 50) */}
+            <section className="bg-sky-50 py-24 px-6 md:py-32 relative overflow-hidden">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
+                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
+                        <Image
+                            src="/images/dna_structure.jpg"
+                            alt="DNA Structure - Life Science"
+                            fill
+                            className="object-cover hover:scale-105 transition-transform duration-1000"
+                            sizes="(max-width: 768px) 100vw, 50vw"
+                        />
+                    </div>
+                    <div className="flex-1 space-y-8 text-center md:text-left">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
+                            Academic
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
+                            {t("papersTitle")}
+                        </h2>
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                            {t("papersDesc")}
+                        </p>
+                        <div className="pt-4">
+                            <Link
+                                href="/papers"
+                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
+                            >
+                                {ct("viewMore")}
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            {/* AI Lab Section (New) */}
+            <section className="bg-white py-24 px-6 md:py-32 relative overflow-hidden border-t border-slate-50">
+                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
+                    <div className="flex-1 w-full relative aspect-square md:aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-200/50 border border-slate-100 bg-slate-50 flex items-center justify-center">
+                         <Sparkles className="w-32 h-32 text-sky-600 opacity-20" />
+                    </div>
+                    <div className="flex-1 space-y-8 text-center md:text-left">
+                        <div className="inline-block px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black tracking-[0.2em] uppercase">
+                            Experimental
+                        </div>
+                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
+                            AI Lab <span className="text-sky-600 block text-2xl md:text-4xl mt-2">Research Partner</span>
+                        </h2>
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                            Have a research idea? Validate your hypotheses, get experimental suggestions, and explore new fields with our AI research partner.
+                        </p>
+                        <div className="pt-4">
+                            <Link
+                                href="/lab"
+                                className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/10"
+                            >
+                                Start Research
+                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
             {/* 5. Values / Philosophy (White) */}
             <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50 overflow-hidden">
                 <div className="max-w-4xl mx-auto space-y-12 relative z-10">
@@ -184,17 +248,16 @@ export default function Home() {
                         />
                     </div>
                     <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 uppercase italic">
-                        Knowledge for <span className="text-sky-600">Everyone.</span>
+                        {t("valueTitle")}
                     </h2>
                     <p className="text-lg md:text-xl text-slate-500 font-bold leading-relaxed">
-                        We believe that the frontier of human understanding should be accessible to all.
-                        Pocket Dive bridges the gap between deep research and everyday curiosity.
+                        {t("valueDesc")}
                     </p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
                         {[
-                            { label: "Accuracy", value: "Verified data from arXiv & PubMed" },
-                            { label: "Clarity", value: "AI-powered dual-level summaries" },
-                            { label: "Speed", value: "Real-time updates on latest facts" }
+                            { label: t("valAccuracy"), value: t("valAccuracyDesc") },
+                            { label: t("valClarity"), value: t("valClarityDesc") },
+                            { label: t("valSpeed"), value: t("valSpeedDesc") }
                         ].map((item, i) => (
                             <div key={i} className="p-8 rounded-[2rem] bg-slate-50 border border-slate-100 space-y-3">
                                 <div className="text-xs font-black tracking-widest text-sky-600 uppercase italic">{item.label}</div>

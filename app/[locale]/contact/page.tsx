@@ -6,7 +6,8 @@ import { submitInquiry } from "../../../lib/actions/inquiry";
 import { Send, CheckCircle2 } from 'lucide-react';
 
 export default function ContactPage() {
-    const t = useTranslations('Common');
+    const t = useTranslations('Contact');
+    const ct = useTranslations('Common');
     const locale = useLocale();
     const [pending, setPending] = useState(false);
     const [success, setSuccess] = useState(false);
@@ -36,15 +37,15 @@ export default function ContactPage() {
                     <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-sky-50 dark:bg-sky-500/10 text-sky-600 mb-4">
                         <CheckCircle2 size={40} />
                     </div>
-                    <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">Message Sent</h1>
+                    <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">{t('successTitle')}</h1>
                     <p className="text-slate-500 font-bold leading-relaxed">
-                        Thank you for your feedback! Your message has been received by the Pocket Dive team.
+                        {t('successMessage')}
                     </p>
                     <button
                         onClick={() => window.location.href = `/${locale}`}
                         className="px-10 py-4 bg-slate-900 text-white font-black text-sm uppercase tracking-widest rounded-xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/10"
                     >
-                        {t('backToHome')}
+                        {ct('backToHome')}
                     </button>
                 </div>
             </div>
@@ -58,14 +59,13 @@ export default function ContactPage() {
                 {/* Header */}
                 <div className="text-center space-y-6">
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-sky-500/20 bg-sky-500/5 text-[10px] font-black tracking-widest text-sky-600 uppercase">
-                        CONNECT WITH US
+                        {t('connectWithUs')}
                     </div>
                     <h1 className="text-4xl md:text-6xl font-black tracking-tight text-slate-900 uppercase italic">
-                        {t('contact')}
+                        {t('title')}
                     </h1>
                     <p className="max-w-xl mx-auto text-slate-500 font-bold leading-relaxed">
-                        Have ideas for new domains? Found a bug? Or just want to say hello?
-                        We'd love to hear from you.
+                        {t('desc')}
                     </p>
                 </div>
 
@@ -74,22 +74,22 @@ export default function ContactPage() {
                     <form onSubmit={handleSubmit} className="space-y-8 relative z-10">
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">Topic</label>
+                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">{t('formTopic')}</label>
                             <select
                                 name="topic"
                                 required
                                 className="w-full h-14 px-6 bg-slate-50 border border-slate-100 rounded-2xl text-sm font-bold text-slate-900 outline-none focus:border-sky-600 focus:bg-white transition-all appearance-none cursor-pointer"
                             >
-                                <option value="Domain Request">Domain/Category Request</option>
-                                <option value="Bug Report">Bug Report</option>
-                                <option value="Feedback">Feedback</option>
-                                <option value="Partnership">Partnership</option>
-                                <option value="Other">Other</option>
+                                <option value="Domain Request">{t('topics.domainRequest')}</option>
+                                <option value="Bug Report">{t('topics.bugReport')}</option>
+                                <option value="Feedback">{t('topics.feedback')}</option>
+                                <option value="Partnership">{t('topics.partnership')}</option>
+                                <option value="Other">{t('topics.other')}</option>
                             </select>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">Email (Optional)</label>
+                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">{t('formEmail')}</label>
                             <input
                                 type="email"
                                 name="email"
@@ -99,7 +99,7 @@ export default function ContactPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">Message</label>
+                            <label className="text-[10px] font-black tracking-widest text-slate-400 uppercase italic">{t('formMessage')}</label>
                             <textarea
                                 name="message"
                                 required
@@ -122,8 +122,7 @@ export default function ContactPage() {
                                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                             ) : (
                                 <>
-                                    <Send size={16} />
-                                    SEND MESSAGE
+                                    {t('formSubmit')} <Send size={16} />
                                 </>
                             )}
                         </button>

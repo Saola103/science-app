@@ -15,7 +15,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="relative mx-auto max-w-5xl px-6 pt-24 pb-16 space-y-8 text-center md:text-left">
         <div className="inline-block px-3 py-1 rounded-full bg-sky-50 text-sky-600 text-[10px] font-black uppercase tracking-widest border border-sky-100">
-          Mission & Vision
+          {t("missionVision")}
         </div>
         <h1 className="text-4xl md:text-7xl font-black tracking-tighter uppercase leading-none italic">
           About <span className="text-sky-600">Us</span>
@@ -82,7 +82,7 @@ export default function AboutPage() {
                 <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center font-black text-lg italic">P</div>
                 <div>
                   <div className="text-lg font-black uppercase leading-none">{t("projectTeam")}</div>
-                  <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-1">Non-profit Organization</div>
+                  <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-1">{t("nonProfit")}</div>
                 </div>
               </div>
               
@@ -91,7 +91,7 @@ export default function AboutPage() {
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">Contact Us</div>
+                  <div className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">{t("contactUs")}</div>
                   <div className="text-sm font-bold text-slate-900 mt-1">contact@pocket-dive.app</div>
                 </div>
               </a>

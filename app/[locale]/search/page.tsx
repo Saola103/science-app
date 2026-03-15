@@ -1,52 +1,18 @@
 
 "use client";
 
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
 import { useTranslations } from "next-intl";
-import { Search, Sparkles, Clock, FileText, Send, Loader2, BookOpen, ChevronRight, MessageSquare, ArrowLeft } from "lucide-react";
+import { ChatInterface } from "../../../components/chat/ChatInterface";
+import { Search, Sparkles, Clock, FileText, Loader2 } from "lucide-react";
 
-interface Message {
-  role: 'user' | 'assistant';
-  content: string;
-  papers?: PaperCardData[];
-}
+// Removed unused interface
+// interface Message { ... }
 
-// カテゴリ定義 (Drill-down用)
-const CATEGORIES = {
-  "Physics": [
-    { id: "cat:physics", name: "General Physics" },
-    { id: "cat:astro-ph", name: "Astrophysics" },
-    { id: "cat:cond-mat", name: "Condensed Matter" },
-    { id: "cat:gr-qc", name: "General Relativity" },
-    { id: "cat:hep-th", name: "High Energy Physics" },
-  ],
-  "Biology (q-bio)": [
-    { id: "cat:q-bio.GN", name: "Genomics" },
-    { id: "cat:q-bio.NC", name: "Neurons and Cognition" },
-    { id: "cat:q-bio.PE", name: "Populations and Evolution" },
-    { id: "cat:q-bio.BM", name: "Biomolecules" },
-  ],
-  "Computer Science": [
-    { id: "cat:cs.AI", name: "Artificial Intelligence" },
-    { id: "cat:cs.LG", name: "Machine Learning" },
-    { id: "cat:cs.CV", name: "Computer Vision" },
-    { id: "cat:cs.CL", name: "Computation and Language" },
-    { id: "cat:cs.CR", name: "Cryptography and Security" },
-  ],
-  "Mathematics": [
-    { id: "cat:math.CO", name: "Combinatorics" },
-    { id: "cat:math.NT", name: "Number Theory" },
-    { id: "cat:math.AG", name: "Algebraic Geometry" },
-    { id: "cat:math.PR", name: "Probability" },
-  ],
-  "Statistics": [
-    { id: "cat:stat.ML", name: "Machine Learning" },
-    { id: "cat:stat.AP", name: "Applications" },
-    { id: "cat:stat.TH", name: "Theory" },
-  ]
-};
+// カテゴリ定義 (Drill-down用) - 削除済み
+// const CATEGORIES = { ... };
 
 export default function SearchPage() {
   return (
@@ -65,7 +31,7 @@ function SearchContent() {
   const ct = useTranslations("Common");
   const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<"keyword" | "deep" | "drill">("keyword");
+  const [mode, setMode] = useState<"keyword" | "deep">("keyword");
   const [query, setQuery] = useState("");
   const [timeRange, setTimeRange] = useState("all");
   const [format, setFormat] = useState<"title" | "summary" | "abstract">("summary");
@@ -73,13 +39,6 @@ function SearchContent() {
   const [results, setResults] = useState<PaperCardData[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
-
-  // Deep Search State
-  const [messages, setMessages] = useState<Message[]>([]);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Drill-down State
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
   useEffect(() => {
     const q = searchParams.get("q");
@@ -90,15 +49,12 @@ function SearchContent() {
     }
   }, [searchParams]);
 
-  // Scroll to bottom of chat
-  useEffect(() => {
-    if (mode === "deep") {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [messages, mode]);
-
   const handleKeywordSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
-    if (e) e.preventDefault();
+    // 1. Prevent reload immediately
+    if (e) {
+      e.preventDefault();
+    }
+    
     const searchTerms = overrideQuery || query;
     if (!searchTerms.trim()) return;
 
@@ -115,9 +71,16 @@ function SearchContent() {
 
       if (!res.ok) throw new Error("Search failed");
       const data = await res.json();
-      setResults(data.papers || []);
-      if (data.papers?.length === 0) {
-        setError(t("noResults") || "No papers found matching your criteria.");
+      
+      // 2. Safe error handling
+      if (!data.papers || data.papers.length === 0) {
+        // Do not throw error, just set error state safely
+        // Ensure t('noResults') exists by fallback
+        const noResMsg = t("noResults"); 
+        setError(noResMsg || "No papers found.");
+        setResults([]);
+      } else {
+        setResults(data.papers);
       }
     } catch (err) {
       console.error(err);
@@ -127,60 +90,7 @@ function SearchContent() {
     }
   };
 
-  const handleDeepSearchSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query.trim() || isLoading) return;
-
-    const userMsg = query;
-    setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
-    setQuery("");
-    setIsLoading(true);
-
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: userMsg, mode: "deep", history: messages }),
-      });
-
-      if (!res.ok) throw new Error("Deep search failed");
-      const data = await res.json();
-
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: data.message,
-        papers: data.papers
-      }]);
-    } catch (err) {
-      console.error(err);
-      setMessages(prev => [...prev, { role: 'assistant', content: "Sorry, I encountered an error. Please try again." }]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDrillCategorySelect = async (catId: string, catName: string) => {
-    setSelectedCategory(catName);
-    setIsLoading(true);
-    setError("");
-    setResults([]);
-
-    try {
-      const res = await fetch("/api/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: catId, timeRange: "all", format: "summary", mode: "drill" }),
-      });
-
-      if (!res.ok) throw new Error("Search failed");
-      const data = await res.json();
-      setResults(data.papers || []);
-    } catch (err) {
-      setError("An error occurred.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  // Removed handleDeepSearchSubmit and handleDrillCategorySelect as they are no longer used in this file
 
   return (
     <div className="min-h-screen bg-white text-slate-900 pb-24">
@@ -206,13 +116,6 @@ function SearchContent() {
             >
               <Sparkles size={14} />
               {t("modeDeep")}
-            </button>
-            <button
-              onClick={() => setMode("drill")}
-              className={`flex items-center gap-2 px-4 md:px-8 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${mode === "drill" ? "bg-white text-sky-600 shadow-md transform scale-105" : "text-slate-400 hover:text-slate-600"}`}
-            >
-              <BookOpen size={14} />
-              {t("modeDrill")}
             </button>
           </div>
         </div>
@@ -292,128 +195,7 @@ function SearchContent() {
       {/* --- Mode B: Deep Search (Chat) --- */}
       {mode === "deep" && (
         <section className="max-w-4xl mx-auto px-6 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="space-y-6 mb-24">
-            {messages.length === 0 && (
-              <div className="text-center py-20 space-y-4">
-                <div className="w-20 h-20 bg-sky-50 rounded-full flex items-center justify-center mx-auto text-sky-600 mb-6">
-                  <Sparkles size={40} />
-                </div>
-                <h3 className="text-2xl font-black text-slate-900 uppercase italic">{t("deepIntroTitle")}</h3>
-                <p className="text-slate-500 font-bold max-w-lg mx-auto">
-                  {t("deepIntroDesc")}
-                </p>
-              </div>
-            )}
-
-            {messages.map((msg, idx) => (
-              <div key={idx} className={`flex flex-col gap-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
-                <div className={`max-w-[85%] px-6 py-4 rounded-3xl text-sm font-bold leading-relaxed ${
-                  msg.role === 'user' 
-                    ? 'bg-slate-900 text-white rounded-br-none shadow-xl shadow-slate-900/10' 
-                    : 'bg-white border border-slate-100 text-slate-700 rounded-bl-none shadow-lg'
-                }`}>
-                  {msg.content}
-                </div>
-                {msg.papers && msg.papers.length > 0 && (
-                  <div className="w-full grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pl-4 md:pl-12">
-                     {msg.papers.map(p => (
-                       <PaperCard key={p.id} paper={p} showSummary={true} />
-                     ))}
-                  </div>
-                )}
-              </div>
-            ))}
-            
-            {isLoading && (
-               <div className="flex justify-start">
-                 <div className="bg-white border border-slate-100 px-6 py-4 rounded-3xl rounded-bl-none shadow-lg flex items-center gap-2">
-                   <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
-                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t("deepThinking")}</span>
-                 </div>
-               </div>
-            )}
-            <div ref={chatEndRef} />
-          </div>
-
-          {/* Chat Input */}
-          <div className="fixed bottom-0 left-0 right-0 p-6 bg-white/90 backdrop-blur-xl border-t border-slate-100 z-40">
-            <form onSubmit={handleDeepSearchSubmit} className="max-w-4xl mx-auto relative">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t("deepPlaceholder")}
-                className="w-full h-16 pl-6 pr-20 bg-slate-50 border border-slate-200 rounded-2xl text-base font-bold outline-none focus:border-sky-600 focus:bg-white transition-all shadow-lg"
-              />
-              <button
-                type="submit"
-                disabled={isLoading || !query.trim()}
-                className="absolute right-2 top-2 bottom-2 w-12 bg-sky-600 text-white rounded-xl flex items-center justify-center hover:bg-slate-900 transition-colors disabled:opacity-50"
-              >
-                <Send size={18} />
-              </button>
-            </form>
-          </div>
-        </section>
-      )}
-
-      {/* --- Mode C: Drill-down --- */}
-      {mode === "drill" && (
-        <section className="max-w-6xl mx-auto px-6 py-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          
-          {selectedCategory ? (
-            <div className="space-y-8">
-               <button 
-                 onClick={() => { setSelectedCategory(null); setResults([]); }}
-                 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-400 hover:text-sky-600 transition-colors"
-               >
-                 <ArrowLeft size={14} /> {t("drillBack")}
-               </button>
-
-               <h2 className="text-3xl font-black uppercase italic text-slate-900">
-                 {t("drillDiving", { category: selectedCategory })}
-               </h2>
-
-               {isLoading ? (
-                 <div className="py-20 flex justify-center">
-                   <Loader2 className="w-10 h-10 animate-spin text-sky-600" />
-                 </div>
-               ) : (
-                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                   {results.map((paper) => (
-                     <PaperCard key={paper.id} paper={paper} showSummary={true} />
-                   ))}
-                 </div>
-               )}
-            </div>
-          ) : (
-            <div className="space-y-12">
-              <div className="text-center space-y-2">
-                <h2 className="text-2xl font-black uppercase tracking-tight text-slate-900">{t("drillTitle")}</h2>
-                <p className="text-sm font-bold text-slate-500">{t("drillSubtitle")}</p>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {Object.entries(CATEGORIES).map(([domain, subCats]) => (
-                  <div key={domain} className="bg-slate-50 rounded-3xl p-8 space-y-6 border border-slate-100 hover:shadow-xl hover:shadow-sky-900/5 transition-all group">
-                    <h3 className="text-xl font-black uppercase italic text-slate-900 group-hover:text-sky-600 transition-colors">{domain}</h3>
-                    <div className="space-y-2">
-                      {subCats.map((cat) => (
-                        <button
-                          key={cat.id}
-                          onClick={() => handleDrillCategorySelect(cat.id, cat.name)}
-                          className="w-full flex items-center justify-between p-3 rounded-xl bg-white border border-slate-100 text-left hover:border-sky-600 hover:text-sky-600 transition-all shadow-sm"
-                        >
-                          <span className="text-xs font-bold uppercase tracking-wide">{cat.name}</span>
-                          <ChevronRight size={14} className="text-slate-300" />
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+           <ChatInterface />
         </section>
       )}
     </div>

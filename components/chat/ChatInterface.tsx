@@ -1,0 +1,100 @@
+'use client';
+
+import { useChat } from 'ai/react';
+import { Send, Sparkles, Loader2, User, Bot } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { useEffect, useRef } from 'react';
+
+export function ChatInterface() {
+  const t = useTranslations('Search');
+  
+  // Use standard useChat from ai/react v3
+  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
+    api: '/api/chat',
+  });
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  // Removed manual input state management since useChat v3 handles it
+  // const [input, setInput] = useState('');
+  // ...
+
+  return (
+    <div className="flex flex-col h-[600px] w-full max-w-4xl mx-auto bg-slate-50 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+      
+      {/* Messages Area */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-center space-y-4 text-slate-400">
+            <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-slate-100">
+              <Sparkles className="w-8 h-8 text-sky-500" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-slate-700">{t('deepIntroTitle')}</h3>
+              <p className="text-sm max-w-xs mx-auto mt-2">{t('deepIntroDesc')}</p>
+            </div>
+          </div>
+        )}
+
+        {messages.map((m) => (
+          <div
+            key={m.id}
+            className={`flex gap-4 ${m.role === 'user' ? 'flex-row-reverse' : 'flex-row'}`}
+          >
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
+              m.role === 'user' ? 'bg-slate-900 text-white' : 'bg-white border border-slate-200 text-sky-600'
+            }`}>
+              {m.role === 'user' ? <User size={14} /> : <Sparkles size={14} />}
+            </div>
+            
+            <div className={`flex flex-col gap-1 max-w-[80%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
+              <div className={`px-5 py-3.5 rounded-2xl text-sm font-medium leading-relaxed whitespace-pre-wrap ${
+                m.role === 'user' 
+                  ? 'bg-slate-900 text-white rounded-tr-none shadow-md' 
+                  : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'
+              }`}>
+                {m.content}
+              </div>
+            </div>
+          </div>
+        ))}
+
+        {isLoading && messages[messages.length - 1]?.role === 'user' && (
+          <div className="flex gap-4">
+             <div className="w-8 h-8 rounded-full bg-white border border-slate-200 text-sky-600 flex items-center justify-center shrink-0">
+               <Loader2 size={14} className="animate-spin" />
+             </div>
+             <div className="bg-white border border-slate-200 px-5 py-3.5 rounded-2xl rounded-tl-none shadow-sm">
+               <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('deepThinking')}</span>
+             </div>
+          </div>
+        )}
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Input Area */}
+      <div className="p-4 bg-white border-t border-slate-100">
+        <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
+          <input
+            value={input}
+            onChange={handleInputChange}
+            placeholder={t('deepPlaceholder')}
+            className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-sm font-medium outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            disabled={isLoading || !input.trim()}
+            className="bg-slate-900 text-white p-3 rounded-xl hover:bg-sky-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <Send size={18} />
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
