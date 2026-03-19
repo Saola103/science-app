@@ -1,6 +1,8 @@
 import { google } from '@ai-sdk/google';
 import { streamText, generateText } from 'ai';
 import { searchArxivPapers } from '../../../../lib/agents/arxivSearch';
+import { fetchPubMedPapers } from '../../../../lib/sources/pubmed';
+import { searchPapersByVector } from '../../../../lib/supabase/vectorSearch';
 
 export const maxDuration = 60;
 
@@ -22,19 +24,61 @@ User Query: "${userQuery}"`,
     console.error("Intent extraction failed:", error);
   }
 
-  // 2. Search arXiv
-  const papers = await searchArxivPapers(searchKeywords);
-  
-  // 3. Construct context
-  const context = papers.map(paper => 
-    `Title: ${paper.title}\nURL: ${paper.url}\nSummary: ${paper.summary}\n`
+  // 2. Search from multiple sources in parallel
+  const [arxivResults, pubmedResults, vectorResults] = await Promise.allSettled([
+    searchArxivPapers(searchKeywords),
+    fetchPubMedPapers(searchKeywords, 3, "relevance").catch(() => []),
+    searchPapersByVector(searchKeywords, 3, 0.3).catch(() => []),
+  ]);
+
+  // 3. Merge results
+  const allPapers: { title: string; url: string; summary: string; source: string }[] = [];
+  const seenTitles = new Set<string>();
+
+  if (arxivResults.status === "fulfilled") {
+    for (const p of arxivResults.value) {
+      const key = p.title.toLowerCase().slice(0, 50);
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        allPapers.push({ title: p.title, url: p.url, summary: p.summary, source: "arXiv" });
+      }
+    }
+  }
+
+  if (pubmedResults.status === "fulfilled") {
+    for (const p of pubmedResults.value) {
+      const key = p.title.toLowerCase().slice(0, 50);
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        allPapers.push({ title: p.title, url: p.url, summary: p.abstract || "", source: "PubMed" });
+      }
+    }
+  }
+
+  if (vectorResults.status === "fulfilled") {
+    for (const p of vectorResults.value) {
+      const key = p.title.toLowerCase().slice(0, 50);
+      if (!seenTitles.has(key)) {
+        seenTitles.add(key);
+        allPapers.push({
+          title: p.title,
+          url: p.url || "",
+          summary: p.summary_general || p.summary || p.abstract || "",
+          source: "Database",
+        });
+      }
+    }
+  }
+
+  const context = allPapers.map(paper =>
+    `[${paper.source}] Title: ${paper.title}\nURL: ${paper.url}\nSummary: ${paper.summary}\n`
   ).join('\n---\n');
 
   // 4. Generate response with Lab specific system prompt
   const result = await streamText({
     model: google('gemini-1.5-flash'),
     system: `あなたは専門的な科学リサーチパートナーです。ユーザーの研究アイデアや仮説に対し、論理的な批判、検証実験の提案、関連する研究分野の示唆を行ってください。必ず、ユーザーの興味の解像度を深めるための逆質問を一つ含めること。
-    
+
     【言語設定】
     ユーザーの入力言語に合わせて、基本は日本語で返答してください。
 
@@ -42,11 +86,12 @@ User Query: "${userQuery}"`,
 1. 翻案権の回避: 論文のAbstract（要約）の文章表現や語順をそのままコピー＆ペーストすることは法的に厳禁です。必ず事実関係のみを抽出し、あなた自身の言葉で完全に書き直して回答してください。
 2. 引用元の明記: 回答の末尾、または参考にした箇所の直後に、必ず参照した論文の『タイトル』と『URLリンク』をリスト形式で明記してください。情報源を隠すことは許されません。
 3. 不確実性の提示: 参考データに十分な情報がない場合は、推測で語らず「現在の検索結果からは断言できません」と誠実に答えてください。
+4. ソースの多様性: arXiv、PubMed、データベースなど複数ソースの論文を活用して幅広い視点を提供してください。
 
 【参考論文データ】
 ${context || "関連する論文が見つかりませんでした。"}`,
     messages,
   });
 
-  return result.toAIStreamResponse();
+  return result.toDataStreamResponse();
 }
