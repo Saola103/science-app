@@ -1,168 +1,37 @@
-import { GoogleGenerativeAI, GenerativeModel } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-// 優先的に使いたいモデル（レート制限の都合で 1.5 flash）
-const PREFERRED_MODEL = "gemini-1.5-flash";
+const MODEL = "llama-3.3-70b-versatile";
 
-type GeminiListModelsResponse = {
-  models?: Array<{
-    name?: string; // e.g. "models/gemini-1.5-flash"
-    displayName?: string;
-    supportedGenerationMethods?: string[]; // e.g. ["generateContent", ...]
-  }>;
-};
-
-function stripModelsPrefix(name: string): string {
-  return name.startsWith("models/") ? name.slice("models/".length) : name;
-}
-
-function uniq<T>(items: T[]): T[] {
-  return [...new Set(items)];
-}
-
-function getApiKey(): string {
-  // 実行環境によっては import.meta.env が注入されるため、まずはこちらを参照します。
-  // Next.js（Node 実行）では import.meta.env が無いこともあるため、無い場合は undefined になります。
-  const apiKey =
-    (import.meta as any)?.env?.GEMINI_API_KEY ??
-    (import.meta as any)?.env?.NEXT_PUBLIC_GEMINI_API_KEY ??
-    process.env.GEMINI_API_KEY;
-
+function getGroqClient(): Groq {
+  const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
-    console.error("CRITICAL ERROR: GEMINI_API_KEY is missing in environment variables.");
-    // Fallback to a dummy key to prevent immediate crash, but requests will fail.
-    // Ideally we should handle this gracefully in the UI.
-    return "dummy-key-to-prevent-crash"; 
+    console.error("CRITICAL: GROQ_API_KEY is missing. Get a free key at https://console.groq.com");
+    throw new Error("GROQ_API_KEY is required. Get a free key at https://console.groq.com");
   }
-
-  return apiKey;
-}
-
-function getClient(): GoogleGenerativeAI {
-  return new GoogleGenerativeAI(getApiKey());
-}
-
-let cachedResolvedModel: string | null = null;
-let resolvingModelPromise: Promise<string> | null = null;
-
-async function listModels(): Promise<GeminiListModelsResponse["models"]> {
-  const apiKey = getApiKey();
-  const url = new URL("https://generativelanguage.googleapis.com/v1beta/models");
-  url.searchParams.set("key", apiKey);
-
-  const res = await fetch(url.toString());
-  if (!res.ok) {
-    throw new Error(`ListModels failed: ${res.status} ${res.statusText}`);
-  }
-  const json = (await res.json()) as GeminiListModelsResponse;
-  return json.models ?? [];
-}
-
-async function resolveModelName(): Promise<string> {
-  if (cachedResolvedModel) return cachedResolvedModel;
-
-  const fromEnv =
-    (import.meta as any)?.env?.GEMINI_MODEL ??
-    (import.meta as any)?.env?.NEXT_PUBLIC_GEMINI_MODEL ??
-    process.env.GEMINI_MODEL;
-
-  if (typeof fromEnv === "string" && fromEnv.trim()) {
-    cachedResolvedModel = fromEnv.trim();
-    return cachedResolvedModel;
-  }
-
-  if (resolvingModelPromise) return resolvingModelPromise;
-
-  resolvingModelPromise = (async () => {
-    const models = (await listModels()) ?? [];
-
-    const candidates = models
-      .filter((m) => (m.supportedGenerationMethods ?? []).includes("generateContent"))
-      .map((m) => m.name)
-      .filter((n): n is string => Boolean(n))
-      .map(stripModelsPrefix);
-
-    // まずは 1.5-flash を最優先。次に 1.5-flash-latest、その後 1.5-flash 系の別バリアント
-    const preferredOrder = [
-      PREFERRED_MODEL,
-      `${PREFERRED_MODEL}-latest`,
-      // よくあるバリアント（環境によって公開されている場合がある）
-      `${PREFERRED_MODEL}-002`,
-      `${PREFERRED_MODEL}-001`,
-    ];
-
-    for (const p of preferredOrder) {
-      if (candidates.includes(p)) return p;
-    }
-
-    const anyFlash15 = candidates.find((n) => n.startsWith("gemini-1.5-flash"));
-    if (anyFlash15) return anyFlash15;
-
-    // どうしても見つからない場合は、generateContent 対応の先頭を使う
-    const fallback = candidates[0];
-    if (!fallback) {
-      throw new Error(
-        "generateContent に対応した Gemini モデルが見つかりませんでした。API キーの権限や利用可能モデルを確認してください。",
-      );
-    }
-    return fallback;
-  })();
-
-  try {
-    cachedResolvedModel = await resolvingModelPromise;
-    return cachedResolvedModel;
-  } finally {
-    resolvingModelPromise = null;
-  }
-}
-
-export function getModel(): GenerativeModel {
-  const client = getClient();
-  // 同期 API として残すため、環境変数指定のみで利用する（未指定の場合は generateText 側で解決）
-  const fromEnv =
-    (import.meta as any)?.env?.GEMINI_MODEL ??
-    (import.meta as any)?.env?.NEXT_PUBLIC_GEMINI_MODEL ??
-    process.env.GEMINI_MODEL;
-  const modelName = (typeof fromEnv === "string" && fromEnv.trim()) || PREFERRED_MODEL;
-
-  return client.getGenerativeModel({ model: modelName });
+  return new Groq({ apiKey });
 }
 
 export async function generateText(prompt: string): Promise<string> {
-  const client = getClient();
-
   try {
-    const modelName = await resolveModelName();
-    const model = client.getGenerativeModel({ model: modelName });
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
+    const client = getGroqClient();
+    const result = await client.chat.completions.create({
+      model: MODEL,
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 2048,
+    });
+    return result.choices[0]?.message?.content || "";
   } catch (err) {
-    console.error(`[Gemini generateText Error]:`, err);
+    console.error("[Groq generateText Error]:", err);
     throw err;
   }
 }
 
 /**
- * Text Embedding using Google Gemini (text-embedding-004)
- * Default dimension: 768
+ * Embedding is not available on Groq free tier.
+ * Returns empty array - vector search will gracefully fall back.
  */
-export async function embedText(text: string): Promise<number[]> {
-  try {
-    const client = getClient();
-    // 最新モデル text-embedding-004 を使用し、Supabaseのテーブル定義(768)に合わせる
-    const model = client.getGenerativeModel({ model: "text-embedding-004" });
-    const result = await model.embedContent({
-      content: { parts: [{ text }], role: "user" },
-      outputDimensionality: 768,
-    } as any);
-
-    if (!result.embedding || !result.embedding.values) {
-      throw new Error("Invalid embedding response from Gemini API");
-    }
-    return result.embedding.values;
-  } catch (err) {
-    console.error(`[Gemini embedText Error]:`, err);
-    throw err;
-  }
+export async function embedText(_text: string): Promise<number[]> {
+  console.warn("[embedText] Embedding not available on Groq free tier. Skipping.");
+  return [];
 }
-

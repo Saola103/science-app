@@ -4,15 +4,15 @@ import { useTranslations } from 'next-intl';
 import { Link, useRouter } from "../i18n/routing";
 import Image from "next/image";
 import { useState } from "react";
-import { Search, ArrowRight, Sparkles } from "lucide-react";
-import { PaperCardData, NewsData } from "../types";
+import { Search, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
+import { PaperCardData } from "../types";
+import { PaperCard } from "./PaperCard";
 
 interface HomeContentProps {
     papers: PaperCardData[] | null;
-    news: NewsData[] | null;
 }
 
-export function HomeContent({ papers, news }: HomeContentProps) {
+export function HomeContent({ papers }: HomeContentProps) {
     const t = useTranslations('Home');
     const st = useTranslations('Search');
     const ct = useTranslations('Common');
@@ -86,15 +86,34 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
                         <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            Insights
+                            {t("newsBadge")}
                         </div>
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("newsTitle")}
                         </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                        <p className="text-lg text-slate-600 leading-relaxed font-medium mb-6">
                             {t("newsDesc")}
                         </p>
-                        
+
+                        {/* Display latest papers as news-like content */}
+                        {papers && papers.length > 0 && (
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 pb-4">
+                                {papers.slice(0, 3).map((item, idx) => (
+                                    <a key={item.id || idx} href={item.url || "#"} target="_blank" rel="noopener noreferrer" className="block p-5 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-sky-200 transition-all group">
+                                        <h3 className="font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
+                                            {item.title}
+                                        </h3>
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-slate-400">
+                                                {item.published_at ? new Date(item.published_at).toLocaleDateString() : ''}
+                                            </span>
+                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="pt-4">
                             <Link
                                 href="/news"
@@ -122,15 +141,25 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
                         <div className="inline-block px-4 py-1.5 rounded-full bg-slate-900/5 text-slate-500 text-[10px] font-black tracking-[0.2em] uppercase">
-                            Academic
+                            {t("papersBadge")}
                         </div>
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("papersTitle")}
                         </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                            {t("papersDesc")}
-                        </p>
-                        <div className="pt-4">
+                        {papers && papers.length > 0 ? (
+                            <div className="space-y-4 text-left overflow-y-auto max-h-[500px]">
+                                {papers.slice(0, 3).map((paper) => (
+                                    <div key={paper.id} className="scale-90 origin-top-left w-[111%]">
+                                        <PaperCard paper={paper} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                                {t("papersDesc")}
+                            </p>
+                        )}
+                        <div className="pt-4 mt-6">
                             <Link
                                 href="/papers"
                                 className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
@@ -157,7 +186,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
                         <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            Next-Gen
+                            {t("searchBadge")}
                         </div>
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("searchTitle")}<br />
@@ -178,7 +207,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                 </div>
             </section>
 
-            {/* 4. Papers Section (Sky 50) */}
+            {/* 5. More Papers Section (Sky 50) */}
             <section className="bg-sky-50 py-24 px-6 md:py-32 relative overflow-hidden">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
                     <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
@@ -192,15 +221,25 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
                         <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            Academic
+                            {t("papersBadge")}
                         </div>
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
                             {t("papersTitle")}
                         </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                            {t("papersDesc")}
-                        </p>
-                        <div className="pt-4">
+                        {papers && papers.length > 3 ? (
+                            <div className="space-y-4 text-left overflow-y-auto max-h-[500px]">
+                                {papers.slice(3, 6).map((paper) => (
+                                    <div key={paper.id} className="scale-90 origin-top-left w-[111%]">
+                                        <PaperCard paper={paper} />
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-lg text-slate-600 leading-relaxed font-medium">
+                                {t("papersDesc")}
+                            </p>
+                        )}
+                        <div className="pt-4 mt-6">
                             <Link
                                 href="/papers"
                                 className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
@@ -213,7 +252,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                 </div>
             </section>
 
-            {/* AI Lab Section (New) */}
+            {/* AI Lab Section */}
             <section className="bg-white py-24 px-6 md:py-32 relative overflow-hidden border-t border-slate-50">
                 <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
                     <div className="flex-1 w-full relative aspect-square md:aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-200/50 border border-slate-100 bg-slate-50 flex items-center justify-center">
@@ -221,20 +260,20 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     </div>
                     <div className="flex-1 space-y-8 text-center md:text-left">
                         <div className="inline-block px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            Experimental
+                            {t("labBadge")}
                         </div>
                         <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            AI Lab <span className="text-sky-600 block text-2xl md:text-4xl mt-2">Research Partner</span>
+                            {t("labTitle")} <span className="text-sky-600 block text-2xl md:text-4xl mt-2">{t("labSubtitle")}</span>
                         </h2>
                         <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                            Have a research idea? Validate your hypotheses, get experimental suggestions, and explore new fields with our AI research partner.
+                            {t("labDesc")}
                         </p>
                         <div className="pt-4">
                             <Link
                                 href="/lab"
                                 className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/10"
                             >
-                                Start Research
+                                {t("labButton")}
                                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                             </Link>
                         </div>
@@ -242,7 +281,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                 </div>
             </section>
 
-            {/* 5. Values / Philosophy (White) */}
+            {/* Values / Philosophy (White) */}
             <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50 overflow-hidden">
                 <div className="max-w-4xl mx-auto space-y-12 relative z-10">
                     <div className="relative w-full h-64 md:h-96 rounded-[3rem] overflow-hidden shadow-2xl mb-16 border border-slate-100">

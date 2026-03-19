@@ -143,7 +143,7 @@ function SearchContent() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    <span>Searching...</span>
+                    <span>{t("searching")}</span>
                   </>
                 ) : (
                   <>
@@ -203,7 +203,7 @@ function SearchContent() {
                    <Search className="w-6 h-6 text-sky-200" />
                 </div>
                 <div className="font-bold tracking-wide">
-                  Start your research journey by entering keywords above.
+                  {t("emptyState")}
                 </div>
               </div>
             )}

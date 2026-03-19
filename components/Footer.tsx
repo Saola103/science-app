@@ -47,7 +47,7 @@ export function Footer() {
 
                 {/* Navigation Links */}
                 <div className="space-y-6">
-                    <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">Menu</h3>
+                    <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">{t("footerMenu")}</h3>
                     <ul className="space-y-4 text-[11px] font-black tracking-widest uppercase">
                         <li><Link href="/" className="text-slate-400 hover:text-sky-600 transition-colors">{t("home")}</Link></li>
                         <li><Link href="/news" className="text-slate-400 hover:text-sky-600 transition-colors">{t("news")}</Link></li>
