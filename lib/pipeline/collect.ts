@@ -1,0 +1,239 @@
+/**
+ * Paper Collection Pipeline
+ *
+ * Fetches papers from arXiv and PubMed, generates AI summaries (general + expert),
+ * creates embeddings, and upserts into Supabase.
+ *
+ * Designed to be called by a Vercel Cron job (GET /api/cron/collect).
+ */
+
+import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
+import { fetchPubMedPapers, PUBMED_CATEGORY_QUERIES } from "../sources/pubmed";
+import { summarize } from "../llm/summarize";
+import { embedText } from "../llm/index";
+import { upsertPaperToSupabase } from "../supabase/serviceClient";
+import { CATEGORY_IMAGES } from "../llm/summarize";
+
+// arXiv category codes mapped to our internal categories
+const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
+  physics: "cat:physics.*",
+  astronomy: "cat:astro-ph.*",
+  math: "cat:math.*",
+  computer_science: "cat:cs.*",
+  machine_learning: "cat:cs.AI OR cat:cs.LG OR cat:stat.ML",
+  quantum: "cat:quant-ph",
+  biology: "cat:q-bio.*",
+  economics: "cat:econ.*",
+};
+
+/** How many papers to collect per category per run */
+const PAPERS_PER_CATEGORY = 3;
+
+/** Delay between API calls to be polite */
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Pick a random image from the category image pool */
+function pickCategoryImage(category: string): string {
+  const images = CATEGORY_IMAGES[category] || CATEGORY_IMAGES["other"];
+  return images[Math.floor(Math.random() * images.length)];
+}
+
+/** Extract category tag from a general summary (last line should be the tag) */
+function extractCategory(summary: string): string {
+  const categories = [
+    "physics", "biology", "it_ai", "medicine", "astronomy",
+    "chemistry", "environment", "mathematics", "other"
+  ];
+  const lower = summary.toLowerCase();
+  for (const cat of categories) {
+    if (lower.includes(`[${cat}]`) || lower.endsWith(cat)) {
+      return cat;
+    }
+  }
+  // Try to find category mention in last 50 chars
+  const tail = lower.slice(-50);
+  for (const cat of categories) {
+    if (tail.includes(cat)) return cat;
+  }
+  return "other";
+}
+
+type CollectResult = {
+  source: string;
+  category: string;
+  collected: number;
+  errors: number;
+};
+
+/**
+ * Process a single paper: generate summaries, embedding, and save to DB
+ */
+async function processPaper(paper: {
+  id: string;
+  title: string;
+  abstract?: string;
+  authors: string[];
+  publishedAt?: string;
+  url: string;
+  license?: string;
+  journal?: string;
+  pmid?: string;
+  pmcid?: string;
+  source: string;
+}): Promise<void> {
+  const textForSummary = paper.abstract || paper.title;
+
+  // Generate both summaries in parallel
+  const [generalSummary, expertSummary] = await Promise.all([
+    summarize(textForSummary, { maxLength: 450, tone: "casual" }).catch((e) => {
+      console.error(`General summary failed for ${paper.id}:`, e);
+      return null;
+    }),
+    summarize(textForSummary, { maxLength: 450, tone: "formal" }).catch((e) => {
+      console.error(`Expert summary failed for ${paper.id}:`, e);
+      return null;
+    }),
+  ]);
+
+  // Generate embedding from abstract or title
+  let embedding: number[] | undefined;
+  try {
+    embedding = await embedText(textForSummary);
+  } catch (e) {
+    console.error(`Embedding failed for ${paper.id}:`, e);
+  }
+
+  // Determine category from the general summary
+  const category = generalSummary ? extractCategory(generalSummary) : "other";
+  const imageUrl = pickCategoryImage(category);
+
+  await upsertPaperToSupabase({
+    id: paper.id,
+    title: paper.title,
+    abstract: paper.abstract,
+    authors: paper.authors,
+    journal: paper.journal,
+    publishedAt: paper.publishedAt,
+    url: paper.url,
+    license: paper.license,
+    pmid: paper.pmid,
+    pmcid: paper.pmcid,
+    source: paper.source,
+    summary: generalSummary || undefined,
+    summaryGeneral: generalSummary || undefined,
+    summaryExpert: expertSummary || undefined,
+    summaryEmbedding: embedding,
+    imageUrl,
+  });
+}
+
+/**
+ * Collect papers from arXiv for all configured categories
+ */
+export async function collectFromArxiv(): Promise<CollectResult[]> {
+  const results: CollectResult[] = [];
+
+  for (const [category, query] of Object.entries(ARXIV_CATEGORY_QUERIES)) {
+    let collected = 0;
+    let errors = 0;
+
+    try {
+      const papers = await fetchArxivOpenAccessPapers(query, PAPERS_PER_CATEGORY, "submittedDate");
+      await delay(3000); // arXiv rate limit
+
+      for (const paper of papers) {
+        try {
+          await processPaper({
+            ...paper,
+            source: "arXiv",
+          });
+          collected++;
+          // Rate limit Gemini API calls
+          await delay(1000);
+        } catch (e) {
+          console.error(`Failed to process arXiv paper ${paper.id}:`, e);
+          errors++;
+        }
+      }
+    } catch (e) {
+      console.error(`arXiv fetch failed for category ${category}:`, e);
+      errors++;
+    }
+
+    results.push({ source: "arXiv", category, collected, errors });
+  }
+
+  return results;
+}
+
+/**
+ * Collect papers from PubMed for all configured categories
+ */
+export async function collectFromPubMed(): Promise<CollectResult[]> {
+  const results: CollectResult[] = [];
+
+  for (const [category, query] of Object.entries(PUBMED_CATEGORY_QUERIES)) {
+    let collected = 0;
+    let errors = 0;
+
+    try {
+      const papers = await fetchPubMedPapers(query, PAPERS_PER_CATEGORY, "pub_date");
+      await delay(500); // NCBI rate limit
+
+      for (const paper of papers) {
+        try {
+          await processPaper({
+            ...paper,
+            source: "PubMed",
+          });
+          collected++;
+          await delay(1000);
+        } catch (e) {
+          console.error(`Failed to process PubMed paper ${paper.id}:`, e);
+          errors++;
+        }
+      }
+    } catch (e) {
+      console.error(`PubMed fetch failed for category ${category}:`, e);
+      errors++;
+    }
+
+    results.push({ source: "PubMed", category, collected, errors });
+  }
+
+  return results;
+}
+
+/**
+ * Run the full collection pipeline (arXiv + PubMed)
+ */
+export async function runCollectionPipeline(): Promise<{
+  arXiv: CollectResult[];
+  pubMed: CollectResult[];
+  totalCollected: number;
+  totalErrors: number;
+}> {
+  console.log("[Pipeline] Starting paper collection...");
+  const startTime = Date.now();
+
+  // Run arXiv and PubMed sequentially to stay within rate limits
+  const arXiv = await collectFromArxiv();
+  const pubMed = await collectFromPubMed();
+
+  const totalCollected =
+    arXiv.reduce((s, r) => s + r.collected, 0) +
+    pubMed.reduce((s, r) => s + r.collected, 0);
+
+  const totalErrors =
+    arXiv.reduce((s, r) => s + r.errors, 0) +
+    pubMed.reduce((s, r) => s + r.errors, 0);
+
+  const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+  console.log(
+    `[Pipeline] Done in ${duration}s. Collected: ${totalCollected}, Errors: ${totalErrors}`
+  );
+
+  return { arXiv, pubMed, totalCollected, totalErrors };
+}
