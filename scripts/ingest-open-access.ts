@@ -1,6 +1,7 @@
 #!/usr/bin/env ts-node
 
 import { fetchArxivOpenAccessPapers } from "../lib/sources/arxiv";
+import { fetchScienceNews } from "../lib/sources/news";
 import { summarize, CATEGORY_IMAGES } from "../lib/llm/summarize";
 import { embedText } from "../lib/llm/index";
 import { upsertPaperToSupabase } from "../lib/supabase/serviceClient";
@@ -43,73 +44,87 @@ function loadEnvLocal(): void {
   }
 }
 
+async function processItem(item: any, catId: string, source: "arxiv" | "gnews") {
+  try {
+    console.log(`\n[${catId}] Processing ${source}: ${item.title.slice(0, 50)}...`);
+    const abstract = item.abstract || item.content || item.description || item.title;
+
+    console.log("  - Generating summaries and detecting category...");
+    let summaryGeneral = "";
+    let summaryExpert = "";
+    try {
+      summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
+      summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
+    } catch (sumErr) {
+      console.error("  ❌ Summarization failed for this item. skipping.");
+      return;
+    }
+
+    let detectedCategory = "other";
+    const categoryMatch = summaryGeneral.match(/\[(physics|biology|it_ai|medicine|other)\]/i);
+    if (categoryMatch) {
+      detectedCategory = categoryMatch[1].toLowerCase();
+      summaryGeneral = summaryGeneral.replace(/\[(physics|biology|it_ai|medicine|other)\]/i, "").trim();
+    }
+
+    const images = CATEGORY_IMAGES[detectedCategory as keyof typeof CATEGORY_IMAGES] || CATEGORY_IMAGES["other"];
+    const imageUrl = item.image || images[Math.floor(Math.random() * images.length)];
+    console.log(`  - Detected Category: ${detectedCategory}, Image: ${imageUrl}`);
+
+    let summaryEmbedding: number[] | undefined;
+    try {
+      console.log("  - Generating embedding (768d)...");
+      summaryEmbedding = await embedText(summaryGeneral);
+      console.log(`  - Embedding success: dim=${summaryEmbedding.length}`);
+    } catch (embErr) {
+      console.warn("  ⚠️ Embedding failed, skipping vector search capability.");
+    }
+
+    console.log("  - Upserting to Supabase...");
+    await upsertPaperToSupabase({
+      id: item.id || item.url,
+      title: item.title,
+      abstract: abstract,
+      authors: item.authors || (item.source?.name ? [item.source.name] : []),
+      journal: source === "gnews" ? item.source?.name : undefined,
+      publishedAt: item.publishedAt,
+      url: item.url,
+      license: source === "arxiv" ? "arXiv OA" : undefined,
+      source: source,
+      summary: summaryGeneral,
+      summaryGeneral,
+      summaryExpert,
+      summaryEmbedding,
+      imageUrl,
+    });
+    console.log("  ✅ Successfully ingested.");
+    
+    await new Promise(r => setTimeout(r, 4000));
+  } catch (err) {
+    console.error(`  ❌ Failed to process:`, err instanceof Error ? err.message : err);
+    await new Promise(r => setTimeout(r, 5000));
+  }
+}
+
 async function ingestForCategory(cat: typeof CATEGORIES[0], limit: number) {
   console.log(`\n--- 🚀 Ingesting Category: ${cat.id} (Query: ${cat.query}) ---`);
   try {
     const papers = await fetchArxivOpenAccessPapers(cat.query, limit);
-    console.log(`Found ${papers.length} papers.`);
+    console.log(`Found ${papers.length} arXiv papers.`);
+
+    // Wait slightly before news to avoid spamming network
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    const news = await fetchScienceNews(cat.query);
+    console.log(`Found ${news.length} science news articles.`);
 
     for (const paper of papers) {
-      try {
-        console.log(`\n[${cat.id}] Processing: ${paper.title.slice(0, 50)}...`);
-        const abstract = paper.abstract || paper.title;
+      await processItem(paper, cat.id, "arxiv");
+    }
 
-        // Professional Summaries with retries/error handling
-        console.log("  - Generating summaries and detecting category...");
-        let summaryGeneral = "";
-        let summaryExpert = "";
-        try {
-          summaryGeneral = await summarize(abstract, { tone: "casual", maxLength: 600 });
-          summaryExpert = await summarize(abstract, { tone: "formal", maxLength: 800 });
-        } catch (sumErr) {
-          console.error("  ❌ Summarization failed for this paper. skipping.");
-          continue;
-        }
-
-        // Category & Image Detection
-        // summaryGeneral の末尾に含まれるはずのカテゴリを抽出
-        let detectedCategory = "other";
-        const categoryMatch = summaryGeneral.match(/\[(physics|biology|it_ai|medicine|other)\]/i);
-        if (categoryMatch) {
-          detectedCategory = categoryMatch[1].toLowerCase();
-          // 要約テキストからカテゴリ名タグを削除してクリーンにする
-          summaryGeneral = summaryGeneral.replace(/\[(physics|biology|it_ai|medicine|other)\]/i, "").trim();
-        }
-
-        // 画像のランダム選択
-        const images = CATEGORY_IMAGES[detectedCategory] || CATEGORY_IMAGES["other"];
-        const imageUrl = images[Math.floor(Math.random() * images.length)];
-        console.log(`  - Detected Category: ${detectedCategory}, Image: ${imageUrl}`);
-
-        let summaryEmbedding: number[] | undefined;
-        try {
-          console.log("  - Generating embedding (768d)...");
-          summaryEmbedding = await embedText(summaryGeneral);
-          console.log(`  - Embedding success: dim=${summaryEmbedding.length}`);
-        } catch (embErr) {
-          console.warn("  ⚠️ Embedding failed, skipping vector search capability for this paper.");
-        }
-
-        console.log("  - Upserting to Supabase...");
-        await upsertPaperToSupabase({
-          ...paper,
-          source: "arxiv",
-          summary: summaryGeneral,
-          summaryGeneral,
-          summaryExpert,
-          summaryEmbedding,
-          imageUrl,
-        });
-        console.log("  ✅ Successfully ingested.");
-
-        // Wait to avoid rate limits (Gemini 429 is common on free tier)
-        await new Promise(r => setTimeout(r, 4000));
-      } catch (paperErr) {
-        console.error(`  ❌ Failed to process paper "${paper.title.slice(0, 30)}":`, paperErr instanceof Error ? paperErr.message : paperErr);
-        // Wait a bit longer if failed (might be a 429)
-        await new Promise(r => setTimeout(r, 5000));
-        continue;
-      }
+    // Process up to limit news articles
+    for (const article of news.slice(0, limit)) {
+      await processItem(article, cat.id, "gnews");
     }
   } catch (err) {
     console.error(`❌ Critical error in category ${cat.id}:`, err);

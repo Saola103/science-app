@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "../../../i18n/routing";
-import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
+import { PaperCard } from "../../../components/PaperCard";
+import { type PaperCardData } from "../../../types";
 import { useTranslations } from "next-intl";
 import { fetchLatestPapers } from "../../actions";
 import { CATEGORIES_HIERARCHY } from "../../../lib/categories";

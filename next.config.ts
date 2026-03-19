@@ -18,6 +18,7 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
     NEXT_PUBLIC_GIT_HASH: gitHash,
+    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   },
   images: {
     remotePatterns: [

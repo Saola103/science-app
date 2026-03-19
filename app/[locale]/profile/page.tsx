@@ -5,7 +5,8 @@ import { getSupabaseClient } from "../../../lib/supabase/client";
 import { useLanguage } from "../../../components/LanguageProvider";
 import { useRouter } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
+import { PaperCard } from "../../../components/PaperCard";
+import { type PaperCardData } from "../../../types";
 
 export default function ProfilePage() {
     const { t } = useLanguage();

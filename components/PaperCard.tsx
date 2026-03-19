@@ -4,18 +4,7 @@ import { useMemo, useState, useEffect } from "react";
 import { useLanguage } from "./LanguageProvider";
 import { getSupabaseClient } from "../lib/supabase/client";
 
-export type PaperCardData = {
-  id: string;
-  title: string;
-  journal?: string | null;
-  url?: string | null;
-  published_at?: string | null;
-  summary?: string | null;
-  summary_general?: string | null;
-  summary_expert?: string | null;
-  image_url?: string | null;
-  abstract?: string | null;
-};
+import { PaperCardData } from "../types";
 
 function formatDate(value?: string | null): string | null {
   if (!value) return null;

@@ -7,10 +7,7 @@ import { useEffect, useRef, useState } from 'react';
 import { getSupabaseClient } from '../../../lib/supabase/client';
 
 export default function LabPage() {
-  const t = useTranslations('Search'); // Use Search translations for shared keys if needed, or add Lab keys later
-  // Since we don't have Lab keys in JSON yet, we'll use hardcoded English/Japanese with TODO to localize properly or reuse keys.
-  // Ideally we should add "Lab" keys. For now, let's use some hardcoded text for the Lab specific UI as requested by user instructions to "implement Lab page".
-  // User didn't provide specific JSON keys for Lab, so I will add basic text.
+  const t = useTranslations('Lab');
   
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/lab/chat',
@@ -40,8 +37,6 @@ export default function LabPage() {
         
       if (error) throw error;
       if (data) {
-        // Assuming we have a route to view shared chats, e.g., /share/[id]
-        // For now just showing the ID or a mock URL
         setShareUrl(`${window.location.origin}/share/${data.id}`);
         alert(`Chat saved! Share URL: ${window.location.origin}/share/${data.id}`);
       }
@@ -62,10 +57,10 @@ export default function LabPage() {
           <div>
             <h1 className="text-2xl font-black text-slate-900 uppercase italic flex items-center gap-2">
               <Sparkles className="text-sky-600" />
-              AI Lab <span className="text-slate-300 text-sm font-bold not-italic ml-2">Experimental</span>
+              {t('title')} <span className="text-slate-300 text-sm font-bold not-italic ml-2">{t('experimental')}</span>
             </h1>
             <p className="text-sm text-slate-500 font-bold">
-              Research Partner & Hypothesis Testing
+              {t('subtitle')}
             </p>
           </div>
           {messages.length > 0 && (
@@ -75,7 +70,7 @@ export default function LabPage() {
               className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-black uppercase tracking-widest text-slate-600 hover:text-sky-600 hover:border-sky-600 transition-all shadow-sm"
             >
               <Share2 size={14} />
-              {isSharing ? 'Saving...' : 'Share'}
+              {isSharing ? t('saving') : t('share')}
             </button>
           )}
         </div>
@@ -89,9 +84,9 @@ export default function LabPage() {
                   <Bot size={40} className="text-slate-300" />
                 </div>
                 <div className="max-w-md space-y-2">
-                  <h3 className="text-lg font-bold text-slate-900">Welcome to AI Lab</h3>
+                  <h3 className="text-lg font-bold text-slate-900">{t('welcomeTitle')}</h3>
                   <p className="text-sm text-slate-500 leading-relaxed">
-                    I am your research partner. I can help you validate hypotheses, suggest experiments, and explore related fields.
+                    {t('welcomeDesc')}
                   </p>
                 </div>
               </div>
@@ -126,7 +121,7 @@ export default function LabPage() {
                    <Loader2 size={14} className="animate-spin" />
                  </div>
                  <div className="bg-slate-50 px-6 py-4 rounded-3xl rounded-tl-none">
-                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Thinking...</span>
+                   <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t('thinking')}</span>
                  </div>
                </div>
             )}
@@ -139,7 +134,7 @@ export default function LabPage() {
               <input
                 value={input}
                 onChange={handleInputChange}
-                placeholder="Ask about your research idea..."
+                placeholder={t('placeholder')}
                 className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-6 py-4 text-sm font-bold outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all"
                 disabled={isLoading}
               />

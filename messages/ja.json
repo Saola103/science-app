@@ -96,6 +96,18 @@
         "formatAbstract": "アブストラクト",
         "searchSubtitle": "知のリサーチを、もっとダイレクトに。"
     },
+    "Lab": {
+        "title": "AI研究室",
+        "subtitle": "研究パートナー & 仮説検証",
+        "experimental": "実験的機能",
+        "welcomeTitle": "AI研究室へようこそ",
+        "welcomeDesc": "私はあなたのリサーチパートナーです。仮説の検証、実験の提案、関連分野の探索をお手伝いします。",
+        "placeholder": "研究のアイデアや質問を入力...",
+        "thinking": "思考中...",
+        "share": "共有する",
+        "saving": "保存中...",
+        "startResearch": "研究を始める"
+    },
     "Contact": {
         "title": "お問い合わせ",
         "subtitle": "分野の追加リクエストや、サイトへの感想をお寄せください。",

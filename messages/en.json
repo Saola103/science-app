@@ -96,6 +96,18 @@
         "formatAbstract": "Abstract",
         "searchSubtitle": "Next Generation AI Search."
     },
+    "Lab": {
+        "title": "AI Lab",
+        "subtitle": "Research Partner & Hypothesis Testing",
+        "experimental": "Experimental",
+        "welcomeTitle": "Welcome to AI Lab",
+        "welcomeDesc": "I am your research partner. I can help you validate hypotheses, suggest experiments, and explore related fields.",
+        "placeholder": "Ask about your research idea...",
+        "thinking": "Thinking...",
+        "share": "Share",
+        "saving": "Saving...",
+        "startResearch": "Start Research"
+    },
     "Contact": {
         "title": "Contact Us",
         "subtitle": "Request new domains or share your feedback with us.",

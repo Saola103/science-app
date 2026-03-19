@@ -3,7 +3,8 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
-import { PaperCard, type PaperCardData } from "../../../components/PaperCard";
+import { PaperCard } from "../../../components/PaperCard";
+import { type PaperCardData } from "../../../types";
 import { useTranslations } from "next-intl";
 import { ChatInterface } from "../../../components/chat/ChatInterface";
 import { Search, Sparkles, Clock, FileText, Loader2 } from "lucide-react";
@@ -121,83 +122,101 @@ function SearchContent() {
         </div>
       </section>
 
-      {/* --- Mode A: Keyword Search --- */}
-      {mode === "keyword" && (
-        <section className="max-w-6xl mx-auto px-6 py-12 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <form onSubmit={(e) => handleKeywordSearch(e)} className="max-w-3xl mx-auto relative group z-10">
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder={t("placeholder")}
-              className="w-full h-16 pl-8 pr-32 bg-white border-2 border-slate-100 rounded-[2rem] text-lg font-bold outline-none focus:border-sky-600 focus:ring-4 focus:ring-sky-600/5 transition-all shadow-xl shadow-slate-200/40"
-            />
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="absolute right-2 top-2 bottom-2 px-6 bg-slate-900 text-white font-black text-[10px] uppercase tracking-[0.2em] rounded-[1.5rem] hover:bg-sky-600 transition-all flex items-center gap-2 shadow-lg disabled:opacity-50"
-            >
-              {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : ct("search")}
-            </button>
-          </form>
-
-          {/* Filters */}
-          <div className="flex flex-wrap items-center justify-center gap-8 md:gap-12 py-6 border-y border-slate-100">
-            <div className="flex items-center gap-3">
-              <Clock className="w-4 h-4 text-sky-600" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterTime")}</span>
-              <select
-                value={timeRange}
-                onChange={(e) => setTimeRange(e.target.value)}
-                className="bg-transparent text-[11px] font-bold text-slate-900 uppercase cursor-pointer outline-none border-b border-transparent hover:border-sky-600"
+      {/* --- Mode Container with Light Blue Background --- */}
+      <div className="w-full bg-sky-50 flex-grow min-h-screen pt-12 pb-24">
+        {/* --- Mode A: Keyword Search --- */}
+        {mode === "keyword" && (
+          <section className="max-w-6xl mx-auto px-6 space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <form onSubmit={(e) => handleKeywordSearch(e)} className="max-w-4xl mx-auto relative group z-10">
+              <input
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={t("placeholder")}
+                className="w-full h-20 pl-10 pr-40 bg-white border-2 border-slate-100/80 rounded-[2.5rem] text-xl font-medium outline-none focus:border-sky-500 focus:ring-8 focus:ring-sky-500/10 transition-all shadow-xl shadow-sky-900/5 placeholder:text-slate-300"
+              />
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="absolute right-3 top-3 bottom-3 px-8 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-[2rem] hover:bg-sky-600 transition-all duration-300 flex items-center justify-center gap-3 shadow-lg disabled:opacity-50 min-w-[140px]"
               >
-                <option value="all">{t("anyTime")}</option>
-                <option value="6mo">{t("last6mo")}</option>
-                <option value="1yr">{t("last1yr")}</option>
-                <option value="5yr">{t("last5yr")}</option>
-                <option value="10yr">{t("last10yr")}</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-3">
-              <FileText className="w-4 h-4 text-sky-600" />
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterFormat")}</span>
-              <select
-                value={format}
-                onChange={(e) => setFormat(e.target.value as any)}
-                className="bg-transparent text-[11px] font-bold text-slate-900 uppercase cursor-pointer outline-none border-b border-transparent hover:border-sky-600"
-              >
-                <option value="title">{t("formatTitle")}</option>
-                <option value="summary">{t("formatSummary")}</option>
-                <option value="abstract">{t("formatAbstract")}</option>
-              </select>
-            </div>
-          </div>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    <span>Searching...</span>
+                  </>
+                ) : (
+                  <>
+                    <Search className="w-4 h-4" />
+                    <span>{ct("search")}</span>
+                  </>
+                )}
+              </button>
+            </form>
 
-          {error && (
-            <div className="text-center text-red-500 font-bold text-sm bg-red-50 py-4 rounded-xl">
-              {error}
+            {/* Filters */}
+            <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16 py-8 border-y border-sky-100/50">
+              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl shadow-sm border border-slate-100">
+                <Clock className="w-5 h-5 text-sky-500" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterTime")}</span>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-900 uppercase cursor-pointer outline-none pl-2"
+                >
+                  <option value="all">{t("anyTime")}</option>
+                  <option value="6mo">{t("last6mo")}</option>
+                  <option value="1yr">{t("last1yr")}</option>
+                  <option value="5yr">{t("last5yr")}</option>
+                  <option value="10yr">{t("last10yr")}</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-3 bg-white px-5 py-3 rounded-2xl shadow-sm border border-slate-100">
+                <FileText className="w-5 h-5 text-sky-500" />
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{t("filterFormat")}</span>
+                <select
+                  value={format}
+                  onChange={(e) => setFormat(e.target.value as any)}
+                  className="bg-transparent text-xs font-bold text-slate-900 uppercase cursor-pointer outline-none pl-2"
+                >
+                  <option value="title">{t("formatTitle")}</option>
+                  <option value="summary">{t("formatSummary")}</option>
+                  <option value="abstract">{t("formatAbstract")}</option>
+                </select>
+              </div>
             </div>
-          )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {results.map((paper) => (
-              <PaperCard key={paper.id} paper={paper} showSummary={format === "summary"} showAbstract={format === "abstract"} />
-            ))}
-          </div>
-          {results.length === 0 && !isLoading && !error && (
-            <div className="text-center text-slate-400 font-bold py-20">
-              Start your research journey by entering keywords above.
+            {error && (
+              <div className="text-center text-rose-500 font-bold text-sm bg-rose-50/50 border border-rose-100 py-6 rounded-3xl max-w-2xl mx-auto">
+                {error}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {results.map((paper) => (
+                <PaperCard key={paper.id} paper={paper} showSummary={format === "summary"} showAbstract={format === "abstract"} />
+              ))}
             </div>
-          )}
-        </section>
-      )}
+            {results.length === 0 && !isLoading && !error && (
+              <div className="flex flex-col items-center justify-center py-32 text-slate-400 space-y-4">
+                <div className="w-16 h-16 bg-white rounded-full flex flex-col items-center justify-center shadow-sm border border-slate-50">
+                   <Search className="w-6 h-6 text-sky-200" />
+                </div>
+                <div className="font-bold tracking-wide">
+                  Start your research journey by entering keywords above.
+                </div>
+              </div>
+            )}
+          </section>
+        )}
 
-      {/* --- Mode B: Deep Search (Chat) --- */}
-      {mode === "deep" && (
-        <section className="max-w-4xl mx-auto px-6 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-           <ChatInterface />
-        </section>
-      )}
+        {/* --- Mode B: Deep Search (Chat) --- */}
+        {mode === "deep" && (
+          <section className="max-w-4xl mx-auto px-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+             <ChatInterface />
+          </section>
+        )}
+      </div>
     </div>
   );
 }
