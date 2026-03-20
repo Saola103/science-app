@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { Link } from "../../../i18n/routing";
 import { NewsCard, type NewsCardData } from "../../../components/NewsCard";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
 
 const LATEST_NEWS_2026: (NewsCardData & { tags: string[] })[] = [
@@ -47,6 +47,7 @@ const LATEST_NEWS_2026: (NewsCardData & { tags: string[] })[] = [
 export default function NewsPage() {
     const t = useTranslations('News');
     const ct = useTranslations('Common');
+    const locale = useLocale();
     const [selectedMinors, setSelectedMinors] = useState<string[]>([]);
     const [displayCount, setDisplayCount] = useState(6);
     const [activeMajor, setActiveMajor] = useState<string>(CATEGORIES_HIERARCHY[0].id);
@@ -108,7 +109,7 @@ export default function NewsPage() {
                                             : "bg-slate-50 border-slate-100 text-slate-400 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
-                                        {major.nameEn}
+                                        {locale === 'ja' ? major.nameJa : major.nameEn}
                                     </button>
                                 ))}
                             </div>
@@ -128,7 +129,7 @@ export default function NewsPage() {
                                             }`}
                                     >
                                         <span className="text-base">{minor.icon}</span>
-                                        {minor.en}
+                                        {locale === 'ja' ? minor.ja : minor.en}
                                     </button>
                                 ))}
                             </div>

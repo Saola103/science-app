@@ -9,7 +9,7 @@ export async function fetchLatestPapers(limit = 10, categories?: string[]) {
 
     let query = supabase
         .from("papers")
-        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, image_url, source")
+        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source")
         .order("published_at", { ascending: false });
 
     // Simple personalization: Filter by categories if provided
@@ -75,7 +75,7 @@ export async function fetchRecommendedPapers(userId: string, limit = 5) {
 
     const { data: recommendations, error: rError } = await supabase
         .from("papers")
-        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, image_url, source")
+        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source")
         .not("id", "in", `(${bookmarkedIds.join(",")})`)
         .or(journals.length > 0 ? `journal.in.(${journals.map(j => `"${j}"`).join(",")})` : 'id.neq.0')
         .order("published_at", { ascending: false })

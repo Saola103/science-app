@@ -4,13 +4,14 @@ import { useEffect, useState, useMemo } from "react";
 import { Link } from "../../../i18n/routing";
 import { PaperCard } from "../../../components/PaperCard";
 import { type PaperCardData } from "../../../types";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { fetchLatestPapers } from "../../actions";
 import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
 
 export default function PapersPage() {
     const t = useTranslations('Papers');
     const ct = useTranslations('Common');
+    const locale = useLocale();
     const [papers, setPapers] = useState<PaperCardData[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedMinors, setSelectedMinors] = useState<string[]>([]);
@@ -68,7 +69,7 @@ export default function PapersPage() {
                     <div className="space-y-10">
                         {/* Major Category Selection (Drill Down Step 1) */}
                         <div className="space-y-4">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">Step 1: Select Realm</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">{t("step1")}</h3>
                             <div className="grid grid-cols-1 gap-2">
                                 {CATEGORIES_HIERARCHY.map(major => (
                                     <button
@@ -79,7 +80,7 @@ export default function PapersPage() {
                                             : "bg-slate-50 border-slate-100 text-slate-400 hover:border-sky-500/30 hover:text-slate-900"
                                             }`}
                                     >
-                                        {major.nameEn}
+                                        {locale === 'ja' ? major.nameJa : major.nameEn}
                                     </button>
                                 ))}
                             </div>
@@ -87,7 +88,7 @@ export default function PapersPage() {
 
                         {/* Minor Category Selection (Drill Down Step 2) */}
                         <div className="space-y-4 animate-in slide-in-from-left duration-500">
-                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">Step 2: Choose Fields</h3>
+                            <h3 className="text-[10px] font-black tracking-[0.2em] text-sky-600 uppercase italic">{t("step2")}</h3>
                             <div className="flex flex-wrap gap-2">
                                 {activeMajorData.minors.map(minor => (
                                     <button
@@ -99,7 +100,7 @@ export default function PapersPage() {
                                             }`}
                                     >
                                         <span className="text-lg">{minor.icon}</span>
-                                        {minor.en}
+                                        {locale === 'ja' ? minor.ja : minor.en}
                                     </button>
                                 ))}
                             </div>
@@ -112,7 +113,7 @@ export default function PapersPage() {
                     {isLoading ? (
                         <div className="py-32 flex flex-col items-center gap-6">
                             <div className="w-10 h-10 border-4 border-sky-600 border-t-transparent rounded-full animate-spin"></div>
-                            <span className="text-xs font-black tracking-widest text-slate-400 uppercase animate-pulse">Accessing Matrix...</span>
+                            <span className="text-xs font-black tracking-widest text-slate-400 uppercase animate-pulse">{t("loading")}</span>
                         </div>
                     ) : (
                         <div className="space-y-12">

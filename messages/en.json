@@ -74,7 +74,10 @@
         "diveTitle": "Paper Dive",
         "diveSubtitle": "DIVE INTO KNOWLEDGE.",
         "latestPapers": "Latest Papers",
-        "noPapers": "No matching papers found."
+        "noPapers": "No matching papers found.",
+        "step1": "Step 1: Select Realm",
+        "step2": "Step 2: Choose Fields",
+        "loading": "Accessing Matrix..."
     },
     "Search": {
         "noResults": "No papers found. Please try different keywords.",

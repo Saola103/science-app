@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useEffect } from "react";
-import { useLanguage } from "./LanguageProvider";
+import { useTranslations } from "next-intl";
 import { getSupabaseClient } from "../lib/supabase/client";
 
 import { PaperCardData } from "../types";
@@ -15,7 +15,7 @@ function formatDate(value?: string | null): string | null {
 
 export function PaperCard({ paper, showSummary = true, showAbstract = false }: { paper: PaperCardData, showSummary?: boolean, showAbstract?: boolean }) {
   const [mode, setMode] = useState<"general" | "expert">("general");
-  const { t } = useLanguage();
+  const ct = useTranslations('Common');
   const [isBookmarked, setIsBookmarked] = useState(false);
   const [isUserLoggedIn, setIsUserLoggedIn] = useState(false);
 
@@ -28,12 +28,12 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
 
   const summary = useMemo(() => {
     // Abstract mode
-    if (showAbstract) return paper.abstract || t("noAbstract", "No abstract available");
-    
+    if (showAbstract) return paper.abstract || ct("noAbstract");
+
     // Summary mode
-    if (mode === "general") return paper.summary_general || paper.summary || t("noSummary", "No summary available");
-    return paper.summary_expert || paper.summary || t("noSummary", "No summary available");
-  }, [mode, paper, t, showAbstract]);
+    if (mode === "general") return paper.summary_general || paper.summary || ct("noSummary");
+    return paper.summary_expert || paper.summary || ct("noSummary");
+  }, [mode, paper, ct, showAbstract]);
 
   const summaryContent = useMemo(() => {
     if (!summary) return null;
@@ -89,13 +89,13 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
       } catch (err) { }
     } else {
       navigator.clipboard.writeText(url);
-      alert(t("urlCopied", "URL copied to clipboard"));
+      alert(ct("urlCopied"));
     }
   };
 
   const toggleBookmark = () => {
     if (!isUserLoggedIn) {
-      alert(t("loginRequired", "Login required"));
+      alert(ct("loginRequired"));
       return;
     }
     setIsBookmarked(!isBookmarked);
@@ -106,7 +106,7 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
       <div className="space-y-6 overflow-y-auto hide-scrollbar flex-1 pb-6">
         <div className="flex items-center justify-between">
           <span className="px-2.5 py-1 rounded-lg bg-sky-600/10 text-[10px] font-black tracking-widest text-sky-600 uppercase border border-sky-600/20">
-            {t("paper", "Paper")}
+            {ct("paper")}
           </span>
           <div className="flex gap-2">
             <button onClick={toggleBookmark} className={`p-2 rounded-xl transition-all ${isBookmarked ? 'text-amber-500 bg-amber-50' : 'text-slate-300 hover:text-amber-500 hover:bg-slate-50'}`}>
@@ -126,7 +126,7 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
             {paper.journal && (
               <span className="flex items-center gap-1.5">
                 <span className="w-1 h-1 rounded-full bg-sky-500"></span>
-                {t("paperSource", "Source")}: {paper.journal}
+                {ct("paperSource")}: {paper.journal}
               </span>
             )}
             {published && (
@@ -152,13 +152,13 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
               onClick={() => setMode("general")}
               className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "general" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
             >
-              {t("general", "GENERAL")}
+              {ct("general")}
             </button>
             <button
               onClick={() => setMode("expert")}
               className={`flex-1 rounded-xl py-3 transition-all duration-300 ${mode === "expert" ? "bg-white text-sky-600 shadow-md" : "text-slate-400 hover:text-slate-900"}`}
             >
-              {t("expert", "EXPERT")}
+              {ct("expert")}
             </button>
           </div>
         </div>
