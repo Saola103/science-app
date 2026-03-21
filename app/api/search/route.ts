@@ -29,10 +29,25 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ error: "Query is required" }, { status: 400 });
       }
 
+      // If query contains non-ASCII (Japanese etc.), translate to English for better search
+      let searchQuery = query;
+      const hasNonAscii = /[^\x00-\x7F]/.test(query);
+      if (hasNonAscii) {
+        try {
+          const translated = await generateText(
+            `Translate the following search query to concise English keywords for academic paper search. Return ONLY the English keywords, no explanation.\nQuery: "${query}"`
+          );
+          searchQuery = translated.trim();
+          console.log(`[Search] Translated query: "${query}" → "${searchQuery}"`);
+        } catch {
+          console.warn("[Search] Translation failed, using original query");
+        }
+      }
+
       // Try vector search from Supabase first (pre-indexed papers with embeddings)
       let vectorPapers: any[] = [];
       try {
-        vectorPapers = await hybridSearch(query, 10);
+        vectorPapers = await hybridSearch(searchQuery, 10);
       } catch (e) {
         console.warn("[Search] Vector/hybrid search failed, falling back to API search:", e);
       }
@@ -49,14 +64,14 @@ export async function POST(req: NextRequest) {
 
       // Fetch from arXiv
       if (source === "all" || source === "arxiv") {
-        const arxivPapers = await fetchArxivOpenAccessPapers(query, 15, "submittedDate");
+        const arxivPapers = await fetchArxivOpenAccessPapers(searchQuery, 15, "submittedDate");
         allPapers.push(...arxivPapers.map(p => ({ ...p, source: "arXiv" })));
       }
 
       // Fetch from PubMed
       if (source === "all" || source === "pubmed") {
         try {
-          const pubmedPapers = await fetchPubMedPapers(query, 10, "relevance");
+          const pubmedPapers = await fetchPubMedPapers(searchQuery, 10, "relevance");
           allPapers.push(...pubmedPapers.map(p => ({
             id: p.id,
             title: p.title,

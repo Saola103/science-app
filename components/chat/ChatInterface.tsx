@@ -2,6 +2,7 @@
 
 import { useChat } from 'ai/react';
 import { Send, Sparkles, Loader2, User, Bot } from 'lucide-react';
+import { MarkdownText } from '../MarkdownText';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef } from 'react';
 
@@ -52,12 +53,12 @@ export function ChatInterface() {
             </div>
             
             <div className={`flex flex-col gap-1 max-w-[80%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-              <div className={`px-5 py-3.5 rounded-2xl text-sm font-medium leading-relaxed whitespace-pre-wrap ${
-                m.role === 'user' 
-                  ? 'bg-slate-900 text-white rounded-tr-none shadow-md' 
+              <div className={`px-5 py-3.5 rounded-2xl text-sm font-medium leading-relaxed ${
+                m.role === 'user'
+                  ? 'bg-slate-900 text-white rounded-tr-none shadow-md whitespace-pre-wrap'
                   : 'bg-white border border-slate-200 text-slate-700 rounded-tl-none shadow-sm'
               }`}>
-                {m.content}
+                {m.role === 'user' ? m.content : <MarkdownText content={m.content} />}
               </div>
             </div>
           </div>

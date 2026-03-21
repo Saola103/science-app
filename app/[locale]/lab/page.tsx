@@ -5,6 +5,7 @@ import { Send, Sparkles, Loader2, User, Bot, Share2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { getSupabaseClient } from '../../../lib/supabase/client';
+import { MarkdownText } from '../../../components/MarkdownText';
 
 export default function LabPage() {
   const t = useTranslations('Lab');
@@ -104,12 +105,12 @@ export default function LabPage() {
                 </div>
                 
                 <div className={`flex flex-col gap-1 max-w-[85%] ${m.role === 'user' ? 'items-end' : 'items-start'}`}>
-                  <div className={`px-6 py-4 rounded-3xl text-sm font-medium leading-relaxed whitespace-pre-wrap ${
-                    m.role === 'user' 
-                      ? 'bg-slate-900 text-white rounded-tr-none shadow-md' 
+                  <div className={`px-6 py-4 rounded-3xl text-sm font-medium leading-relaxed ${
+                    m.role === 'user'
+                      ? 'bg-slate-900 text-white rounded-tr-none shadow-md whitespace-pre-wrap'
                       : 'bg-slate-50 text-slate-800 rounded-tl-none'
                   }`}>
-                    {m.content}
+                    {m.role === 'user' ? m.content : <MarkdownText content={m.content} />}
                   </div>
                 </div>
               </div>

@@ -3,6 +3,7 @@
 import { useMemo, useState, useEffect } from "react";
 import { useTranslations } from "next-intl";
 import { getSupabaseClient } from "../lib/supabase/client";
+import { MarkdownText } from "./MarkdownText";
 
 import { PaperCardData } from "../types";
 
@@ -47,36 +48,7 @@ export function PaperCard({ paper, showSummary = true, showAbstract = false }: {
       );
     }
 
-    if (mode === "general" && summary.includes("- ")) {
-      const parts = summary.split("\n\n");
-      const bullets = parts[0].split("\n").filter((l: string) => l.trim().startsWith("-"));
-      const explanation = parts.slice(1).join("\n\n");
-
-      if (bullets.length > 0) {
-        return (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 gap-2">
-              {bullets.map((b: string, i: number) => (
-                <div key={i} className="flex gap-4 items-start p-4 rounded-2xl bg-sky-500/5 border border-sky-500/10 transition-all">
-                  <span className="shrink-0 w-6 h-6 rounded-full bg-sky-600 text-white flex items-center justify-center text-[10px] font-black">{i + 1}</span>
-                  <p className="text-sm font-bold text-slate-800 leading-tight">{b.replace(/^- /, "")}</p>
-                </div>
-              ))}
-            </div>
-            {explanation && (
-              <p className="text-base leading-relaxed text-slate-600 font-medium whitespace-pre-wrap pt-4 border-t border-slate-100 italic">
-                {explanation}
-              </p>
-            )}
-          </div>
-        );
-      }
-    }
-    return (
-      <p className="text-base leading-relaxed text-slate-700 font-medium whitespace-pre-wrap transition-colors duration-300">
-        {summary}
-      </p>
-    );
+    return <MarkdownText content={summary} className="text-slate-700" />;
   }, [summary, mode, showAbstract]);
 
   const published = formatDate(paper.published_at);
