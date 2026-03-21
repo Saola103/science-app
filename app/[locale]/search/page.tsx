@@ -96,31 +96,36 @@ function SearchContent() {
   return (
     <div className="min-h-screen bg-white text-slate-900 pb-24">
       
-      {/* Header Area */}
-      <section className="pt-24 pb-8 px-6 border-b border-slate-50 bg-white/80 backdrop-blur-md sticky top-20 z-30">
-        <div className="max-w-4xl mx-auto text-center space-y-6">
+      {/* Title — scrolls away */}
+      <section className="pt-24 pb-4 px-6">
+        <div className="max-w-4xl mx-auto text-center">
           <h1 className="text-3xl md:text-5xl font-black tracking-tight uppercase italic">
             {t("title")}
           </h1>
-          
-          <div className="inline-flex p-1.5 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
+        </div>
+      </section>
+
+      {/* Mode Toggle — stays sticky (compact) */}
+      <div className="sticky top-20 z-30 bg-white/95 backdrop-blur-md border-b border-slate-100 py-2 px-6">
+        <div className="max-w-4xl mx-auto flex justify-center">
+          <div className="inline-flex p-1 bg-slate-100 rounded-2xl border border-slate-200 shadow-inner">
             <button
               onClick={() => setMode("keyword")}
-              className={`flex items-center gap-2 px-4 md:px-8 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white text-sky-600 shadow-md transform scale-105" : "text-slate-400 hover:text-slate-600"}`}
+              className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${mode === "keyword" ? "bg-white text-sky-600 shadow-md transform scale-105" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Search size={14} />
+              <Search size={13} />
               {t("modeKeyword")}
             </button>
             <button
               onClick={() => setMode("deep")}
-              className={`flex items-center gap-2 px-4 md:px-8 py-2 md:py-3 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white text-sky-600 shadow-md transform scale-105" : "text-slate-400 hover:text-slate-600"}`}
+              className={`flex items-center gap-2 px-4 md:px-6 py-2 rounded-xl text-[10px] md:text-xs font-black uppercase tracking-widest transition-all ${mode === "deep" ? "bg-white text-sky-600 shadow-md transform scale-105" : "text-slate-400 hover:text-slate-600"}`}
             >
-              <Sparkles size={14} />
+              <Sparkles size={13} />
               {t("modeDeep")}
             </button>
           </div>
         </div>
-      </section>
+      </div>
 
       {/* --- Mode Container with Light Blue Background --- */}
       <div className="w-full bg-sky-50 flex-grow min-h-screen pt-12 pb-24">

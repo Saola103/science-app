@@ -54,12 +54,12 @@ export function Header() {
             <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 h-20">
 
                 {/* Left: Desktop Nav */}
-                <div className="flex-1 hidden lg:flex items-center gap-6">
+                <div className="flex-1 hidden lg:flex items-center gap-3">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href as any}
-                            className={`text-[11px] font-bold tracking-widest uppercase transition-all ${pathname === item.href
+                            className={`text-[10px] font-bold tracking-wide uppercase whitespace-nowrap transition-all ${pathname === item.href
                                 ? "text-sky-600 border-b-2 border-sky-600 pb-1"
                                 : "text-slate-400 hover:text-slate-900"
                                 }`}
