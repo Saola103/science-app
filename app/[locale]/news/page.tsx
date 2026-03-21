@@ -6,6 +6,7 @@ import { NewsCard, type NewsCardData } from "../../../components/NewsCard";
 import { useTranslations, useLocale } from "next-intl";
 import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
 import { fetchLatestNews } from "../../actions";
+import { AdBanner } from "../../../components/AdBanner";
 
 // Fallback mock news displayed before the DB is populated
 const MOCK_NEWS: NewsCardData[] = [
@@ -175,6 +176,16 @@ export default function NewsPage() {
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-x-12 gap-y-20">
                             {displayedNews.map(news => <NewsCard key={news.id} news={news} />)}
                         </div>
+                    )}
+
+                    {/* Ad Banner — displayed between news list and load more button */}
+                    {displayedNews.length > 0 && (
+                        <AdBanner
+                            adSlot="1234567890"
+                            adFormat="horizontal"
+                            className="w-full my-4"
+                            style={{ minHeight: 90 }}
+                        />
                     )}
 
                     {filteredNews.length > displayCount && (

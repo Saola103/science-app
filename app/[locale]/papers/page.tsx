@@ -7,6 +7,7 @@ import { type PaperCardData } from "../../../types";
 import { useTranslations, useLocale } from "next-intl";
 import { fetchLatestPapers } from "../../actions";
 import { CATEGORIES_HIERARCHY } from "../../../lib/categories";
+import { AdBanner } from "../../../components/AdBanner";
 
 export default function PapersPage() {
     const t = useTranslations('Papers');
@@ -125,6 +126,15 @@ export default function PapersPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     {displayedPapers.map(paper => <PaperCard key={paper.id} paper={paper} />)}
                                 </div>
+                            )}
+
+                            {displayedPapers.length > 0 && (
+                                <AdBanner
+                                    adSlot="0987654321"
+                                    adFormat="horizontal"
+                                    className="w-full"
+                                    style={{ minHeight: 90 }}
+                                />
                             )}
 
                             {papers.length > displayCount && (
