@@ -79,7 +79,7 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
     source: input.source,
     summary_general: input.summaryGeneral ?? null,
     summary_expert: input.summaryExpert ?? null,
-    summary_embedding: input.summaryEmbedding ?? null,
+    summary_embedding: (input.summaryEmbedding && input.summaryEmbedding.length > 0) ? input.summaryEmbedding : null,
     image_url: input.imageUrl ?? null,
   };
 
