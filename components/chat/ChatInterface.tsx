@@ -4,16 +4,25 @@ import { useChat } from 'ai/react';
 import { Send, Sparkles, Loader2, User, Bot } from 'lucide-react';
 import { MarkdownText } from '../MarkdownText';
 import { useTranslations } from 'next-intl';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 export function ChatInterface() {
   const t = useTranslations('Search');
-  
+  const [errorMsg, setErrorMsg] = useState('');
+
   // Use standard useChat from ai/react v3
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/chat',
+    onError: (error) => {
+      const msg = error?.message || '';
+      if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate limit')) {
+        setErrorMsg('1日のAI利用制限に達しました。時間をおいて再度お試しください。');
+      } else {
+        setErrorMsg('エラーが発生しました。再度お試しください。');
+      }
+    },
   });
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,9 +86,17 @@ export function ChatInterface() {
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Error Message */}
+      {errorMsg && (
+        <div className="mx-4 mb-2 px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 flex items-center justify-between">
+          <span>{errorMsg}</span>
+          <button onClick={() => setErrorMsg('')} className="ml-2 text-rose-400 hover:text-rose-600">✕</button>
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="p-4 bg-white border-t border-slate-100">
-        <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
+        <form onSubmit={(e) => { setErrorMsg(''); handleSubmit(e); }} className="relative flex items-center gap-2">
           <input
             value={input}
             onChange={handleInputChange}

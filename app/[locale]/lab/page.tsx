@@ -10,10 +10,19 @@ import { MarkdownText } from '../../../components/MarkdownText';
 export default function LabPage() {
   const t = useTranslations('Lab');
   
+  const [errorMsg, setErrorMsg] = useState('');
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
     api: '/api/lab/chat',
+    onError: (error) => {
+      const msg = error?.message || '';
+      if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate limit')) {
+        setErrorMsg('1日のAI利用制限に達しました。しばらく時間をおいてから再度お試しください。');
+      } else {
+        setErrorMsg('エラーが発生しました。再度お試しください。');
+      }
+    },
   });
-  
+
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isSharing, setIsSharing] = useState(false);
   const [shareUrl, setShareUrl] = useState('');
@@ -129,9 +138,17 @@ export default function LabPage() {
             <div ref={messagesEndRef} />
           </div>
 
+          {/* Error Message */}
+          {errorMsg && (
+            <div className="mx-4 mb-2 px-4 py-2 bg-rose-50 border border-rose-200 rounded-xl text-xs font-bold text-rose-600 flex items-center justify-between">
+              <span>{errorMsg}</span>
+              <button onClick={() => setErrorMsg('')} className="ml-2 text-rose-400 hover:text-rose-600">✕</button>
+            </div>
+          )}
+
           {/* Input Area */}
           <div className="p-4 bg-white border-t border-slate-100">
-            <form onSubmit={handleSubmit} className="relative flex items-center gap-2">
+            <form onSubmit={(e) => { setErrorMsg(''); handleSubmit(e); }} className="relative flex items-center gap-2">
               <input
                 value={input}
                 onChange={handleInputChange}

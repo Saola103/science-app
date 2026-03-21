@@ -64,7 +64,7 @@ export async function POST(req: Request) {
 
   try {
     const result = await streamText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('llama-3.1-8b-instant'),
       system: `あなたは科学リサーチパートナー『Pocket Dive AI』です。ユーザーの研究アイデアや仮説に対し、論理的な批判・検証実験の提案・関連研究の示唆を行い、必ず逆質問を一つ含めて回答してください。引用元のタイトルとURLを明記してください。\n\n【論文データ】\n${context || "関連論文が見つかりませんでした。"}`,
       messages,
       maxTokens: 1024,
