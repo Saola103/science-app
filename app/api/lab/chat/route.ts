@@ -17,9 +17,11 @@ export async function POST(req: Request) {
 
   let searchKeywords = userQuery;
   try {
+    // Use lighter model for intent extraction to conserve daily token quota
     const intentResult = await generateText({
-      model: groq('llama-3.3-70b-versatile'),
+      model: groq('llama-3.1-8b-instant'),
       prompt: `Extract English search keywords for arXiv from the following user query. Return ONLY the keywords, no explanation.\nUser Query: "${userQuery}"`,
+      maxTokens: 60,
     });
     searchKeywords = intentResult.text.trim();
   } catch (error) {
@@ -54,24 +56,34 @@ export async function POST(req: Request) {
     }
   }
 
-  const context = allPapers.map(p => `[${p.source}] Title: ${p.title}\nURL: ${p.url}\nSummary: ${p.summary}\n`).join('\n---\n');
+  // Truncate summaries to limit tokens sent to Groq
+  const context = allPapers.slice(0, 6).map(p => {
+    const shortSummary = (p.summary || "").slice(0, 300);
+    return `[${p.source}] ${p.title}\n${p.url}\n${shortSummary}`;
+  }).join('\n---\n');
 
-  const result = await streamText({
-    model: groq('llama-3.3-70b-versatile'),
-    system: `あなたは専門的な科学リサーチパートナーです。ユーザーの研究アイデアや仮説に対し、論理的な批判、検証実験の提案、関連する研究分野の示唆を行ってください。必ず、ユーザーの興味の解像度を深めるための逆質問を一つ含めること。
+  try {
+    const result = await streamText({
+      model: groq('llama-3.3-70b-versatile'),
+      system: `あなたは科学リサーチパートナー『Pocket Dive AI』です。ユーザーの研究アイデアや仮説に対し、論理的な批判・検証実験の提案・関連研究の示唆を行い、必ず逆質問を一つ含めて回答してください。引用元のタイトルとURLを明記してください。\n\n【論文データ】\n${context || "関連論文が見つかりませんでした。"}`,
+      messages,
+      maxTokens: 1024,
+    });
 
-【言語設定】
-ユーザーの入力言語に合わせて回答してください。日本語で質問されたら日本語で、英語なら英語で回答してください。
-
-【絶対遵守ルール（著作権と倫理）】
-1. 翻案権の回避: 論文のAbstractの文章表現をそのままコピーすることは厳禁です。事実関係のみを抽出し、あなた自身の言葉で書き直してください。
-2. 引用元の明記: 参照した論文の『タイトル』と『URLリンク』をリスト形式で明記してください。
-3. 不確実性の提示: 情報が不十分な場合は「現在の検索結果からは断言できません」と答えてください。
-
-【参考論文データ】
-${context || "関連する論文が見つかりませんでした。"}`,
-    messages,
-  });
-
-  return result.toDataStreamResponse();
+    return result.toDataStreamResponse();
+  } catch (error: any) {
+    const msg = error?.message || "";
+    const isRateLimit = msg.includes("rate limit") || msg.includes("Rate limit") || error?.statusCode === 429;
+    if (isRateLimit) {
+      console.error("[/api/lab/chat] Groq rate limit reached:", msg.slice(0, 200));
+      return new Response(
+        JSON.stringify({
+          error: "1日のAI利用制限に達しました。しばらく時間をおいてから再度お試しください。（Groq無料枠の1日トークン制限）"
+        }),
+        { status: 429, headers: { "Content-Type": "application/json" } }
+      );
+    }
+    console.error("[/api/lab/chat] streamText error:", error);
+    throw error;
+  }
 }

@@ -87,6 +87,12 @@ export async function searchPapersByVector(
   // 1. Generate embedding for the search query
   const queryEmbedding = await embedText(query);
 
+  // Guard: if embedding is unavailable (e.g. Groq free tier), skip vector search
+  if (!queryEmbedding || queryEmbedding.length === 0) {
+    console.warn("[vectorSearch] Empty embedding returned, skipping RPC call.");
+    return [];
+  }
+
   // 2. Call the Supabase RPC function
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase.rpc("match_papers", {
