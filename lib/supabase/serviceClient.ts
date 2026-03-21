@@ -96,6 +96,48 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
 }
 
 
+type NewsUpsertInput = {
+  id: string;
+  title: string;
+  description?: string;
+  url: string;
+  image_url?: string | null;
+  published_at: string;
+  source_name: string;
+  category?: string;
+  summary_general?: string | null;
+};
+
+/**
+ * Supabase の `news` テーブルにニュース記事を upsert する。
+ */
+export async function upsertNewsToSupabase(input: NewsUpsertInput): Promise<void> {
+  const supabase = getSupabaseServerClient();
+  const schema = process.env.SUPABASE_SCHEMA ?? "public";
+
+  const { error } = await supabase
+    .schema(schema)
+    .from("news")
+    .upsert(
+      {
+        id: input.id,
+        title: input.title,
+        description: input.description ?? null,
+        url: input.url,
+        image_url: input.image_url ?? null,
+        published_at: input.published_at,
+        source_name: input.source_name,
+        category: input.category ?? "general",
+        summary_general: input.summary_general ?? null,
+      },
+      { onConflict: "id" }
+    );
+
+  if (error) {
+    throw new Error(`News upsert failed (${schema}.news): ${error.message}`);
+  }
+}
+
 /**
  * Supabase の `inquiries` テーブルに問い合わせ内容を保存する。
  */

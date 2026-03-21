@@ -7,12 +7,14 @@ import { useState } from "react";
 import { Search, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
 import { PaperCardData } from "../types";
 import { PaperCard } from "./PaperCard";
+import { NewsCardData } from "./NewsCard";
 
 interface HomeContentProps {
     papers: PaperCardData[] | null;
+    news?: NewsCardData[] | null;
 }
 
-export function HomeContent({ papers }: HomeContentProps) {
+export function HomeContent({ papers, news }: HomeContentProps) {
     const t = useTranslations('Home');
     const st = useTranslations('Search');
     const ct = useTranslations('Common');
@@ -95,8 +97,27 @@ export function HomeContent({ papers }: HomeContentProps) {
                             {t("newsDesc")}
                         </p>
 
-                        {/* Display latest papers as news-like content */}
-                        {papers && papers.length > 0 && (
+                        {/* Display real news from DB, or latest papers as fallback */}
+                        {news && news.length > 0 ? (
+                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 pb-4">
+                                {news.slice(0, 3).map((item, idx) => (
+                                    <a key={item.id || idx} href={item.url || "#"} target="_blank" rel="noopener noreferrer" className="block p-5 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-sky-200 transition-all group">
+                                        {item.category && (
+                                            <span className="text-[9px] font-black tracking-widest text-sky-600 uppercase">{item.category}</span>
+                                        )}
+                                        <h3 className="font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 mt-1">
+                                            {item.title}
+                                        </h3>
+                                        <div className="mt-3 flex items-center justify-between">
+                                            <span className="text-xs font-semibold text-slate-400">
+                                                {item.source || ''}{item.published_at ? ' · ' + new Date(item.published_at).toLocaleDateString() : ''}
+                                            </span>
+                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
+                                        </div>
+                                    </a>
+                                ))}
+                            </div>
+                        ) : papers && papers.length > 0 ? (
                             <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 pb-4">
                                 {papers.slice(0, 3).map((item, idx) => (
                                     <a key={item.id || idx} href={item.url || "#"} target="_blank" rel="noopener noreferrer" className="block p-5 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-sky-200 transition-all group">
@@ -112,7 +133,7 @@ export function HomeContent({ papers }: HomeContentProps) {
                                     </a>
                                 ))}
                             </div>
-                        )}
+                        ) : null}
 
                         <div className="pt-4">
                             <Link

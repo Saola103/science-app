@@ -2,6 +2,7 @@
 
 import { getSupabaseServerClient } from "../lib/supabase/serviceClient";
 import { findSimilarPapers } from "../lib/supabase/vectorSearch";
+import { NewsCardData } from "../components/NewsCard";
 
 export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     console.log("[fetchLatestPapers] Fetching, limit:", limit, "categories:", categories);
@@ -26,6 +27,38 @@ export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     }
 
     return data;
+}
+
+/**
+ * Fetch latest news articles from the Supabase news table.
+ * Returns empty array if the table doesn't exist yet (before migration).
+ */
+export async function fetchLatestNews(limit = 6): Promise<NewsCardData[]> {
+  const supabase = getSupabaseServerClient();
+
+  const { data, error } = await supabase
+    .from("news")
+    .select("id, title, url, published_at, description, summary_general, image_url, source_name, category")
+    .order("published_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    // Table might not exist yet — fail silently
+    console.warn("[fetchLatestNews] Could not fetch news:", error.message);
+    return [];
+  }
+
+  return (data || []).map((item) => ({
+    id: item.id,
+    title: item.title,
+    source: item.source_name ?? null,
+    url: item.url ?? null,
+    published_at: item.published_at ?? null,
+    summary_general: item.summary_general ?? item.description ?? null,
+    summary_expert: null,
+    image_url: item.image_url ?? null,
+    category: item.category ?? null,
+  }));
 }
 
 /**

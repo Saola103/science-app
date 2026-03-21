@@ -9,9 +9,10 @@
 
 import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
 import { fetchPubMedPapers, PUBMED_CATEGORY_QUERIES } from "../sources/pubmed";
+import { fetchScienceNewsFromRSS } from "../sources/rss";
 import { summarize } from "../llm/summarize";
-import { embedText } from "../llm/index";
-import { upsertPaperToSupabase } from "../supabase/serviceClient";
+import { generateText, embedText } from "../llm/index";
+import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
 
 // arXiv category codes mapped to our internal categories
@@ -150,7 +151,6 @@ export async function collectFromArxiv(): Promise<CollectResult[]> {
             source: "arXiv",
           });
           collected++;
-          // Rate limit Gemini API calls
           await delay(1000);
         } catch (e) {
           console.error(`Failed to process arXiv paper ${paper.id}:`, e);
@@ -207,33 +207,90 @@ export async function collectFromPubMed(): Promise<CollectResult[]> {
 }
 
 /**
- * Run the full collection pipeline (arXiv + PubMed)
+ * Collect science news from RSS feeds, generate Japanese summaries, and save to DB
+ */
+export async function collectNews(): Promise<{ collected: number; errors: number }> {
+  let collected = 0;
+  let errors = 0;
+
+  try {
+    console.log("[Pipeline] Fetching science news from RSS feeds...");
+    const articles = await fetchScienceNewsFromRSS();
+    console.log(`[Pipeline] Fetched ${articles.length} news articles from RSS`);
+
+    for (const article of articles) {
+      try {
+        // Generate a Japanese summary using Groq
+        const prompt = `以下の英語ニュース記事を日本語で3〜5行に要約してください。科学的な内容を一般の読者にわかりやすく伝えてください。\n\nタイトル: ${article.title}\n\n内容: ${article.description}`;
+
+        let summaryJa: string | null = null;
+        try {
+          summaryJa = await generateText(prompt);
+          await delay(500); // Groq rate limit buffer
+        } catch (e) {
+          console.warn(`[Pipeline] News summary failed for "${article.title}":`, e);
+        }
+
+        await upsertNewsToSupabase({
+          id: article.id,
+          title: article.title,
+          description: article.description,
+          url: article.url,
+          image_url: article.image_url,
+          published_at: article.published_at,
+          source_name: article.source_name,
+          category: article.category,
+          summary_general: summaryJa,
+        });
+
+        collected++;
+      } catch (e) {
+        console.error(`[Pipeline] Failed to save news "${article.title}":`, e);
+        errors++;
+      }
+    }
+  } catch (e) {
+    console.error("[Pipeline] News collection failed:", e);
+    errors++;
+  }
+
+  return { collected, errors };
+}
+
+/**
+ * Run the full collection pipeline (arXiv + PubMed + News)
  */
 export async function runCollectionPipeline(): Promise<{
   arXiv: CollectResult[];
   pubMed: CollectResult[];
+  news: { collected: number; errors: number };
   totalCollected: number;
   totalErrors: number;
 }> {
-  console.log("[Pipeline] Starting paper collection...");
+  console.log("[Pipeline] Starting full collection (papers + news)...");
   const startTime = Date.now();
 
-  // Run arXiv and PubMed sequentially to stay within rate limits
-  const arXiv = await collectFromArxiv();
-  const pubMed = await collectFromPubMed();
+  // Run papers and news in parallel
+  const [arXiv, pubMed, news] = await Promise.all([
+    collectFromArxiv(),
+    collectFromPubMed(),
+    collectNews(),
+  ]);
 
   const totalCollected =
     arXiv.reduce((s, r) => s + r.collected, 0) +
-    pubMed.reduce((s, r) => s + r.collected, 0);
+    pubMed.reduce((s, r) => s + r.collected, 0) +
+    news.collected;
 
   const totalErrors =
     arXiv.reduce((s, r) => s + r.errors, 0) +
-    pubMed.reduce((s, r) => s + r.errors, 0);
+    pubMed.reduce((s, r) => s + r.errors, 0) +
+    news.errors;
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(
     `[Pipeline] Done in ${duration}s. Collected: ${totalCollected}, Errors: ${totalErrors}`
   );
 
-  return { arXiv, pubMed, totalCollected, totalErrors };
+  return { arXiv, pubMed, news, totalCollected, totalErrors };
 }
