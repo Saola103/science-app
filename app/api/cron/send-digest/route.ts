@@ -39,14 +39,28 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabase();
     const resend = getResend();
 
-    // Fetch confirmed subscribers
-    const { data: subscribers, error: subError } = await supabase
+    // Fetch subscribers (try confirmed-only first; fall back to all if column missing)
+    let subscribers: { email: string; unsubscribe_token?: string }[] | null = null;
+    let subError: { message: string } | null = null;
+
+    const confirmedResult = await supabase
         .from("subscribers")
         .select("email, unsubscribe_token")
         .eq("confirmed", true);
 
+    if (confirmedResult.error) {
+        // "confirmed" column may not exist yet — fall back to all subscribers
+        const allResult = await supabase
+            .from("subscribers")
+            .select("email");
+        subscribers = allResult.data;
+        subError = allResult.error;
+    } else {
+        subscribers = confirmedResult.data;
+    }
+
     if (subError || !subscribers?.length) {
-        return NextResponse.json({ message: "No confirmed subscribers", count: 0 });
+        return NextResponse.json({ message: "No subscribers found", count: 0 });
     }
 
     // Fetch latest news (top 3)
