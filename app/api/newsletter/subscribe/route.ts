@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     // Check if already subscribed
     const { data: existing } = await supabase
-        .from("newsletter_subscribers")
+        .from("subscribers")
         .select("id, confirmed")
         .eq("email", email)
         .single();
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
     const unsubscribeToken = crypto.randomUUID();
 
     const { error: upsertError } = await supabase
-        .from("newsletter_subscribers")
+        .from("subscribers")
         .upsert({
             email,
             confirmed: false,

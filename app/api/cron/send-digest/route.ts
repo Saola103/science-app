@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch confirmed subscribers
     const { data: subscribers, error: subError } = await supabase
-        .from("newsletter_subscribers")
+        .from("subscribers")
         .select("email, unsubscribe_token")
         .eq("confirmed", true);
 

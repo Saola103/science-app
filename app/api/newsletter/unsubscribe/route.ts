@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { error } = await supabase
-        .from("newsletter_subscribers")
+        .from("subscribers")
         .delete()
         .eq("unsubscribe_token", token);
 

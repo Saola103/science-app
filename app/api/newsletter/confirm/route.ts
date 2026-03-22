@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     }
 
     const { error } = await supabase
-        .from("newsletter_subscribers")
+        .from("subscribers")
         .update({ confirmed: true, confirmed_at: new Date().toISOString() })
         .eq("confirm_token", token)
         .eq("confirmed", false);
