@@ -55,6 +55,7 @@ export function Footer() {
                         <li><Link href="/search" className="text-slate-400 hover:text-sky-600 transition-colors">{t("search")}</Link></li>
                         <li><Link href="/about" className="text-slate-400 hover:text-sky-600 transition-colors">{t("about")}</Link></li>
                         <li><Link href="/contact" className="text-slate-400 hover:text-sky-600 transition-colors">{t("contact")}</Link></li>
+                        <li><Link href="/newsletter" className="text-slate-400 hover:text-sky-600 transition-colors">{t("newsletter")}</Link></li>
                     </ul>
                 </div>
 

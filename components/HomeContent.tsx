@@ -1,339 +1,331 @@
 'use client';
 
-import { useTranslations } from 'next-intl';
 import { Link, useRouter } from "../i18n/routing";
-import Image from "next/image";
-import { useState } from "react";
-import { Search, ArrowRight, Sparkles, ExternalLink } from "lucide-react";
+import { ArrowRight, Newspaper, FlaskConical, Mail, CheckCircle2 } from "lucide-react";
 import { PaperCardData } from "../types";
-import { PaperCard } from "./PaperCard";
 import { NewsCardData } from "./NewsCard";
+import { useState } from "react";
 
 interface HomeContentProps {
     papers: PaperCardData[] | null;
     news?: NewsCardData[] | null;
 }
 
-export function HomeContent({ papers, news }: HomeContentProps) {
-    const t = useTranslations('Home');
-    const st = useTranslations('Search');
-    const ct = useTranslations('Common');
-    const router = useRouter();
-    const [searchQuery, setSearchQuery] = useState("");
+// Category color map
+const CATEGORY_COLORS: Record<string, string> = {
+    PHYSICS: "bg-blue-50 text-blue-600",
+    BIOLOGY: "bg-green-50 text-green-600",
+    GENETICS: "bg-emerald-50 text-emerald-600",
+    CHEMISTRY: "bg-orange-50 text-orange-600",
+    AI: "bg-violet-50 text-violet-600",
+    NEUROSCIENCE: "bg-pink-50 text-pink-600",
+    SPACE: "bg-indigo-50 text-indigo-600",
+    MEDICINE: "bg-rose-50 text-rose-600",
+    ENVIRONMENT: "bg-teal-50 text-teal-600",
+    DEFAULT: "bg-sky-50 text-sky-600",
+};
+function categoryColor(cat?: string | null) {
+    if (!cat) return CATEGORY_COLORS.DEFAULT;
+    const key = cat.toUpperCase();
+    return CATEGORY_COLORS[key] || CATEGORY_COLORS.DEFAULT;
+}
 
-    const handleSearch = (e: React.FormEvent) => {
+function formatDate(iso?: string | null) {
+    if (!iso) return "";
+    const d = new Date(iso);
+    return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function todayJa() {
+    const d = new Date();
+    const week = ["日", "月", "火", "水", "木", "金", "土"];
+    return d.toLocaleDateString("ja-JP", { year: "numeric", month: "long", day: "numeric" }) + `（${week[d.getDay()]}）`;
+}
+
+// ─── Newsletter Form ─────────────────────────────────────────────────────────
+function NewsletterForm({ compact = false }: { compact?: boolean }) {
+    const [email, setEmail] = useState("");
+    const [state, setState] = useState<"idle" | "loading" | "done" | "error">("idle");
+    const [msg, setMsg] = useState("");
+
+    const submit = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (searchQuery.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
-        } else {
-            router.push(`/search`);
+        if (!email.trim()) return;
+        setState("loading");
+        try {
+            const res = await fetch("/api/newsletter/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email }),
+            });
+            const data = await res.json();
+            if (res.ok) {
+                setState("done");
+                setMsg(data.message || "確認メールを送信しました。メールをご確認ください。");
+            } else {
+                setState("error");
+                setMsg(data.error || "登録に失敗しました。");
+            }
+        } catch {
+            setState("error");
+            setMsg("通信エラーが発生しました。");
         }
     };
 
+    if (state === "done") {
+        return (
+            <div className={`flex items-center gap-3 ${compact ? "py-2" : "py-4"} text-emerald-600`}>
+                <CheckCircle2 className="w-5 h-5 shrink-0" />
+                <p className="text-sm font-bold">{msg}</p>
+            </div>
+        );
+    }
+
     return (
-        <div className="min-h-screen bg-white text-slate-900 leading-relaxed font-sans">
-            {/* 1. Hero Section (White) */}
-            <section className="relative pt-32 pb-24 px-6 md:pt-48 md:pb-40 overflow-hidden">
-                <div className="max-w-5xl mx-auto text-center space-y-12 relative z-10">
-                    <div className="space-y-6">
-                        <h1 className="text-5xl md:text-8xl font-black tracking-tighter text-slate-900 leading-none italic uppercase">
-                            POCKET <span className="text-sky-600">DIVE</span>
-                        </h1>
-                        <p className="text-xl md:text-3xl font-bold text-slate-700 max-w-3xl mx-auto leading-tight">
-                            {t("subtitle")}
-                        </p>
-                    </div>
+        <form onSubmit={submit} className={`flex ${compact ? "gap-2" : "flex-col sm:flex-row gap-3"} w-full`}>
+            <input
+                type="email"
+                required
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="your@email.com"
+                disabled={state === "loading"}
+                className={`flex-1 bg-white border border-slate-200 rounded-xl px-4 ${compact ? "py-2.5 text-sm" : "py-3.5 text-base"} font-medium outline-none focus:ring-2 focus:ring-sky-500/20 focus:border-sky-500 transition-all placeholder:text-slate-300 disabled:opacity-60`}
+            />
+            <button
+                type="submit"
+                disabled={state === "loading"}
+                className={`shrink-0 bg-slate-900 text-white font-black text-xs uppercase tracking-widest rounded-xl ${compact ? "px-5 py-2.5" : "px-8 py-3.5"} hover:bg-sky-600 transition-all disabled:opacity-60 flex items-center gap-2 whitespace-nowrap`}
+            >
+                {state === "loading" ? "送信中..." : (compact ? "登録" : "無料で登録する →")}
+            </button>
+            {state === "error" && <p className="text-xs text-rose-500 font-bold mt-1">{msg}</p>}
+        </form>
+    );
+}
 
-                    <p className="text-base md:text-lg text-slate-500 max-w-2xl mx-auto leading-relaxed font-medium">
-                        {t("description")}
+// ─── Featured News Card ───────────────────────────────────────────────────────
+function FeaturedCard({ item }: { item: NewsCardData }) {
+    return (
+        <a
+            href={item.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="group block bg-white border border-slate-100 rounded-3xl overflow-hidden shadow-sm hover:shadow-xl hover:border-sky-200 transition-all duration-300"
+        >
+            <div className="p-8 md:p-10 space-y-5">
+                <div className="flex items-center gap-3">
+                    {item.category && (
+                        <span className={`text-[10px] font-black tracking-[0.15em] uppercase px-3 py-1 rounded-full ${categoryColor(item.category)}`}>
+                            {item.category}
+                        </span>
+                    )}
+                    {item.published_at && (
+                        <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                            {formatDate(item.published_at)}
+                        </span>
+                    )}
+                </div>
+                <h2 className="text-xl md:text-2xl font-black text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-3">
+                    {item.title}
+                </h2>
+                {item.summary_general && (
+                    <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-3">
+                        {item.summary_general}
                     </p>
-
-                    {/* Prominent Search Bar */}
-                    <form onSubmit={handleSearch} className="max-w-2xl mx-auto relative group">
-                        <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
-                            <Search className="w-5 h-5 text-slate-400 group-focus-within:text-sky-600 transition-colors" />
-                        </div>
-                        <input
-                            type="text"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            placeholder={ct("searchPlaceholder")}
-                            className="w-full h-16 md:h-20 pl-16 pr-40 bg-white border-2 border-slate-100 rounded-2xl md:rounded-3xl text-lg font-bold outline-none focus:border-sky-600 focus:ring-4 focus:ring-sky-600/5 transition-all shadow-xl shadow-slate-200/40 placeholder:text-slate-400"
-                        />
-                        <button
-                            type="submit"
-                            className="absolute right-2 top-2 bottom-2 px-8 bg-slate-900 text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-xl md:rounded-2xl hover:bg-sky-600 active:scale-95 transition-all flex items-center gap-2 shadow-lg shadow-slate-900/10"
-                        >
-                            {ct("search")}
-                            <ArrowRight className="w-4 h-4" />
-                        </button>
-                    </form>
+                )}
+                <div className="flex items-center justify-between pt-2">
+                    <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">
+                        {item.source || ""}
+                    </span>
+                    <span className="text-xs font-black text-sky-600 uppercase tracking-widest flex items-center gap-1 group-hover:gap-2 transition-all">
+                        続きを読む <ArrowRight className="w-3 h-3" />
+                    </span>
                 </div>
+            </div>
+        </a>
+    );
+}
 
-                {/* Background Decor (Subtle) */}
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-sky-50 rounded-full blur-[120px] opacity-50 -z-0"></div>
-            </section>
+// ─── Small News Card ─────────────────────────────────────────────────────────
+function SmallNewsCard({ item }: { item: NewsCardData }) {
+    return (
+        <a
+            href={item.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="group flex gap-4 p-5 bg-white border border-slate-100 rounded-2xl hover:shadow-md hover:border-sky-200 transition-all duration-200"
+        >
+            <div className="flex-1 space-y-2">
+                {item.category && (
+                    <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full ${categoryColor(item.category)}`}>
+                        {item.category}
+                    </span>
+                )}
+                <h3 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
+                    {item.title}
+                </h3>
+                <p className="text-[10px] font-bold text-slate-300 uppercase tracking-widest">
+                    {item.source}
+                </p>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-200 group-hover:text-sky-400 shrink-0 mt-1 transition-colors" />
+        </a>
+    );
+}
 
-            {/* 2. Latest News Section (Sky 50) - Zig: Image Left, Text Right */}
-            <section className="bg-sky-50 py-24 px-6 md:py-32">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
-                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
-                        <Image
-                            src="/images/binary_code.jpg"
-                            alt="Binary Code - Information Technology"
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-1000"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                    </div>
-                    <div className="flex-1 space-y-8 text-center md:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            {t("newsBadge")}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            {t("newsTitle")}
-                        </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium mb-6">
-                            {t("newsDesc")}
-                        </p>
-
-                        {/* Display real news from DB, or latest papers as fallback */}
-                        {news && news.length > 0 ? (
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 pb-4">
-                                {news.slice(0, 3).map((item, idx) => (
-                                    <a key={item.id || idx} href={item.url || "#"} target="_blank" rel="noopener noreferrer" className="block p-5 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-sky-200 transition-all group">
-                                        {item.category && (
-                                            <span className="text-[9px] font-black tracking-widest text-sky-600 uppercase">{item.category}</span>
-                                        )}
-                                        <h3 className="font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2 mt-1">
-                                            {item.title}
-                                        </h3>
-                                        <div className="mt-3 flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-slate-400">
-                                                {item.source || ''}{item.published_at ? ' · ' + new Date(item.published_at).toLocaleDateString() : ''}
-                                            </span>
-                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
-                                        </div>
-                                    </a>
-                                ))}
-                            </div>
-                        ) : papers && papers.length > 0 ? (
-                            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 pb-4">
-                                {papers.slice(0, 3).map((item, idx) => (
-                                    <a key={item.id || idx} href={item.url || "#"} target="_blank" rel="noopener noreferrer" className="block p-5 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-md hover:border-sky-200 transition-all group">
-                                        <h3 className="font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
-                                            {item.title}
-                                        </h3>
-                                        <div className="mt-3 flex items-center justify-between">
-                                            <span className="text-xs font-semibold text-slate-400">
-                                                {item.published_at ? new Date(item.published_at).toLocaleDateString() : ''}
-                                            </span>
-                                            <ExternalLink className="w-4 h-4 text-slate-300 group-hover:text-sky-500 transition-colors" />
-                                        </div>
-                                    </a>
-                                ))}
-                            </div>
-                        ) : null}
-
-                        <div className="pt-4">
-                            <Link
-                                href="/news"
-                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
-                            >
-                                {ct("viewMore")}
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 3. Research Papers Section (White) - Zag: Text Left, Image Right */}
-            <section className="bg-white py-24 px-6 md:py-32">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
-                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-900/5 border border-slate-100">
-                        <Image
-                            src="/images/brain.jpg"
-                            alt="Brain - Neuroscience and Research"
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-1000"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                    </div>
-                    <div className="flex-1 space-y-8 text-center md:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-slate-900/5 text-slate-500 text-[10px] font-black tracking-[0.2em] uppercase">
-                            {t("papersBadge")}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            {t("papersTitle")}
-                        </h2>
-                        {papers && papers.length > 0 ? (
-                            <div className="space-y-4 text-left overflow-y-auto max-h-[500px]">
-                                {papers.slice(0, 3).map((paper) => (
-                                    <div key={paper.id} className="scale-90 origin-top-left w-[111%]">
-                                        <PaperCard paper={paper} />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                                {t("papersDesc")}
-                            </p>
-                        )}
-                        <div className="pt-4 mt-6">
-                            <Link
-                                href="/papers"
-                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
-                            >
-                                {ct("viewMore")}
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 4. AI Search Concept Section (Sky 50) - Zig: Image Left, Text Right */}
-            <section className="bg-sky-50 py-24 px-6 md:py-32">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
-                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
-                        <Image
-                            src="/images/atom.jpg"
-                            alt="Atom - Physics and AI Discovery"
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-1000"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                    </div>
-                    <div className="flex-1 space-y-8 text-center md:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            {t("searchBadge")}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            {t("searchTitle")}<br />
-                            <span className="text-sky-600">{t("searchSubtitle")}</span>
-                        </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                            {t("searchDesc")}
-                        </p>
-                        <div className="pt-4">
-                            <Link
-                                href="/search"
-                                className="px-10 py-5 bg-slate-900 text-white font-black text-xs uppercase tracking-[0.2em] rounded-2xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/20 active:scale-95"
-                            >
-                                {st("modeDeep")}
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* 5. More Papers Section (Sky 50) */}
-            <section className="bg-sky-50 py-24 px-6 md:py-32 relative overflow-hidden">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row-reverse items-center gap-16 md:gap-24">
-                    <div className="flex-1 w-full relative aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-sky-900/5 border border-white/50">
-                        <Image
-                            src="/images/dna_structure.jpg"
-                            alt="DNA Structure - Life Science"
-                            fill
-                            className="object-cover hover:scale-105 transition-transform duration-1000"
-                            sizes="(max-width: 768px) 100vw, 50vw"
-                        />
-                    </div>
-                    <div className="flex-1 space-y-8 text-center md:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-sky-600/10 text-sky-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            {t("papersBadge")}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            {t("papersTitle")}
-                        </h2>
-                        {papers && papers.length > 3 ? (
-                            <div className="space-y-4 text-left overflow-y-auto max-h-[500px]">
-                                {papers.slice(3, 6).map((paper) => (
-                                    <div key={paper.id} className="scale-90 origin-top-left w-[111%]">
-                                        <PaperCard paper={paper} />
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                                {t("papersDesc")}
-                            </p>
-                        )}
-                        <div className="pt-4 mt-6">
-                            <Link
-                                href="/papers"
-                                className="group inline-flex items-center gap-3 text-sm font-black uppercase tracking-widest text-slate-900 hover:text-sky-600 transition-colors"
-                            >
-                                {ct("viewMore")}
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* AI Lab Section */}
-            <section className="bg-white py-24 px-6 md:py-32 relative overflow-hidden border-t border-slate-50">
-                <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-16 md:gap-24">
-                    <div className="flex-1 w-full relative aspect-square md:aspect-[4/3] rounded-[2.5rem] overflow-hidden shadow-2xl shadow-slate-200/50 border border-slate-100 bg-slate-50 flex items-center justify-center">
-                         <Sparkles className="w-32 h-32 text-sky-600 opacity-20" />
-                    </div>
-                    <div className="flex-1 space-y-8 text-center md:text-left">
-                        <div className="inline-block px-4 py-1.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-black tracking-[0.2em] uppercase">
-                            {t("labBadge")}
-                        </div>
-                        <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 leading-tight">
-                            {t("labTitle")} <span className="text-sky-600 block text-2xl md:text-4xl mt-2">{t("labSubtitle")}</span>
-                        </h2>
-                        <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                            {t("labDesc")}
-                        </p>
-                        <div className="pt-4">
-                            <Link
-                                href="/lab"
-                                className="group inline-flex items-center gap-3 px-8 py-4 bg-slate-900 text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-xl hover:bg-sky-600 transition-all shadow-xl shadow-slate-900/10"
-                            >
-                                {t("labButton")}
-                                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* Values / Philosophy (White) */}
-            <section className="bg-white py-24 px-6 md:py-32 text-center border-t border-slate-50 overflow-hidden">
-                <div className="max-w-4xl mx-auto space-y-12 relative z-10">
-                    <div className="relative w-full h-64 md:h-96 rounded-[3rem] overflow-hidden shadow-2xl mb-16 border border-slate-100">
-                        <Image
-                            src="/images/nature.jpg"
-                            alt="Nature Landscapes - The harmony of science and nature"
-                            fill
-                            className="object-cover"
-                            sizes="100vw"
-                        />
-                    </div>
-                    <h2 className="text-3xl md:text-5xl font-black tracking-tight text-slate-900 uppercase italic">
-                        {t("valueTitle")}
-                    </h2>
-                    <p className="text-lg md:text-xl text-slate-500 font-bold leading-relaxed">
-                        {t("valueDesc")}
+// ─── Paper Row Card ───────────────────────────────────────────────────────────
+function PaperRowCard({ paper }: { paper: PaperCardData }) {
+    return (
+        <a
+            href={paper.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+            className="group flex gap-5 p-5 bg-white border border-slate-100 rounded-2xl hover:shadow-md hover:border-sky-200 transition-all duration-200"
+        >
+            <div className="w-1 rounded-full bg-sky-200 shrink-0 group-hover:bg-sky-500 transition-colors" />
+            <div className="flex-1 space-y-2">
+                <h3 className="text-sm font-bold text-slate-900 leading-snug group-hover:text-sky-600 transition-colors line-clamp-2">
+                    {paper.title}
+                </h3>
+                {(paper as any).summary_general && (
+                    <p className="text-xs text-slate-400 font-medium leading-relaxed line-clamp-2">
+                        {(paper as any).summary_general}
                     </p>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8 pt-8">
-                        {[
-                            { label: t("valAccuracy"), value: t("valAccuracyDesc") },
-                            { label: t("valClarity"), value: t("valClarityDesc") },
-                            { label: t("valSpeed"), value: t("valSpeedDesc") }
-                        ].map((item, i) => (
-                            <div key={i} className="p-8 rounded-[2rem] bg-slate-50 border border-slate-100 space-y-3">
-                                <div className="text-xs font-black tracking-widest text-sky-600 uppercase italic">{item.label}</div>
-                                <div className="text-sm font-bold text-slate-900 leading-tight">{item.value}</div>
-                            </div>
-                        ))}
+                )}
+                <div className="flex items-center gap-3">
+                    {paper.category && (
+                        <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded-full ${categoryColor(paper.category)}`}>
+                            {paper.category}
+                        </span>
+                    )}
+                    {paper.published_at && (
+                        <span className="text-[10px] font-bold text-slate-300">{formatDate(paper.published_at)}</span>
+                    )}
+                </div>
+            </div>
+            <ArrowRight className="w-4 h-4 text-slate-200 group-hover:text-sky-400 shrink-0 mt-1 transition-colors" />
+        </a>
+    );
+}
+
+// ─── Main Component ───────────────────────────────────────────────────────────
+export function HomeContent({ papers, news }: HomeContentProps) {
+    const featuredNews = news?.[0] ?? null;
+    const restNews = news?.slice(1, 4) ?? [];
+    const topPapers = papers?.slice(0, 4) ?? [];
+
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-900">
+
+            {/* ── Masthead ─────────────────────────────────────────── */}
+            <div className="bg-white border-b border-slate-100">
+                <div className="max-w-5xl mx-auto px-6 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <p className="text-[10px] font-black tracking-[0.25em] text-slate-300 uppercase">Daily Science Digest</p>
+                            <p className="text-sm font-bold text-slate-500">{todayJa()}</p>
+                        </div>
+                    </div>
+                    {/* Compact newsletter bar */}
+                    <div className="w-full sm:w-auto sm:max-w-sm">
+                        <NewsletterForm compact />
                     </div>
                 </div>
-            </section>
+            </div>
+
+            {/* ── Main Feed ────────────────────────────────────────── */}
+            <div className="max-w-5xl mx-auto px-6 py-10 space-y-16">
+
+                {/* Today's Top Story */}
+                {featuredNews && (
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <Newspaper className="w-4 h-4 text-sky-500" />
+                            <h2 className="text-[11px] font-black tracking-[0.25em] text-slate-400 uppercase">今日のトップニュース</h2>
+                            <div className="flex-1 h-px bg-slate-100" />
+                            <Link href="/news" className="text-[10px] font-black text-slate-300 hover:text-sky-600 transition-colors uppercase tracking-widest flex items-center gap-1">
+                                全て見る <ArrowRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+                        <FeaturedCard item={featuredNews} />
+                    </section>
+                )}
+
+                {/* More News */}
+                {restNews.length > 0 && (
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <h2 className="text-[11px] font-black tracking-[0.25em] text-slate-400 uppercase">その他のニュース</h2>
+                            <div className="flex-1 h-px bg-slate-100" />
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            {restNews.map((item) => (
+                                <SmallNewsCard key={item.id} item={item} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Papers */}
+                {topPapers.length > 0 && (
+                    <section className="space-y-4">
+                        <div className="flex items-center gap-3">
+                            <FlaskConical className="w-4 h-4 text-sky-500" />
+                            <h2 className="text-[11px] font-black tracking-[0.25em] text-slate-400 uppercase">新着論文</h2>
+                            <div className="flex-1 h-px bg-slate-100" />
+                            <Link href="/papers" className="text-[10px] font-black text-slate-300 hover:text-sky-600 transition-colors uppercase tracking-widest flex items-center gap-1">
+                                全て見る <ArrowRight className="w-3 h-3" />
+                            </Link>
+                        </div>
+                        <div className="space-y-3">
+                            {topPapers.map((paper) => (
+                                <PaperRowCard key={paper.id} paper={paper} />
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Newsletter CTA */}
+                <section className="bg-slate-900 rounded-3xl p-10 md:p-14 text-center space-y-6">
+                    <div className="w-12 h-12 bg-white/10 rounded-2xl flex items-center justify-center mx-auto">
+                        <Mail className="w-6 h-6 text-white" />
+                    </div>
+                    <div className="space-y-3">
+                        <h2 className="text-2xl md:text-3xl font-black text-white tracking-tight">
+                            毎朝、科学の最前線を届ける。
+                        </h2>
+                        <p className="text-sm text-slate-400 font-medium max-w-md mx-auto leading-relaxed">
+                            世界中の論文・ニュースをAIが日本語で要約。<br />
+                            毎朝メールに届くから、習慣にできる。完全無料。
+                        </p>
+                    </div>
+                    <div className="max-w-md mx-auto">
+                        <NewsletterForm />
+                    </div>
+                    <p className="text-[10px] text-slate-600 font-bold uppercase tracking-widest">
+                        購読解除はいつでも可能 · スパムは送りません
+                    </p>
+                </section>
+
+                {/* Browse links */}
+                <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-8">
+                    <Link href="/news" className="group flex items-center justify-between p-6 bg-white border border-slate-100 rounded-2xl hover:border-sky-200 hover:shadow-md transition-all">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black tracking-widest text-sky-500 uppercase">Browse</p>
+                            <p className="text-base font-black text-slate-900">最新ニュース一覧</p>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-sky-500 group-hover:translate-x-1 transition-all" />
+                    </Link>
+                    <Link href="/papers" className="group flex items-center justify-between p-6 bg-white border border-slate-100 rounded-2xl hover:border-sky-200 hover:shadow-md transition-all">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black tracking-widest text-sky-500 uppercase">Browse</p>
+                            <p className="text-base font-black text-slate-900">新着論文一覧</p>
+                        </div>
+                        <ArrowRight className="w-5 h-5 text-slate-200 group-hover:text-sky-500 group-hover:translate-x-1 transition-all" />
+                    </Link>
+                </section>
+            </div>
         </div>
     );
 }
