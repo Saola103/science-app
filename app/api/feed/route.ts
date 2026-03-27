@@ -1,0 +1,183 @@
+/**
+ * API: Science TikTok Feed
+ * GET /api/feed?cursor=...&limit=10&preferences={"biology":3}
+ *
+ * Returns a mixed feed of papers + news, ordered by recency,
+ * with optional category-based personalization.
+ */
+
+import { NextRequest, NextResponse } from "next/server";
+import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
+
+export const maxDuration = 30;
+
+type FeedItem = {
+  id: string;
+  type: "paper" | "news";
+  title: string;
+  title_ja?: string | null;
+  summary?: string | null;
+  summary_ja?: string | null;
+  summary_general?: string | null;
+  summary_general_ja?: string | null;
+  category?: string | null;
+  published_at?: string | null;
+  url?: string | null;
+  source?: string | null;
+  authors?: string[] | null;
+  arxiv_id?: string | null;
+  image_url?: string | null;
+};
+
+function getCategoryGradient(category?: string | null): string {
+  if (!category) return "from-slate-900 via-slate-800 to-zinc-900";
+  const cat = category.toLowerCase();
+  if (cat.includes("bio") || cat.includes("genetics") || cat.includes("neuroscience") || cat.includes("medicine")) {
+    if (cat.includes("medicine")) return "from-red-900 via-rose-900 to-pink-900";
+    return "from-emerald-900 via-emerald-800 to-teal-900";
+  }
+  if (cat.includes("physics") || cat.includes("astronomy") || cat.includes("math")) {
+    return "from-blue-900 via-indigo-900 to-purple-900";
+  }
+  if (cat.includes("chem") || cat.includes("material")) {
+    return "from-orange-900 via-amber-900 to-yellow-900";
+  }
+  if (cat.includes("ai") || cat.includes("computer") || cat.includes("machine") || cat.includes("quantum") || cat.includes("robot")) {
+    return "from-violet-900 via-purple-900 to-fuchsia-900";
+  }
+  if (cat.includes("climate") || cat.includes("ecology") || cat.includes("energy") || cat.includes("environment")) {
+    return "from-teal-900 via-green-900 to-emerald-900";
+  }
+  return "from-slate-900 via-slate-800 to-zinc-900";
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const cursor = searchParams.get("cursor"); // ISO timestamp for pagination
+    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 20);
+    const preferencesStr = searchParams.get("preferences");
+
+    let preferences: Record<string, number> = {};
+    if (preferencesStr) {
+      try {
+        preferences = JSON.parse(preferencesStr);
+      } catch {
+        // ignore invalid preferences
+      }
+    }
+
+    const supabase = getSupabaseServerClient();
+    const schema = process.env.SUPABASE_SCHEMA ?? "public";
+
+    // Fetch papers
+    let papersQuery = supabase
+      .schema(schema)
+      .from("papers")
+      .select("id, title, summary, summary_general, category, published_at, url, authors, source, image_url")
+      .order("published_at", { ascending: false })
+      .limit(limit * 2);
+
+    if (cursor) {
+      papersQuery = papersQuery.lt("published_at", cursor);
+    }
+
+    // Fetch news
+    let newsQuery = supabase
+      .schema(schema)
+      .from("news")
+      .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
+      .order("published_at", { ascending: false })
+      .limit(limit * 2);
+
+    if (cursor) {
+      newsQuery = newsQuery.lt("published_at", cursor);
+    }
+
+    const [papersResult, newsResult] = await Promise.allSettled([papersQuery, newsQuery]);
+
+    const papers: FeedItem[] = [];
+    if (papersResult.status === "fulfilled" && papersResult.value.data) {
+      for (const p of papersResult.value.data) {
+        papers.push({
+          id: p.id,
+          type: "paper",
+          title: p.title,
+          summary: p.summary_general || p.summary,
+          summary_general: p.summary_general,
+          category: p.category,
+          published_at: p.published_at,
+          url: p.url,
+          authors: Array.isArray(p.authors) ? p.authors : [],
+          source: p.source || "arXiv",
+          image_url: p.image_url,
+        });
+      }
+    }
+
+    const newsItems: FeedItem[] = [];
+    if (newsResult.status === "fulfilled" && newsResult.value.data) {
+      for (const n of newsResult.value.data) {
+        newsItems.push({
+          id: n.id,
+          type: "news",
+          title: n.title,
+          summary: n.summary_general || n.description,
+          summary_general: n.summary_general,
+          category: n.category,
+          published_at: n.published_at,
+          url: n.url,
+          source: n.source_name,
+          image_url: n.image_url,
+        });
+      }
+    }
+
+    // Merge and sort by date
+    const allItems: FeedItem[] = [...papers, ...newsItems].sort((a, b) => {
+      const dateA = a.published_at ? new Date(a.published_at).getTime() : 0;
+      const dateB = b.published_at ? new Date(b.published_at).getTime() : 0;
+      return dateB - dateA;
+    });
+
+    // Apply personalization weights if preferences provided
+    let scoredItems = allItems.map((item) => {
+      let score = 0;
+      if (item.category && preferences[item.category.toLowerCase()] !== undefined) {
+        score = preferences[item.category.toLowerCase()];
+      }
+      return { item, score };
+    });
+
+    // Sort: items with positive scores first (but maintain relative recency)
+    if (Object.keys(preferences).length > 0) {
+      scoredItems = scoredItems.sort((a, b) => {
+        // Boost positive-scored items
+        if (b.score !== a.score) return b.score - a.score;
+        // Otherwise maintain recency order
+        const dateA = a.item.published_at ? new Date(a.item.published_at).getTime() : 0;
+        const dateB = b.item.published_at ? new Date(b.item.published_at).getTime() : 0;
+        return dateB - dateA;
+      });
+    }
+
+    const resultItems = scoredItems.slice(0, limit).map(({ item }) => ({
+      ...item,
+      gradient: getCategoryGradient(item.category),
+    }));
+
+    // Compute next cursor (oldest item's date)
+    const nextCursor = resultItems.length > 0
+      ? resultItems[resultItems.length - 1].published_at
+      : null;
+
+    return NextResponse.json({
+      items: resultItems,
+      nextCursor,
+      hasMore: resultItems.length === limit,
+    });
+  } catch (error) {
+    console.error("[Feed API] Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}

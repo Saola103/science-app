@@ -1,9 +1,12 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+// Lazy singleton - only created when first accessed, not at module evaluation time
+let _client: SupabaseClient | null = null;
 
-// 「既に作られていたらそれを使い、なければ作る」という仕組みにする
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-export const getSupabaseClient = () => supabase;
+export const getSupabaseClient = (): SupabaseClient => {
+  if (_client) return _client;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  _client = createClient(supabaseUrl, supabaseAnonKey);
+  return _client;
+};

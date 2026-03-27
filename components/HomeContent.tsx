@@ -1,7 +1,7 @@
 'use client';
 
 import { Link, useRouter } from "../i18n/routing";
-import { ArrowRight, Newspaper, FlaskConical, Mail, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Newspaper, FlaskConical, Mail, CheckCircle2, Play } from "lucide-react";
 import { PaperCardData } from "../types";
 import { NewsCardData } from "./NewsCard";
 import { useState } from "react";
@@ -231,6 +231,27 @@ export function HomeContent({ papers, news }: HomeContentProps) {
                     <div className="w-full sm:w-auto sm:max-w-sm">
                         <NewsletterForm compact />
                     </div>
+                </div>
+            </div>
+
+            {/* ── Science TikTok Feed CTA ──────────────────────────── */}
+            <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 border-b border-slate-800">
+                <div className="max-w-5xl mx-auto px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 bg-sky-500/20 rounded-xl flex items-center justify-center border border-sky-500/30">
+                            <Play className="w-4 h-4 text-sky-400 fill-sky-400" />
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-black tracking-widest text-sky-400 uppercase">NEW</p>
+                            <p className="text-sm font-bold text-white">スワイプで科学を楽しもう</p>
+                        </div>
+                    </div>
+                    <Link
+                        href="/feed"
+                        className="shrink-0 flex items-center gap-2 bg-sky-500 hover:bg-sky-400 text-white font-black text-xs uppercase tracking-widest px-5 py-2.5 rounded-xl transition-all shadow-lg shadow-sky-500/20 whitespace-nowrap"
+                    >
+                        フィードを見る <ArrowRight className="w-4 h-4" />
+                    </Link>
                 </div>
             </div>
 

@@ -5,13 +5,15 @@ import { useState } from "react";
 import { createClient } from "@supabase/supabase-js";
 import { Loader2, Lock, Inbox, Calendar, Trash2 } from "lucide-react";
 
-// Client-side Supabase client for Admin (using anon key is fine if RLS is set, 
+// Client-side Supabase client for Admin (using anon key is fine if RLS is set,
 // but for Admin dashboard usually we want more privilege or just read RLS-allowed data.
 // Since this is a simple personal app, we assume we can read inquiries.)
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
+}
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);

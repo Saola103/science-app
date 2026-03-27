@@ -30,7 +30,18 @@
     "footerRights": "© 2026 POCKET DIVE. All rights reserved.",
     "footerMenu": "Menu",
     "lab": "AI Lab",
-    "newsletter": "Newsletter"
+    "newsletter": "Newsletter",
+    "feed": "Feed"
+  },
+  "Feed": {
+    "title": "Science Feed",
+    "subtitle": "Swipe through science, TikTok-style.",
+    "loading": "Loading feed...",
+    "empty": "No content yet",
+    "deepDive": "Deep Dive",
+    "backToTop": "Back to Top",
+    "endOfFeed": "You've reached the end",
+    "checkBackLater": "Check back later for more science"
   },
   "Home": {
     "subtitle": "Dive into the world of science right from your pocket.",

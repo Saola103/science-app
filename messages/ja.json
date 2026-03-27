@@ -30,7 +30,18 @@
     "footerRights": "© 2026 POCKET DIVE. All rights reserved.",
     "footerMenu": "メニュー",
     "lab": "AI研究室",
-    "newsletter": "ニュースレター"
+    "newsletter": "ニュースレター",
+    "feed": "フィード"
+  },
+  "Feed": {
+    "title": "サイエンスフィード",
+    "subtitle": "TikTok風にスワイプして科学を楽しもう。",
+    "loading": "読み込み中...",
+    "empty": "まだコンテンツがありません",
+    "deepDive": "深く潜る",
+    "backToTop": "最初に戻る",
+    "endOfFeed": "フィードの最後です",
+    "checkBackLater": "また後で確認してください"
   },
   "Home": {
     "subtitle": "ポケットから、身近な科学の世界へダイブできる。",
