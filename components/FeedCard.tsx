@@ -41,6 +41,8 @@ function getCategoryLabel(category?: string | null): string {
   if (!category) return "サイエンス";
   const cat = category.toLowerCase();
   const labels: Record<string, string> = {
+    general: "サイエンス",
+    science: "サイエンス",
     biology: "生物学",
     bio: "生物学",
     neuroscience: "脳科学",
