@@ -153,9 +153,13 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
     }
   }, [item]);
 
-  const gradient = item.gradient || "from-slate-900 via-slate-800 to-zinc-900";
-  const displayTitle = item.title_ja || item.title;
-  const displaySummary = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
+  const gradient = item.gradient || "from-indigo-950 via-slate-900 to-zinc-900";
+  // Derive Japanese headline from first sentence of summary if no title_ja
+  const japaneseSummary = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
+  const japaneseHeadline = japaneseSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
+  const displayTitle = item.title_ja || japaneseHeadline || item.title;
+  const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
+  const displaySummary = japaneseSummary;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
   const sourceText = item.type === "news" ? item.source : (item.source || "arXiv");
 
@@ -194,10 +198,16 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
             </span>
           </div>
 
-          {/* Title */}
-          <h2 className="text-xl md:text-2xl font-black text-white leading-tight mb-4 line-clamp-3 drop-shadow-lg">
+          {/* Title — Japanese headline */}
+          <h2 className="text-xl md:text-2xl font-black text-white leading-tight mb-2 line-clamp-3 drop-shadow-lg">
             {displayTitle}
           </h2>
+          {/* English subtitle if we derived headline from summary */}
+          {showEnglishSub && (
+            <p className="text-[11px] text-white/40 font-medium mb-3 line-clamp-1 tracking-wide">
+              {item.title}
+            </p>
+          )}
 
           {/* Summary (3 lines collapsed, full when expanded) */}
           <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expanded ? "max-h-96" : "max-h-20"}`}>

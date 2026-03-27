@@ -30,25 +30,21 @@ type FeedItem = {
 };
 
 function getCategoryGradient(category?: string | null): string {
-  if (!category) return "from-slate-900 via-slate-800 to-zinc-900";
+  if (!category || category === "general") return "from-indigo-950 via-blue-950 to-slate-900";
   const cat = category.toLowerCase();
-  if (cat.includes("bio") || cat.includes("genetics") || cat.includes("neuroscience") || cat.includes("medicine")) {
-    if (cat.includes("medicine")) return "from-red-900 via-rose-900 to-pink-900";
-    return "from-emerald-900 via-emerald-800 to-teal-900";
-  }
-  if (cat.includes("physics") || cat.includes("astronomy") || cat.includes("math")) {
-    return "from-blue-900 via-indigo-900 to-purple-900";
-  }
-  if (cat.includes("chem") || cat.includes("material")) {
-    return "from-orange-900 via-amber-900 to-yellow-900";
-  }
-  if (cat.includes("ai") || cat.includes("computer") || cat.includes("machine") || cat.includes("quantum") || cat.includes("robot")) {
-    return "from-violet-900 via-purple-900 to-fuchsia-900";
-  }
-  if (cat.includes("climate") || cat.includes("ecology") || cat.includes("energy") || cat.includes("environment")) {
-    return "from-teal-900 via-green-900 to-emerald-900";
-  }
-  return "from-slate-900 via-slate-800 to-zinc-900";
+  if (cat.includes("neuro") || cat.includes("brain")) return "from-purple-900 via-violet-900 to-indigo-950";
+  if (cat.includes("medicine") || cat.includes("health") || cat.includes("disease")) return "from-rose-900 via-red-900 to-pink-950";
+  if (cat.includes("bio") || cat.includes("genetics") || cat.includes("cell") || cat.includes("gene")) return "from-emerald-900 via-green-800 to-teal-950";
+  if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos")) return "from-indigo-900 via-blue-900 to-slate-950";
+  if (cat.includes("physics")) return "from-blue-900 via-indigo-800 to-violet-950";
+  if (cat.includes("math")) return "from-cyan-900 via-blue-900 to-indigo-950";
+  if (cat.includes("chem") || cat.includes("material")) return "from-amber-900 via-orange-800 to-red-950";
+  if (cat.includes("quantum")) return "from-violet-900 via-purple-800 to-fuchsia-950";
+  if (cat.includes("ai") || cat.includes("computer") || cat.includes("machine") || cat.includes("robot")) return "from-violet-900 via-purple-900 to-fuchsia-950";
+  if (cat.includes("climate") || cat.includes("ecology") || cat.includes("environment")) return "from-teal-900 via-emerald-800 to-green-950";
+  if (cat.includes("energy") || cat.includes("solar")) return "from-yellow-900 via-amber-800 to-orange-950";
+  if (cat.includes("psycho") || cat.includes("social") || cat.includes("cognitive")) return "from-pink-900 via-rose-800 to-purple-950";
+  return "from-indigo-950 via-blue-950 to-slate-900";
 }
 
 export async function GET(req: NextRequest) {

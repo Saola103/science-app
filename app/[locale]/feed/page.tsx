@@ -169,7 +169,7 @@ export default function FeedPage() {
 
   if (loading) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">
         <div className="text-center space-y-4">
           <div className="w-12 h-12 border-2 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="text-white/60 text-sm font-bold tracking-widest uppercase">読み込み中...</p>
@@ -180,7 +180,7 @@ export default function FeedPage() {
 
   if (error || items.length === 0) {
     return (
-      <div className="fixed inset-0 bg-black flex items-center justify-center">
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-[100]">
         <div className="text-center space-y-6 px-8">
           <div className="text-6xl">🔬</div>
           <p className="text-white font-bold text-xl">
@@ -209,7 +209,7 @@ export default function FeedPage() {
   }
 
   return (
-    <div className="fixed inset-0 bg-black">
+    <div className="fixed inset-0 bg-black z-[100]">
       {/* Back button overlay */}
       <div className="absolute top-4 left-4 z-50">
         <Link
