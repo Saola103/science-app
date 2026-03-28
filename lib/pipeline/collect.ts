@@ -127,6 +127,7 @@ async function processPaper(paper: {
     summaryExpert: expertSummary || undefined,
     summaryEmbedding: embedding,
     imageUrl,
+    category,
   });
 }
 

@@ -17,6 +17,7 @@ type PaperUpsertInput = {
   summaryExpert?: string;
   summaryEmbedding?: number[];
   imageUrl?: string;
+  category?: string;
 };
 
 let client: SupabaseClient | null = null;
@@ -81,6 +82,7 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
     summary_expert: input.summaryExpert ?? null,
     summary_embedding: (input.summaryEmbedding && input.summaryEmbedding.length > 0) ? input.summaryEmbedding : null,
     image_url: input.imageUrl ?? null,
+    category: input.category ?? null,
   };
 
   const { error } = await supabase
