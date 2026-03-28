@@ -2,12 +2,9 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
 import { routing } from '../../i18n/routing';
-import Script from 'next/script';
 
 import "../globals.css";
 import { AppProvider } from "../../components/LanguageProvider";
-import { Header } from "../../components/Header";
-import { Footer } from "../../components/Footer";
 import { BottomNav } from "../../components/BottomNav";
 import { Geist, Geist_Mono } from "next/font/google";
 
@@ -22,8 +19,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "POCKET DIVE | ダイブ、身近な科学へ",
-  description: "ポケットから、身近な科学の世界へダイブできる。最新論文とニュースの収集・要約プラットフォーム。",
+  title: "POCKET DIVE | 科学をスワイプ",
+  description: "最新の科学論文・ニュースをTikTokスタイルで。毎日AIが要約してフィード配信。",
 };
 
 export function generateStaticParams() {
@@ -47,38 +44,15 @@ export default async function RootLayout({
 
   const messages = await getMessages();
 
-  const adsenseId = process.env.NEXT_PUBLIC_ADSENSE_PUBLISHER_ID;
-
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        {adsenseId && (
-          <Script
-            async
-            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${adsenseId}`}
-            crossOrigin="anonymous"
-            strategy="lazyOnload"
-          />
-        )}
-      </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300 relative`}
-      >
-        <div className="fixed inset-0 -z-10 h-full w-full
-          bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.1),transparent)]
-          dark:bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(56,189,248,0.15),transparent)]">
-        </div>
-
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
         <NextIntlClientProvider messages={messages}>
           <AppProvider>
-            <div className="min-h-screen flex flex-col">
-              <Header />
-              <main className="flex-1 pb-20 lg:pb-0">
-                {children}
-              </main>
-              <Footer />
-              <BottomNav />
-            </div>
+            <main className="min-h-screen pb-[60px]">
+              {children}
+            </main>
+            <BottomNav />
           </AppProvider>
         </NextIntlClientProvider>
       </body>

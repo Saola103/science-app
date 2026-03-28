@@ -13,7 +13,7 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient"
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { item_id, item_type, action, session_id, category } = body;
+    const { item_id, item_type, action, session_id, category, user_id } = body;
 
     if (!item_id || !item_type || !action || !session_id) {
       return NextResponse.json(
@@ -43,6 +43,7 @@ export async function POST(req: NextRequest) {
         action: action,
         session_id: String(session_id),
         category: category || null,
+        user_id: user_id || null,
         created_at: new Date().toISOString(),
       });
 
