@@ -39,7 +39,7 @@ function stripMarkdown(text: string): string {
     .replace(/#{1,6}\s*/g, "")           // ### headers
     .replace(/\*\*(.+?)\*\*/gs, "$1")    // **bold**
     .replace(/\*(.+?)\*/gs, "$1")        // *italic*
-    .replace(/^\s*[-*+]\s+/gm, "• ")     // - bullets → •
+    .replace(/^\s*[-*+•]\s*/gm, "• ")    // - bullets → • (with or without space)
     .replace(/\[[\w_]+\]/g, "")          // [it_ai] category tags
     .replace(/【([^】]+)】/g, "$1：")    // 【セクション】 → セクション：
     .replace(/\n{3,}/g, "\n\n")          // excessive blank lines
@@ -217,7 +217,9 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   const hasExpert = item.type === "paper" && !!expertSummary;
   // Fall back to expert summary if no general summary available
   const displaySummary = expertMode && hasExpert ? expertSummary : (generalSummary || expertSummary);
-  const japaneseHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
+  const rawHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
+  // Strip any leading bullet from headline (e.g. "• 研究の..." → "研究の...")
+  const japaneseHeadline = rawHeadline?.replace(/^[•\-\*\+]\s*/, "") || null;
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
