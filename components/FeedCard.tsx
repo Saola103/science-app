@@ -33,6 +33,19 @@ interface FeedCardProps {
   onSave?: (id: string) => void;
 }
 
+/** Strip markdown syntax for clean display */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s*/g, "")           // ### headers
+    .replace(/\*\*(.+?)\*\*/gs, "$1")    // **bold**
+    .replace(/\*(.+?)\*/gs, "$1")        // *italic*
+    .replace(/^\s*[-*+]\s+/gm, "• ")     // - bullets → •
+    .replace(/\[[\w_]+\]/g, "")          // [it_ai] category tags
+    .replace(/【([^】]+)】/g, "$1：")    // 【セクション】 → セクション：
+    .replace(/\n{3,}/g, "\n\n")          // excessive blank lines
+    .trim();
+}
+
 function formatDate(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
@@ -197,10 +210,13 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   }, [item]);
 
   const gradient = item.gradient || "from-indigo-950 via-slate-900 to-zinc-900";
-  const generalSummary = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
-  const expertSummary = item.summary_expert;
+  const rawGeneral = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
+  const rawExpert = item.summary_expert;
+  const generalSummary = rawGeneral ? stripMarkdown(rawGeneral) : null;
+  const expertSummary = rawExpert ? stripMarkdown(rawExpert) : null;
   const hasExpert = item.type === "paper" && !!expertSummary;
-  const displaySummary = expertMode && hasExpert ? expertSummary : generalSummary;
+  // Fall back to expert summary if no general summary available
+  const displaySummary = expertMode && hasExpert ? expertSummary : (generalSummary || expertSummary);
   const japaneseHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
