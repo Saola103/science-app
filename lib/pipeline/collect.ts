@@ -1,14 +1,17 @@
 /**
  * Paper Collection Pipeline
  *
- * Fetches papers from arXiv and PubMed, generates AI summaries (general + expert),
- * creates embeddings, and upserts into Supabase.
+ * Fetches papers from arXiv (open-access preprints), generates AI summaries
+ * (general + expert), creates embeddings, and upserts into Supabase.
+ *
+ * PubMed was removed: abstracts from closed-access journals carry publisher
+ * copyright even with the "open access" filter. arXiv papers are submitted
+ * under Creative Commons / arXiv non-exclusive license — fully safe.
  *
  * Designed to be called by a Vercel Cron job (GET /api/cron/collect).
  */
 
 import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
-import { fetchPubMedPapers, PUBMED_CATEGORY_QUERIES } from "../sources/pubmed";
 import { fetchScienceNewsFromRSS } from "../sources/rss";
 import { summarize } from "../llm/summarize";
 import { generateText, embedText } from "../llm/index";
@@ -170,44 +173,6 @@ export async function collectFromArxiv(): Promise<CollectResult[]> {
 }
 
 /**
- * Collect papers from PubMed for all configured categories
- */
-export async function collectFromPubMed(): Promise<CollectResult[]> {
-  const results: CollectResult[] = [];
-
-  for (const [category, query] of Object.entries(PUBMED_CATEGORY_QUERIES)) {
-    let collected = 0;
-    let errors = 0;
-
-    try {
-      const papers = await fetchPubMedPapers(query, PAPERS_PER_CATEGORY, "pub_date");
-      await delay(500); // NCBI rate limit
-
-      for (const paper of papers) {
-        try {
-          await processPaper({
-            ...paper,
-            source: "PubMed",
-          });
-          collected++;
-          await delay(1000);
-        } catch (e) {
-          console.error(`Failed to process PubMed paper ${paper.id}:`, e);
-          errors++;
-        }
-      }
-    } catch (e) {
-      console.error(`PubMed fetch failed for category ${category}:`, e);
-      errors++;
-    }
-
-    results.push({ source: "PubMed", category, collected, errors });
-  }
-
-  return results;
-}
-
-/**
  * Collect science news from RSS feeds, generate Japanese summaries, and save to DB
  */
 export async function collectNews(): Promise<{ collected: number; errors: number }> {
@@ -259,33 +224,30 @@ export async function collectNews(): Promise<{ collected: number; errors: number
 }
 
 /**
- * Run the full collection pipeline (arXiv + PubMed + News)
+ * Run the full collection pipeline (arXiv only + News)
+ * PubMed removed — see file header for copyright rationale.
  */
 export async function runCollectionPipeline(): Promise<{
   arXiv: CollectResult[];
-  pubMed: CollectResult[];
   news: { collected: number; errors: number };
   totalCollected: number;
   totalErrors: number;
 }> {
-  console.log("[Pipeline] Starting full collection (papers + news)...");
+  console.log("[Pipeline] Starting full collection (arXiv papers + news)...");
   const startTime = Date.now();
 
-  // Run papers and news in parallel
-  const [arXiv, pubMed, news] = await Promise.all([
+  // Run arXiv and news in parallel
+  const [arXiv, news] = await Promise.all([
     collectFromArxiv(),
-    collectFromPubMed(),
     collectNews(),
   ]);
 
   const totalCollected =
     arXiv.reduce((s, r) => s + r.collected, 0) +
-    pubMed.reduce((s, r) => s + r.collected, 0) +
     news.collected;
 
   const totalErrors =
     arXiv.reduce((s, r) => s + r.errors, 0) +
-    pubMed.reduce((s, r) => s + r.errors, 0) +
     news.errors;
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -293,5 +255,5 @@ export async function runCollectionPipeline(): Promise<{
     `[Pipeline] Done in ${duration}s. Collected: ${totalCollected}, Errors: ${totalErrors}`
   );
 
-  return { arXiv, pubMed, news, totalCollected, totalErrors };
+  return { arXiv, news, totalCollected, totalErrors };
 }
