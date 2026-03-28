@@ -65,14 +65,12 @@ export async function GET(req: NextRequest) {
     }
 
     const supabase = getSupabaseServerClient();
-    const schema = process.env.SUPABASE_SCHEMA ?? "public";
 
     // Each type gets half the limit so both always appear
     const half = Math.ceil(limit / 2);
 
-    // Fetch papers
+    // Fetch papers (no .schema() — matches fetchLatestPapers in actions.ts)
     let papersQuery = supabase
-      .schema(schema)
       .from("papers")
       .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
       .order("published_at", { ascending: false })
@@ -84,7 +82,6 @@ export async function GET(req: NextRequest) {
 
     // Fetch news
     let newsQuery = supabase
-      .schema(schema)
       .from("news")
       .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
       .order("published_at", { ascending: false })
