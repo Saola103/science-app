@@ -19,6 +19,7 @@ type FeedItem = {
   summary?: string | null;
   summary_ja?: string | null;
   summary_general?: string | null;
+  summary_expert?: string | null;
   summary_general_ja?: string | null;
   category?: string | null;
   published_at?: string | null;
@@ -66,13 +67,16 @@ export async function GET(req: NextRequest) {
     const supabase = getSupabaseServerClient();
     const schema = process.env.SUPABASE_SCHEMA ?? "public";
 
+    // Each type gets half the limit so both always appear
+    const half = Math.ceil(limit / 2);
+
     // Fetch papers
     let papersQuery = supabase
       .schema(schema)
       .from("papers")
-      .select("id, title, summary, summary_general, category, published_at, url, authors, source, image_url")
+      .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
       .order("published_at", { ascending: false })
-      .limit(limit * 2);
+      .limit(half);
 
     if (cursor) {
       papersQuery = papersQuery.lt("published_at", cursor);
@@ -84,7 +88,7 @@ export async function GET(req: NextRequest) {
       .from("news")
       .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
       .order("published_at", { ascending: false })
-      .limit(limit * 2);
+      .limit(half);
 
     if (cursor) {
       newsQuery = newsQuery.lt("published_at", cursor);
@@ -101,6 +105,7 @@ export async function GET(req: NextRequest) {
           title: p.title,
           summary: p.summary_general || p.summary,
           summary_general: p.summary_general,
+          summary_expert: p.summary_expert,
           category: p.category,
           published_at: p.published_at,
           url: p.url,
@@ -129,35 +134,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Merge and sort by date
-    const allItems: FeedItem[] = [...papers, ...newsItems].sort((a, b) => {
-      const dateA = a.published_at ? new Date(a.published_at).getTime() : 0;
-      const dateB = b.published_at ? new Date(b.published_at).getTime() : 0;
-      return dateB - dateA;
-    });
+    // Sort each group by recency independently, then interleave paper/news/paper/news...
+    papers.sort((a, b) => new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime());
+    newsItems.sort((a, b) => new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime());
 
-    // Apply personalization weights if preferences provided
-    let scoredItems = allItems.map((item) => {
-      let score = 0;
-      if (item.category && preferences[item.category.toLowerCase()] !== undefined) {
-        score = preferences[item.category.toLowerCase()];
-      }
-      return { item, score };
-    });
-
-    // Sort: items with positive scores first (but maintain relative recency)
+    // Apply personalization: boost preferred categories within each group
     if (Object.keys(preferences).length > 0) {
-      scoredItems = scoredItems.sort((a, b) => {
-        // Boost positive-scored items
-        if (b.score !== a.score) return b.score - a.score;
-        // Otherwise maintain recency order
-        const dateA = a.item.published_at ? new Date(a.item.published_at).getTime() : 0;
-        const dateB = b.item.published_at ? new Date(b.item.published_at).getTime() : 0;
-        return dateB - dateA;
-      });
+      const boost = (items: FeedItem[]) =>
+        [...items].sort((a, b) => {
+          const sa = a.category ? (preferences[a.category.toLowerCase()] ?? 0) : 0;
+          const sb = b.category ? (preferences[b.category.toLowerCase()] ?? 0) : 0;
+          if (sb !== sa) return sb - sa;
+          return new Date(b.published_at ?? 0).getTime() - new Date(a.published_at ?? 0).getTime();
+        });
+      papers.splice(0, papers.length, ...boost(papers));
+      newsItems.splice(0, newsItems.length, ...boost(newsItems));
     }
 
-    const resultItems = scoredItems.slice(0, limit).map(({ item }) => ({
+    // Interleave: paper, news, paper, news...
+    const allItems: FeedItem[] = [];
+    const maxLen = Math.max(papers.length, newsItems.length);
+    for (let i = 0; i < maxLen && allItems.length < limit; i++) {
+      if (i < papers.length) allItems.push(papers[i]);
+      if (allItems.length < limit && i < newsItems.length) allItems.push(newsItems[i]);
+    }
+
+    const resultItems = allItems.map((item) => ({
       ...item,
       gradient: getCategoryGradient(item.category),
     }));

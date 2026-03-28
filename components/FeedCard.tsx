@@ -14,6 +14,7 @@ export type FeedItemData = {
   summary_ja?: string | null;
   summary_general?: string | null;
   summary_general_ja?: string | null;
+  summary_expert?: string | null;
   category?: string | null;
   published_at?: string | null;
   url?: string | null;
@@ -133,6 +134,7 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [expertMode, setExpertMode] = useState(false);
   const viewTracked = useRef(false);
 
   // Check auth state
@@ -195,11 +197,13 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   }, [item]);
 
   const gradient = item.gradient || "from-indigo-950 via-slate-900 to-zinc-900";
-  const japaneseSummary = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
-  const japaneseHeadline = japaneseSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
+  const generalSummary = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
+  const expertSummary = item.summary_expert;
+  const hasExpert = item.type === "paper" && !!expertSummary;
+  const displaySummary = expertMode && hasExpert ? expertSummary : generalSummary;
+  const japaneseHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
-  const displaySummary = japaneseSummary;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
   const sourceText = item.type === "news" ? item.source : (item.source || "arXiv");
 
@@ -246,6 +250,27 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
               <p className="text-[11px] text-white/40 font-medium mb-3 line-clamp-1 tracking-wide">
                 {item.title}
               </p>
+            )}
+
+            {/* Difficulty toggle — only for papers with expert summary */}
+            {hasExpert && (
+              <div
+                className="flex items-center gap-1 mb-3"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={() => setExpertMode(false)}
+                  className={`text-[10px] font-black px-3 py-1 rounded-full transition-all ${!expertMode ? "bg-white/20 text-white" : "text-white/30"}`}
+                >
+                  やさしく
+                </button>
+                <button
+                  onClick={() => setExpertMode(true)}
+                  className={`text-[10px] font-black px-3 py-1 rounded-full transition-all ${expertMode ? "bg-sky-500/40 text-sky-200" : "text-white/30"}`}
+                >
+                  くわしく
+                </button>
+              </div>
             )}
 
             <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expanded ? "max-h-96" : "max-h-20"}`}>
