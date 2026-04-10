@@ -33,42 +33,29 @@ interface FeedCardProps {
   onSave?: (id: string) => void;
 }
 
-/** Strip markdown syntax for clean display */
-function stripMarkdown(text: string): string {
-  return text
-    .replace(/#{1,6}\s*/g, "")           // ### headers
-    .replace(/\*\*(.+?)\*\*/gs, "$1")    // **bold**
-    .replace(/\*(.+?)\*/gs, "$1")        // *italic*
-    .replace(/^\s*[-*+•]\s*/gm, "• ")    // - bullets → • (with or without space)
-    .replace(/\[[\w_]+\]/g, "")          // [it_ai] category tags
-    .replace(/【([^】]+)】/g, "$1：")    // 【セクション】 → セクション：
-    .replace(/\n{3,}/g, "\n\n")          // excessive blank lines
-    .trim();
-}
-
 function formatDate(iso?: string | null) {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  return d.toLocaleDateString("ja-JP", { month: "short", day: "numeric", year: "numeric" });
+  return d.toLocaleDateString("ja-JP", { month: "numeric", day: "numeric" });
 }
 
 function getCategoryLabel(category?: string | null): string {
   if (!category) return "サイエンス";
   const cat = category.toLowerCase();
   const labels: Record<string, string> = {
-    general: "サイエンス", science: "サイエンス",
-    neuroscience: "脳科学", neuro: "脳科学", "cognitive": "認知科学",
+    neuroscience: "脳科学", neuro: "脳科学", cognitive: "認知科学",
     "animal-behavior": "行動科学", behavior: "行動科学",
     biology: "生物学", bio: "生物学",
     "cell-biology": "細胞生物学", "molecular-biology": "分子生物学",
     genetics: "遺伝学", genomics: "ゲノム科学", biophysics: "生物物理学",
     "systems-biology": "システム生物学",
     medicine: "医学", neurology: "神経科学", bio_tech: "バイオテック",
+    general: "サイエンス", science: "サイエンス",
     physics: "物理学", chemistry: "化学", math: "数学",
     astronomy: "天文学", material_science: "材料科学",
-    computer_science: "コンピュータ科学", machine_learning: "機械学習",
-    ai: "AI", quantum: "量子情報", robotics: "ロボティクス",
+    computer_science: "CS", machine_learning: "機械学習",
+    ai: "AI", quantum: "量子", robotics: "ロボティクス",
     climate: "気候変動", ecology: "生態学", energy: "エネルギー",
     geology: "地質学", psychology: "心理学",
   };
@@ -76,6 +63,46 @@ function getCategoryLabel(category?: string | null): string {
     if (cat.includes(key)) return label;
   }
   return category;
+}
+
+/** Category → vivid gradient for Instagram Reels / YouTube Shorts style */
+function getCategoryGradient(category?: string | null): string {
+  const cat = (category ?? "").toLowerCase();
+  if (cat.includes("neuro") || cat.includes("brain") || cat.includes("cognitive"))
+    return "from-violet-700 via-purple-800 to-indigo-900";
+  if (cat.includes("bio") || cat.includes("gene") || cat.includes("cell") || cat.includes("molecular"))
+    return "from-emerald-600 via-teal-700 to-cyan-900";
+  if (cat.includes("physics") || cat.includes("quantum"))
+    return "from-sky-600 via-blue-700 to-indigo-900";
+  if (cat.includes("ai") || cat.includes("machine") || cat.includes("cs") || cat.includes("computer") || cat.includes("robot"))
+    return "from-indigo-600 via-violet-700 to-purple-900";
+  if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos"))
+    return "from-blue-800 via-indigo-800 to-slate-900";
+  if (cat.includes("medic") || cat.includes("health") || cat.includes("clinic"))
+    return "from-rose-600 via-pink-700 to-red-900";
+  if (cat.includes("chem") || cat.includes("material"))
+    return "from-amber-600 via-orange-700 to-red-800";
+  if (cat.includes("climate") || cat.includes("ecol") || cat.includes("environment"))
+    return "from-green-600 via-emerald-700 to-teal-900";
+  if (cat.includes("math"))
+    return "from-cyan-600 via-sky-700 to-blue-900";
+  if (cat.includes("psych") || cat.includes("social"))
+    return "from-pink-600 via-rose-700 to-purple-900";
+  // news default: warm blue
+  return "from-blue-600 via-sky-700 to-indigo-900";
+}
+
+/** Strip markdown syntax for clean display */
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/#{1,6}\s*/g, "")
+    .replace(/\*\*(.+?)\*\*/gs, "$1")
+    .replace(/\*(.+?)\*/gs, "$1")
+    .replace(/^\s*[-*+•]\s*/gm, "• ")
+    .replace(/\[[\w_]+\]/g, "")
+    .replace(/【([^】]+)】/g, "$1：")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
 }
 
 async function trackInteraction(
@@ -97,45 +124,51 @@ async function trackInteraction(
         user_id: userId || null,
       }),
     });
-  } catch {
-    // Non-critical
-  }
+  } catch { /* non-critical */ }
 }
 
-// Login prompt modal
 function LoginPrompt({ onClose, locale }: { onClose: () => void; locale: string }) {
   const router = useRouter();
   return (
     <div className="fixed inset-0 z-[300] flex items-end justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
       <div
-        className="relative w-full max-w-[430px] bg-zinc-900 border border-white/10 rounded-t-3xl p-8 space-y-6 animate-in slide-in-from-bottom duration-300"
+        className="relative w-full max-w-[430px] bg-white/10 backdrop-blur-xl border border-white/20 rounded-t-3xl p-8 space-y-6 animate-in slide-in-from-bottom duration-300"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="w-10 h-1 bg-white/20 rounded-full mx-auto" />
+        <div className="w-10 h-1 bg-white/30 rounded-full mx-auto" />
         <div className="text-center space-y-2">
           <div className="text-4xl">❤️</div>
           <h3 className="text-lg font-black text-white">ログインが必要です</h3>
-          <p className="text-sm text-white/50 font-medium">
-            いいね・保存はアカウントに紐づけて管理されます。<br />
-            マイページから確認できます。
+          <p className="text-sm text-white/70 font-medium">
+            いいね・保存はアカウントに紐づいて管理されます。
           </p>
         </div>
         <div className="space-y-3">
           <button
             onClick={() => router.push(`/${locale}/login`)}
-            className="w-full bg-sky-500 hover:bg-sky-400 text-white font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-colors"
+            className="w-full bg-white text-indigo-700 font-black text-sm uppercase tracking-widest py-4 rounded-2xl transition-all hover:bg-white/90 active:scale-95"
           >
             ログイン / 新規登録
           </button>
-          <button
-            onClick={onClose}
-            className="w-full text-white/40 font-bold text-sm py-2"
-          >
+          <button onClick={onClose} className="w-full text-white/50 font-bold text-sm py-2">
             後で
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Heart burst animation on double-tap like */
+function HeartBurst({ visible }: { visible: boolean }) {
+  return (
+    <div
+      className={`pointer-events-none absolute inset-0 flex items-center justify-center z-50 transition-all duration-300 ${
+        visible ? "opacity-100 scale-100" : "opacity-0 scale-50"
+      }`}
+    >
+      <Heart className="w-32 h-32 fill-white text-white drop-shadow-2xl" />
     </div>
   );
 }
@@ -146,21 +179,19 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
 
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [likeCount, setLikeCount] = useState(Math.floor(Math.random() * 300) + 10);
-  const [saveCount, setSaveCount] = useState(Math.floor(Math.random() * 80) + 3);
   const [expanded, setExpanded] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
   const [expertMode, setExpertMode] = useState(false);
+  const [heartVisible, setHeartVisible] = useState(false);
   const viewTracked = useRef(false);
+  const lastTapRef = useRef(0);
 
-  // Check auth state
+  // Auth state
   useEffect(() => {
     const supabase = getSupabaseClient();
-    supabase.auth.getUser().then(({ data: { user } }) => {
-      setUserId(user?.id ?? null);
-    });
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUserId(session?.user?.id ?? null);
     });
@@ -175,29 +206,53 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
     }
   }, [isActive, sessionId, item, userId]);
 
-  const handleLike = useCallback(() => {
+  const triggerLike = useCallback(() => {
     if (!userId) { setShowLoginPrompt(true); return; }
-    const newLiked = !liked;
-    setLiked(newLiked);
-    setLikeCount((c) => (newLiked ? c + 1 : c - 1));
-    if (newLiked) {
+    if (liked) return;
+    setLiked(true);
+    setHeartVisible(true);
+    setTimeout(() => setHeartVisible(false), 800);
+    trackInteraction(sessionId, item, "like", userId);
+    onLike?.(item.id);
+  }, [liked, userId, sessionId, item, onLike]);
+
+  // Double-tap to like, single tap to expand
+  const handleTap = useCallback(() => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      triggerLike();
+    } else {
+      setExpanded((e) => !e);
+    }
+    lastTapRef.current = now;
+  }, [triggerLike]);
+
+  const handleLike = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!userId) { setShowLoginPrompt(true); return; }
+    const next = !liked;
+    setLiked(next);
+    if (next) {
+      setHeartVisible(true);
+      setTimeout(() => setHeartVisible(false), 800);
       trackInteraction(sessionId, item, "like", userId);
       onLike?.(item.id);
     }
-  }, [liked, sessionId, item, onLike, userId]);
+  }, [liked, userId, sessionId, item, onLike]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
     if (!userId) { setShowLoginPrompt(true); return; }
-    const newSaved = !saved;
-    setSaved(newSaved);
-    setSaveCount((c) => (newSaved ? c + 1 : c - 1));
-    if (newSaved) {
+    const next = !saved;
+    setSaved(next);
+    if (next) {
       trackInteraction(sessionId, item, "save", userId);
       onSave?.(item.id);
     }
-  }, [saved, sessionId, item, onSave, userId]);
+  }, [saved, userId, sessionId, item, onSave]);
 
-  const handleShare = useCallback(async () => {
+  const handleShare = useCallback(async (e: React.MouseEvent) => {
+    e.stopPropagation();
     const text = item.title || "科学記事";
     const url = item.url || window.location.href;
     if (navigator.share) {
@@ -205,207 +260,234 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
     } else {
       try {
         await navigator.clipboard.writeText(url);
-        setShareMessage("コピーしました");
+        setShareMessage("コピー！");
         setTimeout(() => setShareMessage(null), 2000);
       } catch {
-        setShareMessage("共有できません");
+        setShareMessage("共有不可");
         setTimeout(() => setShareMessage(null), 2000);
       }
     }
   }, [item]);
 
-  const gradient = item.gradient || "from-indigo-950 via-slate-900 to-zinc-900";
+  // Derived content
   const rawGeneral = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
   const rawExpert = item.summary_expert;
   const generalSummary = rawGeneral ? stripMarkdown(rawGeneral) : null;
   const expertSummary = rawExpert ? stripMarkdown(rawExpert) : null;
   const hasExpert = item.type === "paper" && !!expertSummary;
-  // Fall back to expert summary if no general summary available
   const displaySummary = expertMode && hasExpert ? expertSummary : (generalSummary || expertSummary);
   const rawHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
-  // Strip any leading bullet from headline (e.g. "• 研究の..." → "研究の...")
   const japaneseHeadline = rawHeadline?.replace(/^[•\-\*\+]\s*/, "") || null;
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
   const sourceText = item.type === "news" ? item.source : (item.source || "arXiv");
 
+  const gradient = getCategoryGradient(item.category);
+
   return (
     <>
-      {showLoginPrompt && (
-        <LoginPrompt onClose={() => setShowLoginPrompt(false)} locale={locale} />
-      )}
+      {showLoginPrompt && <LoginPrompt onClose={() => setShowLoginPrompt(false)} locale={locale} />}
 
       <div
-        className={`relative w-full h-svh flex-shrink-0 bg-gradient-to-b ${gradient} overflow-hidden`}
+        className={`relative w-full h-svh flex-shrink-0 bg-gradient-to-b ${gradient} overflow-hidden select-none`}
         style={{ scrollSnapAlign: "start" }}
       >
-        <div className="absolute inset-0 opacity-5 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-white via-transparent to-transparent pointer-events-none" />
+        {/* Double-tap heart burst */}
+        <HeartBurst visible={heartVisible} />
 
-        {/* Top bar */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-5 pt-12 pb-3 bg-gradient-to-b from-black/50 to-transparent">
-          <span className="text-[10px] font-black tracking-[0.2em] uppercase text-white/70 bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+        {/* Tap area (whole card, behind UI) */}
+        <div className="absolute inset-0 z-10" onClick={handleTap} />
+
+        {/* ── TOP BAR ── */}
+        <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 pt-12 pb-3 pr-[72px]">
+          <span className={`text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full ${
+            item.type === "paper"
+              ? "bg-white/25 text-white"
+              : "bg-white/15 text-white/80"
+          }`}>
+            {item.type === "paper" ? "📄 論文" : "📰 ニュース"}
+          </span>
+          <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2.5 py-1 rounded-full backdrop-blur-sm">
             {getCategoryLabel(item.category)}
           </span>
-          <span className="text-[10px] font-bold text-white/50">
+          <span className="ml-auto text-[10px] font-bold text-white/50">
             {formatDate(item.published_at)}
           </span>
         </div>
 
-        {/* Main content — click to expand */}
-        <div
-          className="absolute inset-0 flex flex-col justify-end cursor-pointer"
-          onClick={() => setExpanded(!expanded)}
-        >
-          <div className="absolute bottom-0 left-0 right-0 h-2/3 bg-gradient-to-t from-black/90 via-black/40 to-transparent pointer-events-none" />
-
-          <div className="relative z-10 px-5 pb-24">
-            <div className="mb-3">
-              <span className={`text-[9px] font-black tracking-widest uppercase px-2 py-0.5 rounded ${item.type === "paper" ? "bg-sky-500/30 text-sky-300" : "bg-amber-500/30 text-amber-300"}`}>
-                {item.type === "paper" ? "論文" : "ニュース"}
-              </span>
-            </div>
-
-            <h2 className="text-xl md:text-2xl font-black text-white leading-tight mb-2 line-clamp-3 drop-shadow-lg">
-              {displayTitle}
-            </h2>
-            {showEnglishSub && (
-              <p className="text-[11px] text-white/40 font-medium mb-3 line-clamp-1 tracking-wide">
-                {item.title}
-              </p>
-            )}
-
-            {/* Difficulty toggle — only for papers with expert summary */}
-            {hasExpert && (
-              <div
-                className="flex items-center gap-1 mb-3"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={() => setExpertMode(false)}
-                  className={`text-[10px] font-black px-3 py-1 rounded-full transition-all ${!expertMode ? "bg-white/20 text-white" : "text-white/30"}`}
-                >
-                  やさしく
-                </button>
-                <button
-                  onClick={() => setExpertMode(true)}
-                  className={`text-[10px] font-black px-3 py-1 rounded-full transition-all ${expertMode ? "bg-sky-500/40 text-sky-200" : "text-white/30"}`}
-                >
-                  くわしく
-                </button>
-              </div>
-            )}
-
-            <div className={`transition-all duration-500 ease-in-out overflow-hidden ${expanded ? "max-h-96" : "max-h-20"}`}>
-              {displaySummary ? (
-                <p className={`text-sm text-white/80 leading-relaxed font-medium ${expanded ? "" : "line-clamp-3"}`}>
-                  {displaySummary}
-                </p>
-              ) : (
-                <p className="text-sm text-white/50 italic">要約はありません</p>
-              )}
-            </div>
-
-            {!expanded && (
-              <button
-                onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
-                className="flex items-center gap-1 text-[10px] font-black text-white/40 uppercase tracking-widest mt-2 hover:text-white/80 transition-colors"
-              >
-                もっと見る <ChevronDown className="w-3 h-3" />
-              </button>
-            )}
-
-            {expanded && (
-              <div className="mt-4 space-y-3 animate-in fade-in duration-300">
-                {authorsText && (
-                  <p className="text-xs text-white/60 font-medium">
-                    <span className="text-white/40 uppercase tracking-widest text-[9px] font-black">著者: </span>
-                    {authorsText}
-                    {(item.authors?.length ?? 0) > 2 && ` 他${(item.authors?.length ?? 0) - 2}名`}
-                  </p>
-                )}
-                {item.url && (
-                  <a
-                    href={item.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-sky-400 hover:text-sky-300 transition-colors border-b border-sky-400/40 pb-0.5"
-                  >
-                    原文を読む <ExternalLink className="w-3 h-3" />
-                  </a>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
-                  className="flex items-center gap-1 text-[9px] text-white/30 hover:text-white/60 transition-colors uppercase tracking-widest"
-                >
-                  <X className="w-3 h-3" /> 閉じる
-                </button>
-              </div>
-            )}
-
-            <div className="flex items-center gap-3 mt-4 pt-3 border-t border-white/10">
-              <span className="text-[10px] font-black text-white/40 uppercase tracking-widest truncate">
-                {sourceText}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right action column */}
-        <div className="absolute right-4 bottom-28 flex flex-col items-center gap-6 z-20">
+        {/* ── RIGHT ACTION COLUMN ── */}
+        <div className="absolute right-3 bottom-28 z-20 flex flex-col items-center gap-6">
+          {/* Like */}
           <button
-            onClick={(e) => { e.stopPropagation(); handleLike(); }}
-            className="flex flex-col items-center gap-1 group"
+            onClick={handleLike}
+            className="flex flex-col items-center gap-1.5 group"
             aria-label="いいね"
           >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-all duration-200 ${liked ? "bg-rose-500 scale-110" : "bg-white/15 group-hover:bg-white/25"}`}>
-              <Heart className={`w-5 h-5 transition-all ${liked ? "text-white fill-white" : "text-white"}`} />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90 ${
+              liked
+                ? "bg-red-500 scale-110 shadow-red-500/40"
+                : "bg-white/20 backdrop-blur-md border border-white/30 group-hover:bg-white/30"
+            }`}>
+              <Heart className={`w-6 h-6 transition-all ${liked ? "fill-white text-white" : "text-white"}`} />
             </div>
-            <span className="text-[10px] font-black text-white/70">{likeCount}</span>
+            <span className={`text-[10px] font-black ${liked ? "text-red-300" : "text-white/60"}`}>
+              {liked ? "♥" : "いいね"}
+            </span>
           </button>
 
+          {/* Save */}
           <button
-            onClick={(e) => { e.stopPropagation(); handleSave(); }}
-            className="flex flex-col items-center gap-1 group"
+            onClick={handleSave}
+            className="flex flex-col items-center gap-1.5 group"
             aria-label="保存"
           >
-            <div className={`w-11 h-11 rounded-full flex items-center justify-center backdrop-blur-sm transition-all duration-200 ${saved ? "bg-amber-500 scale-110" : "bg-white/15 group-hover:bg-white/25"}`}>
-              <Bookmark className={`w-5 h-5 transition-all ${saved ? "text-white fill-white" : "text-white"}`} />
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90 ${
+              saved
+                ? "bg-yellow-400 scale-110 shadow-yellow-400/40"
+                : "bg-white/20 backdrop-blur-md border border-white/30 group-hover:bg-white/30"
+            }`}>
+              <Bookmark className={`w-6 h-6 transition-all ${saved ? "fill-white text-white" : "text-white"}`} />
             </div>
-            <span className="text-[10px] font-black text-white/70">{saveCount}</span>
+            <span className={`text-[10px] font-black ${saved ? "text-yellow-300" : "text-white/60"}`}>
+              {saved ? "保存済" : "保存"}
+            </span>
           </button>
 
+          {/* Share */}
           <button
-            onClick={(e) => { e.stopPropagation(); handleShare(); }}
-            className="flex flex-col items-center gap-1 group"
+            onClick={handleShare}
+            className="flex flex-col items-center gap-1.5 group"
             aria-label="共有"
           >
-            <div className="w-11 h-11 rounded-full flex items-center justify-center bg-white/15 backdrop-blur-sm group-hover:bg-white/25 transition-all duration-200">
-              <Share2 className="w-5 h-5 text-white" />
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md border border-white/30 shadow-lg transition-all duration-200 group-hover:bg-white/30 active:scale-90">
+              <Share2 className="w-6 h-6 text-white" />
             </div>
-            {shareMessage ? (
-              <span className="text-[9px] font-black text-green-400 max-w-12 text-center leading-tight">{shareMessage}</span>
-            ) : (
-              <span className="text-[10px] font-black text-white/70">共有</span>
-            )}
+            <span className="text-[10px] font-black text-white/60">
+              {shareMessage || "シェア"}
+            </span>
           </button>
 
+          {/* Deep Dive */}
           {item.url && (
             <a
               href={item.url}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className="flex flex-col items-center gap-1 group"
-              aria-label="深く潜る"
+              aria-label="原文を読む"
+              className="flex flex-col items-center gap-1.5 group"
             >
-              <div className="w-11 h-11 rounded-full flex items-center justify-center bg-sky-500/30 backdrop-blur-sm group-hover:bg-sky-500/50 transition-all duration-200 border border-sky-400/30">
-                <Microscope className="w-5 h-5 text-sky-300" />
+              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md border border-white/30 shadow-lg transition-all duration-200 group-hover:bg-white/30 active:scale-90">
+                <Microscope className="w-6 h-6 text-white" />
               </div>
-              <span className="text-[9px] font-black text-sky-300/80 text-center leading-tight">深く<br />潜る</span>
+              <span className="text-[10px] font-black text-white/60 text-center leading-tight">
+                深く潜る
+              </span>
             </a>
           )}
+        </div>
+
+        {/* ── BOTTOM GRADIENT FADE ── */}
+        <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-15" />
+
+        {/* ── BOTTOM CONTENT — stays left of action column ── */}
+        <div className="absolute bottom-0 left-0 z-20 px-4 pb-6" style={{ right: "72px" }}>
+          {/* Difficulty toggle */}
+          {hasExpert && (
+            <div className="flex items-center gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
+              <button
+                onClick={() => setExpertMode(false)}
+                className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all ${
+                  !expertMode
+                    ? "bg-white text-gray-900 border-white shadow-lg"
+                    : "border-white/30 text-white/50 hover:border-white/50"
+                }`}
+              >
+                やさしく
+              </button>
+              <button
+                onClick={() => setExpertMode(true)}
+                className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all ${
+                  expertMode
+                    ? "bg-white text-gray-900 border-white shadow-lg"
+                    : "border-white/30 text-white/50 hover:border-white/50"
+                }`}
+              >
+                くわしく
+              </button>
+            </div>
+          )}
+
+          {/* Title */}
+          <h2 className="text-[22px] font-black text-white leading-snug mb-1 drop-shadow-lg line-clamp-3">
+            {displayTitle}
+          </h2>
+
+          {/* English subtitle */}
+          {showEnglishSub && (
+            <p className="text-[11px] text-white/45 font-medium mb-2 line-clamp-1">
+              {item.title}
+            </p>
+          )}
+
+          {/* Summary */}
+          <div
+            className={`overflow-hidden transition-all duration-500 ${expanded ? "max-h-52" : "max-h-14"}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {displaySummary ? (
+              <p className={`text-sm text-white/85 leading-relaxed drop-shadow ${expanded ? "" : "line-clamp-2"}`}>
+                {displaySummary}
+              </p>
+            ) : (
+              <p className="text-sm text-white/40 italic">要約を生成中...</p>
+            )}
+          </div>
+
+          {/* Expand / collapse */}
+          {displaySummary && (
+            <button
+              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+              className="flex items-center gap-1 text-[11px] font-bold text-white/60 mt-1 hover:text-white transition-colors"
+            >
+              {expanded ? (
+                <><X className="w-3 h-3" /> 閉じる</>
+              ) : (
+                <>続きを読む <ChevronDown className="w-3 h-3" /></>
+              )}
+            </button>
+          )}
+
+          {/* Expanded extras */}
+          {expanded && (
+            <div className="mt-3 space-y-2 animate-in fade-in duration-300" onClick={(e) => e.stopPropagation()}>
+              {authorsText && (
+                <p className="text-xs text-white/50">
+                  <span className="text-white/30 uppercase text-[9px] font-black tracking-widest mr-1">著者</span>
+                  {authorsText}
+                  {(item.authors?.length ?? 0) > 2 && ` +${(item.authors?.length ?? 0) - 2}`}
+                </p>
+              )}
+              {item.url && (
+                <a
+                  href={item.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-[11px] font-black text-white/80 hover:text-white transition-colors underline underline-offset-2"
+                >
+                  原文を読む <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+          )}
+
+          {/* Source bar */}
+          <div className="flex items-center gap-2 mt-3 pt-2 border-t border-white/15">
+            <span className="text-[11px] font-black text-white/45 uppercase tracking-widest">
+              {sourceText}
+            </span>
+          </div>
         </div>
       </div>
     </>
