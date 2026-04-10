@@ -157,6 +157,23 @@ export default function FeedPage() {
     };
   }, [items, loadMore]);
 
+  // Keyboard arrow navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowDown" || e.key === "ArrowRight") {
+        e.preventDefault();
+        const next = Math.min(activeIndex + 1, items.length - 1);
+        cardRefs.current[next]?.scrollIntoView({ behavior: "smooth" });
+      } else if (e.key === "ArrowUp" || e.key === "ArrowLeft") {
+        e.preventDefault();
+        const prev = Math.max(activeIndex - 1, 0);
+        cardRefs.current[prev]?.scrollIntoView({ behavior: "smooth" });
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [activeIndex, items.length]);
+
   const handleLike = useCallback((id: string) => {
     const item = items.find((i) => i.id === id);
     if (item) updatePreference(item.category, 2);
