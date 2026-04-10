@@ -12,22 +12,23 @@
  */
 
 import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
+import { fetchBiorxivPapers, BIORXIV_CATEGORY_QUERIES } from "../sources/biorxiv";
 import { fetchScienceNewsFromRSS } from "../sources/rss";
 import { summarize } from "../llm/summarize";
 import { generateText, embedText } from "../llm/index";
 import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
 
-// arXiv category codes mapped to our internal categories
+// arXiv category codes — broad science coverage
 const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
-  physics: "cat:physics.*",
-  astronomy: "cat:astro-ph.*",
-  math: "cat:math.*",
+  physics:          "cat:physics.*",
+  astronomy:        "cat:astro-ph.*",
+  math:             "cat:math.*",
   computer_science: "cat:cs.*",
   machine_learning: "cat:cs.AI OR cat:cs.LG OR cat:stat.ML",
-  quantum: "cat:quant-ph",
-  biology: "cat:q-bio.*",
-  economics: "cat:econ.*",
+  quantum:          "cat:quant-ph",
+  biology:          "cat:q-bio.*",    // quantitative biology (overlaps with bioRxiv)
+  economics:        "cat:econ.*",
 };
 
 /** How many papers to collect per category per run */
@@ -173,6 +174,50 @@ export async function collectFromArxiv(): Promise<CollectResult[]> {
 }
 
 /**
+ * Collect papers from bioRxiv / medRxiv (neuroscience + biology focus)
+ */
+export async function collectFromBiorxiv(): Promise<CollectResult[]> {
+  const results: CollectResult[] = [];
+
+  for (const { server, category, internalCategory } of BIORXIV_CATEGORY_QUERIES) {
+    let collected = 0;
+    let errors = 0;
+
+    try {
+      const papers = await fetchBiorxivPapers(server, category, 2, PAPERS_PER_CATEGORY);
+      await delay(1000); // polite delay
+
+      for (const paper of papers) {
+        try {
+          await processPaper({
+            id: paper.id,
+            title: paper.title,
+            abstract: paper.abstract,
+            authors: paper.authors,
+            publishedAt: paper.publishedAt,
+            url: paper.url,
+            license: paper.license,
+            source: paper.source,
+          });
+          collected++;
+          await delay(1000);
+        } catch (e) {
+          console.error(`Failed to process ${server} paper ${paper.id}:`, e);
+          errors++;
+        }
+      }
+    } catch (e) {
+      console.error(`${server} fetch failed for category ${category}:`, e);
+      errors++;
+    }
+
+    results.push({ source: server === "biorxiv" ? "bioRxiv" : "medRxiv", category, collected, errors });
+  }
+
+  return results;
+}
+
+/**
  * Collect science news from RSS feeds, generate Japanese summaries, and save to DB
  */
 export async function collectNews(): Promise<{ collected: number; errors: number }> {
@@ -224,30 +269,33 @@ export async function collectNews(): Promise<{ collected: number; errors: number
 }
 
 /**
- * Run the full collection pipeline (arXiv only + News)
- * PubMed removed — see file header for copyright rationale.
+ * Run the full collection pipeline (arXiv + bioRxiv/medRxiv + News)
  */
 export async function runCollectionPipeline(): Promise<{
   arXiv: CollectResult[];
+  bioRxiv: CollectResult[];
   news: { collected: number; errors: number };
   totalCollected: number;
   totalErrors: number;
 }> {
-  console.log("[Pipeline] Starting full collection (arXiv papers + news)...");
+  console.log("[Pipeline] Starting full collection (arXiv + bioRxiv + news)...");
   const startTime = Date.now();
 
-  // Run arXiv and news in parallel
-  const [arXiv, news] = await Promise.all([
+  // Run all three in parallel
+  const [arXiv, bioRxiv, news] = await Promise.all([
     collectFromArxiv(),
+    collectFromBiorxiv(),
     collectNews(),
   ]);
 
   const totalCollected =
     arXiv.reduce((s, r) => s + r.collected, 0) +
+    bioRxiv.reduce((s, r) => s + r.collected, 0) +
     news.collected;
 
   const totalErrors =
     arXiv.reduce((s, r) => s + r.errors, 0) +
+    bioRxiv.reduce((s, r) => s + r.errors, 0) +
     news.errors;
 
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
@@ -255,5 +303,5 @@ export async function runCollectionPipeline(): Promise<{
     `[Pipeline] Done in ${duration}s. Collected: ${totalCollected}, Errors: ${totalErrors}`
   );
 
-  return { arXiv, news, totalCollected, totalErrors };
+  return { arXiv, bioRxiv, news, totalCollected, totalErrors };
 }

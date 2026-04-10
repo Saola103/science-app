@@ -58,8 +58,13 @@ function getCategoryLabel(category?: string | null): string {
   const cat = category.toLowerCase();
   const labels: Record<string, string> = {
     general: "サイエンス", science: "サイエンス",
-    biology: "生物学", bio: "生物学", neuroscience: "脳科学",
-    medicine: "医学", genetics: "遺伝学", bio_tech: "バイオテック",
+    neuroscience: "脳科学", neuro: "脳科学", "cognitive": "認知科学",
+    "animal-behavior": "行動科学", behavior: "行動科学",
+    biology: "生物学", bio: "生物学",
+    "cell-biology": "細胞生物学", "molecular-biology": "分子生物学",
+    genetics: "遺伝学", genomics: "ゲノム科学", biophysics: "生物物理学",
+    "systems-biology": "システム生物学",
+    medicine: "医学", neurology: "神経科学", bio_tech: "バイオテック",
     physics: "物理学", chemistry: "化学", math: "数学",
     astronomy: "天文学", material_science: "材料科学",
     computer_science: "コンピュータ科学", machine_learning: "機械学習",

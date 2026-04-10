@@ -69,11 +69,11 @@ export async function GET(req: NextRequest) {
     // Each type gets half the limit so both always appear
     const half = Math.ceil(limit / 2);
 
-    // Fetch papers — arXiv only (PubMed removed: copyright concerns with closed-access abstracts)
+    // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
     let papersQuery = supabase
       .from("papers")
       .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-      .neq("source", "PubMed")
+      .in("source", ["arXiv", "bioRxiv", "medRxiv"])
       .order("published_at", { ascending: false })
       .limit(half);
 
