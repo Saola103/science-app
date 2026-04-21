@@ -110,6 +110,9 @@ function stripMarkdown(text: string): string {
     // 【カテゴリ】: ... lines
     .replace(/【カテゴリ】[^\n]*/g, "")
     .replace(/【([^】]+)】/g, "$1：")
+    // Second pass: 【...】→"xxx：" conversion above may have created new section headers
+    // e.g. 【3つのダイブポイント】 → "3つのダイブポイント：" must now be removed
+    .replace(/^(?:3つのダイブポイント|3つの要点|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説|核心的貢献)[：:][^\n]*/gm, "")
     // "カテゴリ：" at end
     .replace(/\nカテゴリ：\s*\S+\s*$/i, "")
     // bullet list markers
