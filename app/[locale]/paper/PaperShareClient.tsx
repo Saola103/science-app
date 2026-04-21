@@ -5,15 +5,22 @@ import { useRouter } from "next/navigation";
 
 function stripMd(text: string): string {
   return text
+    // section headers
     .replace(/^▍[^\n]*/gm, "")
     .replace(/#{1,6}\s*/g, "")
+    // bold / italic
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*(.+?)\*/g, "$1")
-    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    .replace(/\[[\w_]+\]/g, "")
-    .replace(/【カテゴリ】[^\n]*/g, "")
-    .replace(/【([^】]+)】/g, "$1：")
+    // old prompt artifact lines: 「3つのダイブポイント」「魅力的な解説」etc.
     .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
+    .replace(/^(魅力的な解説|専門的解説|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
+    // 【カテゴリ】行 + その次の行（カテゴリ名のみの行）
+    .replace(/【カテゴリ】[^\n]*\n?(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)?\n?/gi, "")
+    // 末尾のカテゴリタグ（括弧あり・なし両対応）
+    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
+    .replace(/\n(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\s*$/i, "")
+    .replace(/\[[\w_]+\]/g, "")
+    .replace(/【([^】]+)】/g, "$1：")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

@@ -23,9 +23,12 @@ function stripMd(text: string): string {
     .replace(/#{1,6}\s*/g, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*(.+?)\*/g, "$1")
+    .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
+    .replace(/^(魅力的な解説|専門的解説|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
+    .replace(/【カテゴリ】[^\n]*\n?(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)?\n?/gi, "")
     .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
+    .replace(/\n(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\s*$/i, "")
     .replace(/\[[\w_]+\]/g, "")
-    .replace(/【カテゴリ】[^\n]*/g, "")
     .replace(/【([^】]+)】/g, "$1：")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
