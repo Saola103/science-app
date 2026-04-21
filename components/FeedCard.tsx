@@ -267,12 +267,24 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   const handleShare = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     const text = item.title || "科学記事";
-    const url = item.url || window.location.href;
+
+    // Share a POCKET DIVE page link (not the raw paper URL)
+    const appBase = typeof window !== "undefined" ? window.location.origin : "https://scienceapp-alpha.vercel.app";
+    const shareUrl = item.type === "paper" && item.id
+      ? `${appBase}/${locale}/paper?id=${encodeURIComponent(item.id)}`
+      : (item.url || `${appBase}/${locale}/feed`);
+
     if (navigator.share) {
-      try { await navigator.share({ title: text, url }); } catch { /* cancelled */ }
+      try {
+        await navigator.share({
+          title: `${text} | POCKET DIVE`,
+          text: "科学論文をスワイプで発見 🔬",
+          url: shareUrl,
+        });
+      } catch { /* cancelled */ }
     } else {
       try {
-        await navigator.clipboard.writeText(url);
+        await navigator.clipboard.writeText(shareUrl);
         setShareMessage("コピー！");
         setTimeout(() => setShareMessage(null), 2000);
       } catch {
@@ -280,7 +292,7 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
         setTimeout(() => setShareMessage(null), 2000);
       }
     }
-  }, [item]);
+  }, [item, locale]);
 
   // Derived content
   const rawGeneral = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
