@@ -17,19 +17,20 @@ type Props = {
   searchParams: Promise<{ id?: string }>;
 };
 
+const CATEGORY_WORDS = "physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other";
+
 function stripMd(text: string): string {
   return text
+    .replace(/【カテゴリ】[^\n]*\n?/g, "")
+    .replace(/【([^】]+)】/g, "")
     .replace(/^▍[^\n]*/gm, "")
     .replace(/#{1,6}\s*/g, "")
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*(.+?)\*/g, "$1")
-    .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
-    .replace(/^(魅力的な解説|専門的解説|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
-    .replace(/【カテゴリ】[^\n]*\n?(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)?\n?/gi, "")
-    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    .replace(/\n(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\s*$/i, "")
+    .replace(/^(?:3つのダイブポイント|3つの要点|魅力的な解説|専門的解説|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
+    .replace(new RegExp(`\\n?\\[(?:${CATEGORY_WORDS})\\]\\s*$`, "i"), "")
+    .replace(new RegExp(`\\n(?:${CATEGORY_WORDS})\\s*$`, "i"), "")
     .replace(/\[[\w_]+\]/g, "")
-    .replace(/【([^】]+)】/g, "$1：")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

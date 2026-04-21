@@ -3,24 +3,26 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
+const CATEGORY_WORDS = "physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other";
+
 function stripMd(text: string): string {
   return text
-    // section headers
+    // 1. まず【...】括弧を除去（これを先にやらないと後段のパターンが効かない）
+    .replace(/【カテゴリ】[^\n]*\n?/g, "")        // 【カテゴリ】とその行全体を削除
+    .replace(/【([^】]+)】/g, "")                  // 残りの【...】は中身ごと削除
+    // 2. Markdownヘッダー
     .replace(/^▍[^\n]*/gm, "")
     .replace(/#{1,6}\s*/g, "")
-    // bold / italic
+    // 3. bold / italic
     .replace(/\*\*(.+?)\*\*/g, "$1")
     .replace(/\*(.+?)\*/g, "$1")
-    // old prompt artifact lines: 「3つのダイブポイント」「魅力的な解説」etc.
-    .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
-    .replace(/^(魅力的な解説|専門的解説|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
-    // 【カテゴリ】行 + その次の行（カテゴリ名のみの行）
-    .replace(/【カテゴリ】[^\n]*\n?(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)?\n?/gi, "")
-    // 末尾のカテゴリタグ（括弧あり・なし両対応）
-    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    .replace(/\n(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\s*$/i, "")
+    // 4. 旧プロンプト形式のセクション見出し行をまるごと削除
+    .replace(/^(?:3つのダイブポイント|3つの要点|魅力的な解説|専門的解説|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|核心的貢献)[：:。\s][^\n]*/gm, "")
+    // 5. カテゴリタグを末尾から除去（[biology] 形式 & 裸の単語）
+    .replace(new RegExp(`\\n?\\[(?:${CATEGORY_WORDS})\\]\\s*$`, "i"), "")
+    .replace(new RegExp(`\\n(?:${CATEGORY_WORDS})\\s*$`, "i"), "")
     .replace(/\[[\w_]+\]/g, "")
-    .replace(/【([^】]+)】/g, "$1：")
+    // 6. 整形
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
