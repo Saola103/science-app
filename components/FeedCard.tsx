@@ -95,8 +95,10 @@ function getCategoryGradient(category?: string | null): string {
 /** Strip markdown syntax and internal metadata for clean display */
 function stripMarkdown(text: string): string {
   return text
-    // section headers (▍見出し, ##見出し)
+    // section headers (▍見出し, ##見出し, old 【...】headers that became "xxx：")
     .replace(/^▍[^\n]*/gm, "")
+    .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
+    .replace(/^(研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説)[と：:。\s]/gm, "")
     .replace(/#{1,6}\s*/g, "")
     // bold / italic
     .replace(/\*\*(.+?)\*\*/gs, "$1")
@@ -288,7 +290,13 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   const hasExpert = item.type === "paper" && !!expertSummary;
   const displaySummary = expertMode && hasExpert ? expertSummary : (generalSummary || expertSummary);
   const rawHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
-  const japaneseHeadline = rawHeadline?.replace(/^[•\-\*\+]\s*/, "") || null;
+  // Discard headlines that are prompt-format artifacts from old data
+  const isPromptArtifact = (t: string) =>
+    /^(3つの|▍|【|ダイブポイント|要点：|専門的解説|魅力的な解説|研究の目的|手法：|結果：|科学的意義)/.test(t);
+  const japaneseHeadline =
+    rawHeadline && !isPromptArtifact(rawHeadline)
+      ? rawHeadline.replace(/^[•\-\*\+]\s*/, "")
+      : null;
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
