@@ -18,7 +18,9 @@ const nextConfig: NextConfig = {
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
     NEXT_PUBLIC_GIT_HASH: gitHash,
-    GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    // NOTE: Never add server-only secrets here — the `env` block is bundled
+    // into the client-side JavaScript. Use process.env.SECRET in server
+    // components / API routes only.
   },
   images: {
     remotePatterns: [
