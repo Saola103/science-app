@@ -90,17 +90,24 @@ async function processPaper(paper: {
 }): Promise<void> {
   const textForSummary = paper.abstract || paper.title;
 
-  // Generate both summaries in parallel
-  const [generalSummary, expertSummary] = await Promise.all([
-    summarize(textForSummary, { maxLength: 450, tone: "casual" }).catch((e) => {
-      console.error(`General summary failed for ${paper.id}:`, e);
-      return null;
-    }),
-    summarize(textForSummary, { maxLength: 450, tone: "formal" }).catch((e) => {
-      console.error(`Expert summary failed for ${paper.id}:`, e);
-      return null;
-    }),
-  ]);
+  // Generate both summaries sequentially to avoid Groq rate limits
+  // casual = やさしく（一般向け）/ expert = くわしく（研究者向け）
+  let generalSummary: string | null = null;
+  let expertSummary: string | null = null;
+
+  try {
+    generalSummary = await summarize(textForSummary, { tone: "casual" });
+  } catch (e) {
+    console.error(`General summary failed for ${paper.id}:`, e);
+  }
+
+  await delay(800); // Groq rate limit buffer between calls
+
+  try {
+    expertSummary = await summarize(textForSummary, { tone: "expert" });
+  } catch (e) {
+    console.error(`Expert summary failed for ${paper.id}:`, e);
+  }
 
   // Generate embedding from abstract or title
   let embedding: number[] | undefined;

@@ -92,15 +92,26 @@ function getCategoryGradient(category?: string | null): string {
   return "from-blue-600 via-sky-700 to-indigo-900";
 }
 
-/** Strip markdown syntax for clean display */
+/** Strip markdown syntax and internal metadata for clean display */
 function stripMarkdown(text: string): string {
   return text
+    // section headers (▍見出し, ##見出し)
+    .replace(/^▍[^\n]*/gm, "")
     .replace(/#{1,6}\s*/g, "")
+    // bold / italic
     .replace(/\*\*(.+?)\*\*/gs, "$1")
     .replace(/\*(.+?)\*/gs, "$1")
-    .replace(/^\s*[-*+•]\s*/gm, "• ")
+    // category tags like [biology] [it_ai] at end of casual summary
+    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
+    // any remaining [...] tag
     .replace(/\[[\w_]+\]/g, "")
+    // 【カテゴリ】: ... lines
+    .replace(/【カテゴリ】[^\n]*/g, "")
     .replace(/【([^】]+)】/g, "$1：")
+    // "カテゴリ：" at end
+    .replace(/\nカテゴリ：\s*\S+\s*$/i, "")
+    // bullet list markers
+    .replace(/^\s*[-*+•]\s*/gm, "• ")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

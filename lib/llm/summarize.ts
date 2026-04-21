@@ -3,7 +3,7 @@ import { generateText } from "./index";
 type SummarizeOptions = {
   /** 要約の最大文字数（おおよその目安） */
   maxLength?: number;
-  /** 要約のトーン（例: "neutral", "casual", "formal" など） */
+  /** "casual" = やさしく一般向け / "expert" = 研究者向け技術要約 */
   tone?: string;
 };
 
@@ -64,46 +64,73 @@ export const CATEGORY_IMAGES: Record<string, string[]> = {
   ]
 };
 
+/**
+ * Abstract の前処理: LaTeX・HTML・特殊文字を除去してLLMに渡しやすくする
+ */
+function cleanAbstract(text: string): string {
+  return text
+    // HTMLタグ除去
+    .replace(/<[^>]+>/g, " ")
+    // LaTeX数式: $...$ や $$...$$ → (数式)
+    .replace(/\$\$[\s\S]+?\$\$/g, "(数式)")
+    .replace(/\$[^$]+?\$/g, "(数式)")
+    // LaTeX コマンド: \command{...} → 中身だけ残す
+    .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, "$1")
+    // 残った \ エスケープ
+    .replace(/\\/g, " ")
+    // 複数スペース・改行を整理
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function buildPrompt(content: string, options: SummarizeOptions = {}): string {
-  const maxLength = options.maxLength ?? DEFAULT_MAX_LENGTH;
-  const tone = options.tone ?? "neutral";
+  const tone = options.tone ?? "casual";
+  const cleaned = cleanAbstract(content);
 
   if (tone === "casual") {
+    // ── やさしく版：高校生・一般向け。ナラティブ形式、箇条書きなし ──
     return [
-      "あなたは熟練のサイエンス・コミュニケーターです。コンセプトは「Pocket Dive」です。",
-      "以下の科学論文を、一般読者向けに「噛み砕いて」かつ「専門的深みを損なわずに」要約してください。",
+      "あなたはサイエンスライターです。以下の科学論文を、科学に興味を持ちはじめた高校生でも楽しめるように日本語で解説してください。",
       "",
-      "### 【絶対遵守】文体とトーンの指示:",
-      "1. 必ず「です・ます調」の丁寧な敬語を使用してください。「だ・である」調は厳禁です。",
-      "2. 冒頭は読者の興味を惹く魅力的な導入から始めてください。",
-      "3. 専門用語は、その意味を噛み砕いて説明してください。",
+      "【厳守ルール】",
+      "1. 冒頭は「驚き」か「なぜ？」という問いかけから始めてください。",
+      "2. 専門用語は使わず、身近な例えやたとえ話で説明してください。",
+      "3. 箇条書き（・や-や数字リスト）は一切使わないでください。",
+      "4. 文体は「〜です/ます/なんです/でしょう」の柔らかいですます調で統一してください。",
+      "5. 全体を150〜200文字の連続した文章1〜3段落で書いてください。",
+      "6. 最後の行に、以下のカテゴリから1つだけを角括弧で出力してください（説明不要）:",
+      "   [physics] [biology] [it_ai] [medicine] [astronomy] [chemistry] [environment] [mathematics] [other]",
       "",
-      "### 形式要件:",
-      "1. 【3つのダイブポイント】: 冒頭に、この研究の核心を3つの箇条書き（- ）で提示してください。ここも「です・ます調」にしてください。",
-      "2. 【魅力的な解説】: 200文字程度の解説文を続けてください。「です・ます調」を徹底してください。",
-      "3. 【カテゴリ】: 最後に、内容に基づいて以下のいずれか一言のみをタグとして出力してください: [physics, biology, it_ai, medicine, astronomy, chemistry, environment, mathematics, other]",
-      "",
-      `- 出力言語: 日本語`,
-      `- 目安文字数: ${maxLength} 文字以内`,
-      "",
-      "=== 対象テキスト ===",
-      content,
+      "=== 論文テキスト ===",
+      cleaned,
     ].join("\n");
   }
 
-  // Expert Mode
+  // ── くわしく版：研究者・上級者向け。構造的・技術的 ──
   return [
-    "あなたは学術的な正確性を重視する専門家です。以下の論文のAbstractを、研究者向けに論理性と厳密さを保ちつつ要約してください。",
+    "あなたは科学論文の専門的レビュアーです。以下の論文Abstractを、大学院生・研究者向けに技術的な正確さを保って日本語で要約してください。",
     "",
-    "### 形式要件:",
-    "1. 【3つの要点】: 冒頭に、研究の核心的貢献（Contribution）を3つの箇条書き（- ）で示してください。",
-    "2. 【専門的解説】: 目的、手法、主要な結果を、正確な日本語（～である、～だ調）でまとめてください。",
+    "【出力形式（必ず守ること）】",
+    "▍研究の目的と背景",
+    "（1〜2文で簡潔に）",
     "",
-    `- 出力言語: 日本語`,
-    `- 目安文字数: ${maxLength} 文字以内`,
+    "▍手法",
+    "（用いた実験手法・モデル・データセットを具体的に）",
     "",
-    "=== 対象テキスト ===",
-    content,
+    "▍主要な結果",
+    "（数値・定量的成果があれば含めて）",
+    "",
+    "▍科学的意義",
+    "（この研究が分野に与えるインパクト）",
+    "",
+    "【ルール】",
+    "- 専門用語はそのまま使用（初出時は括弧で英語を併記）",
+    "- 文体は「〜である/〜した/〜されている」調",
+    "- 各セクション合計で250〜350文字",
+    "- 箇条書きは使わずセクション見出し後に文章を続けること",
+    "",
+    "=== 論文テキスト ===",
+    cleaned,
   ].join("\n");
 }
 
@@ -112,5 +139,7 @@ export async function summarize(
   options?: SummarizeOptions,
 ): Promise<string> {
   const prompt = buildPrompt(content, options);
-  return generateText(prompt);
+  // やさしく = temperature高め（読みやすさ重視）/ くわしく = 低め（正確性重視）
+  const temperature = options?.tone === "casual" ? 0.75 : 0.35;
+  return generateText(prompt, temperature);
 }

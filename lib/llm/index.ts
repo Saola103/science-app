@@ -11,13 +11,13 @@ function getGroqClient(): Groq {
   return new Groq({ apiKey });
 }
 
-export async function generateText(prompt: string): Promise<string> {
+export async function generateText(prompt: string, temperature = 0.7): Promise<string> {
   try {
     const client = getGroqClient();
     const result = await client.chat.completions.create({
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
-      temperature: 0.7,
+      temperature,
       max_tokens: 2048,
     });
     return result.choices[0]?.message?.content || "";
