@@ -10,7 +10,7 @@ export async function fetchLatestPapers(limit = 10, categories?: string[]) {
 
     let query = supabase
         .from("papers")
-        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source")
+        .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source, category, image_url")
         .order("published_at", { ascending: false });
 
     // Simple personalization: Filter by categories if provided

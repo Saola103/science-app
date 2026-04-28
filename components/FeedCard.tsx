@@ -447,7 +447,7 @@ export function FeedCard({
         <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-15" />
 
         {/* ── BOTTOM CONTENT — stays left of action column ── */}
-        <div className="absolute bottom-0 left-0 z-20 px-4 pb-6" style={{ right: "72px" }}>
+        <div className={`absolute bottom-0 left-0 z-20 px-4 ${nextItem ? "pb-12" : "pb-6"}`} style={{ right: "72px" }}>
           {/* Difficulty toggle */}
           {hasExpert && (
             <div className="flex items-center gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
@@ -496,7 +496,9 @@ export function FeedCard({
                 {displaySummary}
               </p>
             ) : (
-              <p className="text-sm text-white/40 italic">要約を生成中...</p>
+              <p className="text-sm text-white/30 italic line-clamp-2">
+                {item.title}
+              </p>
             )}
           </div>
 

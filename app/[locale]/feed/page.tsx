@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { FeedCard, FeedItemData } from "../../../components/FeedCard";
 import { Link } from "../../../i18n/routing";
 import { ArrowLeft, RefreshCw } from "lucide-react";
 import { useStreak, DAILY_GOAL } from "../../../lib/hooks/useStreak";
 import { getSupabaseClient } from "../../../lib/supabase/client";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 const SESSION_KEY = "pocket_dive_session_id";
 const PREFS_KEY = "pocket_dive_feed_prefs";
@@ -44,9 +44,11 @@ function updatePreference(category: string | null | undefined, delta: number) {
   }
 }
 
-export default function FeedPage() {
+function FeedPageInner() {
   const params = useParams();
   const locale = (params?.locale as string) || "ja";
+  const searchParams = useSearchParams();
+  const categoryParam = searchParams?.get("category") || null;
 
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,20 +126,21 @@ export default function FeedPage() {
   const fetchFeed = useCallback(async (cursor?: string) => {
     try {
       const prefs = getPreferences();
-      const params = new URLSearchParams({ limit: "10" });
-      if (cursor) params.set("cursor", cursor);
+      const urlParams = new URLSearchParams({ limit: "10" });
+      if (cursor) urlParams.set("cursor", cursor);
       if (Object.keys(prefs).length > 0) {
-        params.set("preferences", JSON.stringify(prefs));
+        urlParams.set("preferences", JSON.stringify(prefs));
       }
+      if (categoryParam) urlParams.set("category", categoryParam);
 
-      const res = await fetch(`/api/feed?${params.toString()}`);
+      const res = await fetch(`/api/feed?${urlParams.toString()}`);
       if (!res.ok) throw new Error("Failed to load feed");
       const data = await res.json();
       return data;
     } catch (err) {
       throw err;
     }
-  }, []);
+  }, [categoryParam]);
 
   useEffect(() => {
     setLoading(true);
@@ -406,5 +409,17 @@ export default function FeedPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function FeedPage() {
+  return (
+    <Suspense fallback={
+      <div className="fixed inset-0 bg-black flex items-center justify-center">
+        <div className="w-10 h-10 border-2 border-sky-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    }>
+      <FeedPageInner />
+    </Suspense>
   );
 }

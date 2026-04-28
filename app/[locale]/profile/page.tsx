@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { getSupabaseClient } from "../../../lib/supabase/client";
 import { useRouter, useParams } from "next/navigation";
 import { User } from "@supabase/supabase-js";
-import { Heart, LogOut, ChevronRight, ArrowRight, Play, X } from "lucide-react";
+import { Heart, LogOut, ChevronRight, ArrowRight, Play, X, Sparkles } from "lucide-react";
 import { useStreak } from "../../../lib/hooks/useStreak";
 
 const FOLLOWED_CATS_KEY = "pd_followed_cats";
@@ -292,21 +292,39 @@ export default function ProfilePage() {
       </div>
 
       {/* Followed categories */}
-      {followedCats.length > 0 && (
-        <div className="px-5 mb-6">
-          <h2 className="text-[11px] font-black tracking-widest text-white/40 uppercase mb-4">
-            フォロー中のカテゴリ
-          </h2>
-          {followedCats.map(cat => (
+      <div className="px-5 mb-6">
+        <h2 className="text-[11px] font-black tracking-widest text-white/40 uppercase mb-4">
+          フォロー中のカテゴリ
+        </h2>
+
+        {followedCats.length === 0 ? (
+          /* ── Follow hint ── */
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-start gap-3">
+            <Sparkles className="w-5 h-5 text-sky-400 shrink-0 mt-0.5" />
+            <div className="space-y-2">
+              <p className="text-sm font-black text-white">カテゴリをフォローしよう</p>
+              <p className="text-xs text-white/50 leading-relaxed">
+                フィードに表示されるカテゴリバッジ（例：<span className="text-white/70 font-bold">AI ＋</span>）をタップすると、そのカテゴリをフォローできます。フォローしたカテゴリの最新論文がここに表示されます。
+              </p>
+              <button
+                onClick={() => router.push(`/${locale}/feed`)}
+                className="flex items-center gap-1.5 text-sky-400 text-xs font-black mt-1 hover:text-sky-300 transition-colors"
+              >
+                <Play className="w-3 h-3 fill-current" /> フィードで試す <ChevronRight className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ) : (
+          followedCats.map(cat => (
             <CategoryFeedSection
               key={cat}
               category={cat}
               onUnfollow={handleUnfollow}
               locale={locale}
             />
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
 
       {/* Liked items */}
       <div className="px-5 pb-8">

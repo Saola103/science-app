@@ -78,20 +78,33 @@ function SearchContent() {
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
 
-  const handleSearch = async (e?: React.FormEvent, overrideQuery?: string) => {
+  const handleSearch = async (e?: React.FormEvent, overrideQuery?: string, overrideCategory?: string) => {
     if (e) e.preventDefault();
     const q = overrideQuery ?? query;
-    if (!q.trim() && !category) return;
+    const cat = overrideCategory !== undefined ? overrideCategory : category;
+    if (!q.trim() && !cat) return;
 
     setIsLoading(true);
     setSearched(true);
     setResults([]);
 
     try {
+      // Category-only browse: use feed API for accurate category filtering
+      if (!q.trim() && cat) {
+        const res = await fetch(`/api/feed?category=${encodeURIComponent(cat)}&limit=20`);
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        setResults((data.items || []).map((item: ResultItem) => ({
+          ...item,
+          summary_general: (item as any).summary_general || (item as any).summary,
+        })));
+        return;
+      }
+      // Text search (with optional category filter)
       const res = await fetch("/api/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query: q, category, mode: "keyword" }),
+        body: JSON.stringify({ query: q, category: cat, mode: "keyword" }),
       });
       if (!res.ok) throw new Error();
       const data = await res.json();
@@ -140,8 +153,9 @@ function SearchContent() {
           <button
             key={c.key}
             onClick={() => {
-              setCategory(c.key);
-              if (query || c.key) handleSearch(undefined, query);
+              const newCat = c.key;
+              setCategory(newCat);
+              handleSearch(undefined, query, newCat);
             }}
             className={`flex-shrink-0 text-[11px] font-black tracking-wide px-4 py-2 rounded-full transition-all ${category === c.key ? "bg-sky-500 text-white" : "bg-white/5 border border-white/10 text-white/50 hover:text-white"}`}
           >
