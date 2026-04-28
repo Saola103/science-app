@@ -191,7 +191,7 @@ export async function collectFromBiorxiv(): Promise<CollectResult[]> {
     let errors = 0;
 
     try {
-      const papers = await fetchBiorxivPapers(server, category, 2, PAPERS_PER_CATEGORY);
+      const papers = await fetchBiorxivPapers(server, category, 7, PAPERS_PER_CATEGORY); // 7日分に拡大（2日だと空になるカテゴリがある）
       await delay(1000); // polite delay
 
       for (const paper of papers) {

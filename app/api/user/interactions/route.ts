@@ -13,6 +13,7 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient"
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action") || "like";
+  const idsOnly = searchParams.get("idsOnly") === "true";
 
   // Get user from Authorization: Bearer <access_token>
   const authHeader = req.headers.get("authorization");
@@ -45,7 +46,12 @@ export async function GET(req: NextRequest) {
     .limit(50);
 
   if (!interactions || interactions.length === 0) {
-    return NextResponse.json({ items: [] });
+    return NextResponse.json(idsOnly ? { ids: [] } : { items: [] });
+  }
+
+  // idsOnly: just return the list of item IDs (used by feed page to init like state)
+  if (idsOnly) {
+    return NextResponse.json({ ids: interactions.map(i => i.item_id) });
   }
 
   const paperIds = interactions.filter(i => i.item_type === "paper").map(i => i.item_id);

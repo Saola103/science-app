@@ -4,9 +4,13 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { FeedCard, FeedItemData } from "../../../components/FeedCard";
 import { Link } from "../../../i18n/routing";
 import { ArrowLeft, RefreshCw } from "lucide-react";
+import { useStreak, DAILY_GOAL } from "../../../lib/hooks/useStreak";
+import { getSupabaseClient } from "../../../lib/supabase/client";
+import { useParams } from "next/navigation";
 
 const SESSION_KEY = "pocket_dive_session_id";
 const PREFS_KEY = "pocket_dive_feed_prefs";
+const FOLLOWED_CATS_KEY = "pd_followed_cats";
 
 function getOrCreateSessionId(): string {
   if (typeof window === "undefined") return "server";
@@ -41,6 +45,9 @@ function updatePreference(category: string | null | undefined, delta: number) {
 }
 
 export default function FeedPage() {
+  const params = useParams();
+  const locale = (params?.locale as string) || "ja";
+
   const [items, setItems] = useState<FeedItemData[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -49,6 +56,23 @@ export default function FeedPage() {
   const [hasMore, setHasMore] = useState(true);
   const [sessionId, setSessionId] = useState<string>("loading");
   const [activeIndex, setActiveIndex] = useState(0);
+
+  // Liked IDs (loaded from DB after auth)
+  const [likedIds, setLikedIds] = useState<Set<string>>(new Set());
+
+  // Followed categories (localStorage)
+  const [followedCats, setFollowedCats] = useState<Set<string>>(() => {
+    if (typeof window === "undefined") return new Set();
+    try {
+      const raw = localStorage.getItem(FOLLOWED_CATS_KEY);
+      return raw ? new Set(JSON.parse(raw) as string[]) : new Set();
+    } catch { return new Set(); }
+  });
+
+  // Streak
+  const { streak, todayCount, todayGoal, todayDone, recordRead } = useStreak();
+  const [showDoneScreen, setShowDoneScreen] = useState(false);
+  const doneShownThisSession = useRef(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const itemViewTimeRef = useRef<Record<string, number>>({});
@@ -59,6 +83,42 @@ export default function FeedPage() {
   useEffect(() => {
     setSessionId(getOrCreateSessionId());
   }, []);
+
+  // Load liked IDs for logged-in user
+  useEffect(() => {
+    const supabase = getSupabaseClient();
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      if (!session?.access_token) return;
+      try {
+        const res = await fetch("/api/user/interactions?action=like&idsOnly=true", {
+          headers: { Authorization: `Bearer ${session.access_token}` },
+        });
+        const data = await res.json();
+        if (data.ids) setLikedIds(new Set(data.ids as string[]));
+      } catch { /* non-critical */ }
+    });
+  }, []);
+
+  // Category follow handler
+  const handleFollowCategory = useCallback((category: string, follow: boolean) => {
+    setFollowedCats((prev) => {
+      const next = new Set(prev);
+      if (follow) next.add(category);
+      else next.delete(category);
+      try { localStorage.setItem(FOLLOWED_CATS_KEY, JSON.stringify([...next])); } catch { /* ignore */ }
+      return next;
+    });
+  }, []);
+
+  // Streak: record view
+  const handleView = useCallback(() => {
+    if (doneShownThisSession.current) return;
+    const goalJustMet = recordRead();
+    if (goalJustMet) {
+      doneShownThisSession.current = true;
+      setShowDoneScreen(true);
+    }
+  }, [recordRead]);
 
   // Fetch initial feed
   const fetchFeed = useCallback(async (cursor?: string) => {
@@ -177,11 +237,13 @@ export default function FeedPage() {
   const handleLike = useCallback((id: string) => {
     const item = items.find((i) => i.id === id);
     if (item) updatePreference(item.category, 2);
-  }, [items]);
-
-  const handleSave = useCallback((id: string) => {
-    const item = items.find((i) => i.id === id);
-    if (item) updatePreference(item.category, 2);
+    // Optimistically update liked set
+    setLikedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   }, [items]);
 
   if (loading) {
@@ -227,6 +289,28 @@ export default function FeedPage() {
 
   return (
     <div className="fixed inset-0 bg-black z-[100]">
+      {/* 🎉 Daily goal completion screen */}
+      {showDoneScreen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
+          <div className="text-center space-y-5 px-8 animate-in zoom-in duration-300">
+            <div className="text-7xl">🔥</div>
+            <div>
+              <p className="text-3xl font-black text-white">{streak}日連続！</p>
+              <p className="text-lg font-bold text-white/70 mt-1">今日の{todayGoal}本 達成</p>
+            </div>
+            <div className="bg-white/10 rounded-2xl px-6 py-3 inline-block">
+              <p className="text-sm text-white/60 font-bold">今日は {todayCount} 本読んだ 📖</p>
+            </div>
+            <button
+              onClick={() => setShowDoneScreen(false)}
+              className="block w-full max-w-xs mx-auto bg-white text-black font-black text-sm uppercase tracking-widest py-4 rounded-2xl active:scale-95 transition-all"
+            >
+              続ける
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Back button overlay */}
       <div className="absolute top-4 left-4 z-50">
         <Link
@@ -238,9 +322,16 @@ export default function FeedPage() {
         </Link>
       </div>
 
-      {/* Progress indicator */}
-      <div className="absolute top-4 right-4 z-50 text-[10px] text-white/40 font-black">
-        {activeIndex + 1} / {items.length}
+      {/* Progress indicator + streak */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        {streak > 1 && (
+          <span className="text-[10px] font-black text-orange-400 bg-orange-400/10 px-2 py-0.5 rounded-full">
+            🔥 {streak}
+          </span>
+        )}
+        <span className="text-[10px] text-white/40 font-black">
+          {activeIndex + 1} / {items.length}
+        </span>
       </div>
 
       {/* Feed container - centered, max width for desktop */}
@@ -264,8 +355,12 @@ export default function FeedPage() {
                 item={item}
                 sessionId={sessionId}
                 isActive={index === activeIndex}
+                initialLiked={likedIds.has(item.id)}
+                nextItem={items[index + 1] ?? null}
+                followedCategories={followedCats}
                 onLike={handleLike}
-                onSave={handleSave}
+                onFollowCategory={handleFollowCategory}
+                onView={handleView}
               />
             </div>
           ))}

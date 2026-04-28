@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Bookmark, Share2, Microscope, ChevronDown, ExternalLink, X } from "lucide-react";
+import { Heart, Share2, Microscope, ChevronDown, ExternalLink, X, Plus, Check } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -29,8 +29,12 @@ interface FeedCardProps {
   item: FeedItemData;
   sessionId: string;
   isActive: boolean;
+  initialLiked?: boolean;
+  nextItem?: { category?: string | null; type: "paper" | "news" } | null;
+  followedCategories?: Set<string>;
   onLike?: (id: string) => void;
-  onSave?: (id: string) => void;
+  onFollowCategory?: (category: string, followed: boolean) => void;
+  onView?: () => void;
 }
 
 function formatDate(iso?: string | null) {
@@ -121,10 +125,25 @@ function stripMarkdown(text: string): string {
     .trim();
 }
 
+/** Category → emoji */
+function getCategoryEmoji(category?: string | null): string {
+  const cat = (category ?? "").toLowerCase();
+  if (cat.includes("neuro") || cat.includes("brain") || cat.includes("cognitive")) return "🧠";
+  if (cat.includes("bio") || cat.includes("gene") || cat.includes("cell") || cat.includes("molecular")) return "🧬";
+  if (cat.includes("physics") || cat.includes("quantum")) return "⚛️";
+  if (cat.includes("ai") || cat.includes("machine") || cat.includes("cs") || cat.includes("computer") || cat.includes("robot")) return "🤖";
+  if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos")) return "🔭";
+  if (cat.includes("medic") || cat.includes("health") || cat.includes("neuro")) return "🏥";
+  if (cat.includes("chem") || cat.includes("material")) return "🧪";
+  if (cat.includes("math")) return "📐";
+  if (cat.includes("climate") || cat.includes("ecol") || cat.includes("environment")) return "🌍";
+  return "🔬";
+}
+
 async function trackInteraction(
   sessionId: string,
   item: FeedItemData,
-  action: "like" | "save" | "skip" | "view",
+  action: "like" | "unlike" | "save" | "skip" | "view",
   userId?: string | null
 ) {
   try {
@@ -189,12 +208,14 @@ function HeartBurst({ visible }: { visible: boolean }) {
   );
 }
 
-export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCardProps) {
+export function FeedCard({
+  item, sessionId, isActive, initialLiked, nextItem,
+  followedCategories, onLike, onFollowCategory, onView,
+}: FeedCardProps) {
   const params = useParams();
   const locale = (params?.locale as string) || "ja";
 
-  const [liked, setLiked] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [liked, setLiked] = useState(initialLiked ?? false);
   const [expanded, setExpanded] = useState(false);
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
@@ -203,6 +224,11 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
   const [heartVisible, setHeartVisible] = useState(false);
   const viewTracked = useRef(false);
   const lastTapRef = useRef(0);
+
+  // Sync initialLiked prop (loads after DB fetch)
+  useEffect(() => {
+    if (initialLiked !== undefined) setLiked(initialLiked);
+  }, [initialLiked]);
 
   // Auth state
   useEffect(() => {
@@ -214,17 +240,18 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
     return () => subscription.unsubscribe();
   }, []);
 
-  // Track view
+  // Track view + streak
   useEffect(() => {
     if (isActive && !viewTracked.current) {
       viewTracked.current = true;
       trackInteraction(sessionId, item, "view", userId);
+      onView?.();
     }
-  }, [isActive, sessionId, item, userId]);
+  }, [isActive, sessionId, item, userId, onView]);
 
   const triggerLike = useCallback(() => {
     if (!userId) { setShowLoginPrompt(true); return; }
-    if (liked) return;
+    if (liked) return; // double-tap only adds like, not toggles
     setLiked(true);
     setHeartVisible(true);
     setTimeout(() => setHeartVisible(false), 800);
@@ -253,19 +280,19 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
       setTimeout(() => setHeartVisible(false), 800);
       trackInteraction(sessionId, item, "like", userId);
       onLike?.(item.id);
+    } else {
+      // Unlike: delete the DB record
+      trackInteraction(sessionId, item, "unlike", userId);
     }
   }, [liked, userId, sessionId, item, onLike]);
 
-  const handleSave = useCallback((e: React.MouseEvent) => {
+  const isFollowed = followedCategories?.has((item.category ?? "").toLowerCase()) ?? false;
+  const handleFollowCategory = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!userId) { setShowLoginPrompt(true); return; }
-    const next = !saved;
-    setSaved(next);
-    if (next) {
-      trackInteraction(sessionId, item, "save", userId);
-      onSave?.(item.id);
-    }
-  }, [saved, userId, sessionId, item, onSave]);
+    const cat = (item.category ?? "").toLowerCase();
+    if (!cat) return;
+    onFollowCategory?.(cat, !isFollowed);
+  }, [item.category, isFollowed, onFollowCategory]);
 
   const handleShare = useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -342,9 +369,21 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
           }`}>
             {item.type === "paper" ? "📄 論文" : "📰 ニュース"}
           </span>
-          <span className="text-[10px] font-bold text-white/70 bg-white/10 px-2.5 py-1 rounded-full backdrop-blur-sm">
+          {/* Category badge with follow button */}
+          <button
+            onClick={handleFollowCategory}
+            className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm transition-all active:scale-95 ${
+              isFollowed
+                ? "bg-white/25 text-white border border-white/40"
+                : "bg-white/10 text-white/70 border border-transparent"
+            }`}
+          >
             {getCategoryLabel(item.category)}
-          </span>
+            {isFollowed
+              ? <Check className="w-2.5 h-2.5 ml-0.5" />
+              : <Plus className="w-2.5 h-2.5 ml-0.5 opacity-60" />
+            }
+          </button>
           <span className="ml-auto text-[10px] font-bold text-white/50">
             {formatDate(item.published_at)}
           </span>
@@ -367,24 +406,6 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
             </div>
             <span className={`text-[10px] font-black ${liked ? "text-red-300" : "text-white/60"}`}>
               {liked ? "♥" : "いいね"}
-            </span>
-          </button>
-
-          {/* Save */}
-          <button
-            onClick={handleSave}
-            className="flex flex-col items-center gap-1.5 group"
-            aria-label="保存"
-          >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90 ${
-              saved
-                ? "bg-yellow-400 scale-110 shadow-yellow-400/40"
-                : "bg-white/20 backdrop-blur-md border border-white/30 group-hover:bg-white/30"
-            }`}>
-              <Bookmark className={`w-6 h-6 transition-all ${saved ? "fill-white text-white" : "text-white"}`} />
-            </div>
-            <span className={`text-[10px] font-black ${saved ? "text-yellow-300" : "text-white/60"}`}>
-              {saved ? "保存済" : "保存"}
             </span>
           </button>
 
@@ -523,6 +544,17 @@ export function FeedCard({ item, sessionId, isActive, onLike, onSave }: FeedCard
             </span>
           </div>
         </div>
+
+        {/* ── NEXT CARD PREVIEW ── */}
+        {nextItem && (
+          <div className="absolute bottom-0 left-0 right-0 z-25 flex items-center justify-center gap-1.5 py-2 bg-black/50 backdrop-blur-sm pointer-events-none">
+            <span className="text-[9px] text-white/35 font-bold uppercase tracking-widest">次</span>
+            <span className="text-[11px] text-white/65 font-black">
+              {getCategoryEmoji(nextItem.category)} {getCategoryLabel(nextItem.category)}
+            </span>
+            <span className="text-[9px] text-white/35">▾</span>
+          </div>
+        )}
       </div>
     </>
   );

@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
     const cursor = searchParams.get("cursor"); // ISO timestamp for pagination
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 20);
     const preferencesStr = searchParams.get("preferences");
+    const categoryFilter = searchParams.get("category"); // optional category filter
 
     let preferences: Record<string, number> = {};
     if (preferencesStr) {
@@ -75,22 +76,20 @@ export async function GET(req: NextRequest) {
       .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
       .in("source", ["arXiv", "bioRxiv", "medRxiv"])
       .order("published_at", { ascending: false })
-      .limit(half);
+      .limit(categoryFilter ? limit : half);
 
-    if (cursor) {
-      papersQuery = papersQuery.lt("published_at", cursor);
-    }
+    if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
+    if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
 
-    // Fetch news
+    // Fetch news (skip if category filter is set — category feed = papers only)
     let newsQuery = supabase
       .from("news")
       .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
       .order("published_at", { ascending: false })
       .limit(half);
 
-    if (cursor) {
-      newsQuery = newsQuery.lt("published_at", cursor);
-    }
+    if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
+    if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
 
     const [papersResult, newsResult] = await Promise.allSettled([papersQuery, newsQuery]);
 

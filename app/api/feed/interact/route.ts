@@ -26,12 +26,26 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "item_type must be 'paper' or 'news'" }, { status: 400 });
     }
 
-    if (!["like", "save", "skip", "view"].includes(action)) {
-      return NextResponse.json({ error: "action must be like, save, skip, or view" }, { status: 400 });
+    if (!["like", "unlike", "save", "skip", "view"].includes(action)) {
+      return NextResponse.json({ error: "action must be like, unlike, save, skip, or view" }, { status: 400 });
     }
 
     const supabase = getSupabaseServerClient();
     const schema = process.env.SUPABASE_SCHEMA ?? "public";
+
+    // "unlike" = delete the existing like record
+    if (action === "unlike") {
+      if (user_id) {
+        await supabase
+          .schema(schema)
+          .from("feed_interactions")
+          .delete()
+          .eq("item_id", String(item_id))
+          .eq("user_id", user_id)
+          .eq("action", "like");
+      }
+      return NextResponse.json({ ok: true });
+    }
 
     // Insert the interaction (table created with IF NOT EXISTS logic via Supabase)
     const { error } = await supabase
