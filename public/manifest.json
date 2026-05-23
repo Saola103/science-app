@@ -1,0 +1,56 @@
+{
+  "name": "POCKET DIVE — 科学をスワイプ",
+  "short_name": "POCKET DIVE",
+  "description": "最新の科学論文をAIが日本語に要約。スワイプで毎日3分で科学の最前線へ。",
+  "start_url": "/ja/feed",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "48x48",
+      "type": "image/x-icon"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/og-default.png",
+      "sizes": "1200x630",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "POCKET DIVE フィード画面"
+    }
+  ],
+  "categories": ["education", "news", "science"],
+  "shortcuts": [
+    {
+      "name": "フィードを開く",
+      "short_name": "フィード",
+      "description": "最新の科学論文フィード",
+      "url": "/ja/feed",
+      "icons": [{ "src": "/favicon.ico", "sizes": "48x48" }]
+    },
+    {
+      "name": "論文を検索",
+      "short_name": "検索",
+      "description": "キーワードで論文を検索",
+      "url": "/ja/search",
+      "icons": [{ "src": "/favicon.ico", "sizes": "48x48" }]
+    }
+  ]
+}

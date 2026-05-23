@@ -96,31 +96,56 @@ function getCategoryGradient(category?: string | null): string {
   return "from-blue-600 via-sky-700 to-indigo-900";
 }
 
-/** Strip markdown syntax and internal metadata for clean display */
+/**
+ * Strip markdown syntax from casual summaries.
+ * Removes section headers, category tags, and markdown formatting.
+ * The new prompt format outputs title on line 1, body after empty line,
+ * and [category] at the end — all of which are handled here.
+ */
 function stripMarkdown(text: string): string {
   return text
-    // section headers (▍見出し, ##見出し, old 【...】headers that became "xxx：")
+    // Old-format section headers (▍見出し from previous prompt version)
     .replace(/^▍[^\n]*/gm, "")
     .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
-    .replace(/^(研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説)[と：:。\s]/gm, "")
+    .replace(/^(研究の目的|主要な結果|科学的意義|専門的解説|魅力的な解説)[と：:。\s]/gm, "")
     .replace(/#{1,6}\s*/g, "")
     // bold / italic
     .replace(/\*\*(.+?)\*\*/gs, "$1")
     .replace(/\*(.+?)\*/gs, "$1")
-    // category tags like [biology] [it_ai] at end of casual summary
+    // Category tags (new format: [biology] at end of casual summary)
     .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    // any remaining [...] tag
     .replace(/\[[\w_]+\]/g, "")
-    // 【カテゴリ】: ... lines
+    // Old-format 【...】 headers
     .replace(/【カテゴリ】[^\n]*/g, "")
     .replace(/【([^】]+)】/g, "$1：")
-    // Second pass: 【...】→"xxx：" conversion above may have created new section headers
-    // e.g. 【3つのダイブポイント】 → "3つのダイブポイント：" must now be removed
+    // Second pass to clean up any "xxx：" section headers left by 【】 conversion
     .replace(/^(?:3つのダイブポイント|3つの要点|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説|核心的貢献)[：:][^\n]*/gm, "")
-    // "カテゴリ：" at end
     .replace(/\nカテゴリ：\s*\S+\s*$/i, "")
-    // bullet list markers
+    // Bullet markers
     .replace(/^\s*[-*+•]\s*/gm, "• ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+/**
+ * Lighter stripping for expert summaries.
+ * Preserves the label structure (目的: / 手法: / 結果: / 意義:)
+ * that makes the expert view readable.
+ * Only removes old ▍ headers, markdown formatting, and stale artifacts.
+ */
+function stripMarkdownExpert(text: string): string {
+  return text
+    // Old-format ▍ section headers — remove the header line, keep content
+    .replace(/^▍([^\n]*)\n/gm, "")
+    // Remove category tags if somehow present
+    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
+    // Markdown formatting
+    .replace(/\*\*(.+?)\*\*/gs, "$1")
+    .replace(/\*(.+?)\*/gs, "$1")
+    .replace(/#{1,6}\s*/g, "")
+    // Old 【...】 artifacts
+    .replace(/【カテゴリ】[^\n]*/g, "")
+    .replace(/\[[\w_]+\]/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }
@@ -327,18 +352,37 @@ export function FeedCard({
   // Derived content
   const rawGeneral = item.summary_general_ja || item.summary_general || item.summary_ja || item.summary;
   const rawExpert = item.summary_expert;
+  // Apply appropriate stripping: casual = full strip, expert = light strip (keeps labels)
   const generalSummary = rawGeneral ? stripMarkdown(rawGeneral) : null;
-  const expertSummary = rawExpert ? stripMarkdown(rawExpert) : null;
+  const expertSummary = rawExpert ? stripMarkdownExpert(rawExpert) : null;
   const hasExpert = item.type === "paper" && !!expertSummary;
-  const displaySummary = expertMode && hasExpert ? expertSummary : (generalSummary || expertSummary);
-  const rawHeadline = generalSummary?.split(/[。！？\n]/)?.[0]?.trim() || null;
-  // Discard headlines that are prompt-format artifacts from old data
+
+  // --- Title extraction ---
+  // New prompt format: title is on the FIRST LINE (before the first blank line).
+  // Split on \n first so we get the full first line, not just the first sentence.
+  const rawHeadline = generalSummary?.split('\n')?.[0]?.trim() || null;
+
+  // Discard artifacts from old/bad data:
+  //   - too short (< 4 chars) or too long (> 45 chars, likely body text)
+  //   - starts with known prompt artifacts or section labels
+  //   - starts with a bullet marker
   const isPromptArtifact = (t: string) =>
-    /^(3つの|▍|【|ダイブポイント|要点：|専門的解説|魅力的な解説|研究の目的|手法：|結果：|科学的意義)/.test(t);
+    t.length < 4 || t.length > 45 ||
+    /^(3つの|▍|【|ダイブポイント|要点：|専門的解説|魅力的な解説|研究の目的|目的：|目的: |手法：|手法: |結果：|結果: |意義：|意義: |科学的意義)/.test(t) ||
+    /^[•\-\*]\s/.test(t);
+
   const japaneseHeadline =
     rawHeadline && !isPromptArtifact(rawHeadline)
-      ? rawHeadline.replace(/^[•\-\*\+]\s*/, "")
+      ? rawHeadline.replace(/^[•\-\*\+]\s*/, "").trim()
       : null;
+
+  // Remove the title line from the body to avoid showing it twice.
+  // After stripping the title, also clean up the leading blank line.
+  const generalBody = japaneseHeadline && generalSummary
+    ? generalSummary.slice(japaneseHeadline.length).replace(/^\s*\n+/, "").trim()
+    : generalSummary;
+
+  const displaySummary = expertMode && hasExpert ? expertSummary : (generalBody || expertSummary);
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
   const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
@@ -492,7 +536,10 @@ export function FeedCard({
             onClick={(e) => e.stopPropagation()}
           >
             {displaySummary ? (
-              <p className={`text-sm text-white/85 leading-relaxed drop-shadow ${expanded ? "" : "line-clamp-2"}`}>
+              <p
+                className={`text-sm text-white/85 leading-relaxed drop-shadow ${expanded ? "" : "line-clamp-2"}`}
+                style={{ whiteSpace: expertMode ? "pre-line" : "normal" }}
+              >
                 {displaySummary}
               </p>
             ) : (

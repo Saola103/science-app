@@ -31,8 +31,14 @@ const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
   economics:        "cat:econ.*",
 };
 
-/** How many papers to collect per category per run */
-const PAPERS_PER_CATEGORY = 3;
+/**
+ * How many papers to collect per category per run.
+ * max_tokens was reduced from 2048→450, so actual token usage per call
+ * dropped ~4x. This allows us to safely collect more papers per run.
+ * Estimated daily usage: 8 cats × 8 papers × 2 summaries × ~350 tokens ≈ 45k tokens
+ * Plus bioRxiv and news: ~25k tokens. Total ≈ 70k / 100k daily limit.
+ */
+const PAPERS_PER_CATEGORY = 8;
 
 /** Delay between API calls to be polite */
 function delay(ms: number): Promise<void> {
