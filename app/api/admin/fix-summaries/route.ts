@@ -21,12 +21,18 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const secret = searchParams.get("secret");
   const cronSecret = process.env.CRON_SECRET;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  if (cronSecret && secret !== cronSecret) {
+  // Accept either CRON_SECRET or ADMIN_PASSWORD as the auth token
+  const validSecret = secret && (
+    (cronSecret && secret === cronSecret) ||
+    (adminPassword && secret === adminPassword)
+  );
+  if ((cronSecret || adminPassword) && !validSecret) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const limit = Math.min(parseInt(searchParams.get("limit") || "15"), 30);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
   const sourceFilter = searchParams.get("source"); // e.g. "bioRxiv" or "arXiv"
 
   const supabase = getSupabaseServerClient();

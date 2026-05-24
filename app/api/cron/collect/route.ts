@@ -20,9 +20,14 @@ export async function GET(req: NextRequest) {
   // Verify the request is from Vercel Cron or has the correct secret
   const authHeader = req.headers.get("authorization");
   const cronSecret = process.env.CRON_SECRET;
+  const adminPassword = process.env.ADMIN_PASSWORD;
 
-  // Vercel Cron sends the secret in the Authorization header
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+  // Accept: Vercel Cron (Bearer CRON_SECRET) or manual trigger (Bearer ADMIN_PASSWORD)
+  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+  const isAuthorized =
+    (cronSecret && token === cronSecret) ||
+    (adminPassword && token === adminPassword);
+  if ((cronSecret || adminPassword) && !isAuthorized) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
