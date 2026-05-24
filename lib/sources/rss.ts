@@ -85,6 +85,62 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
     source: "国立天文台",
     category: "astronomy",
   },
+
+  // ── 追加：高品質英語メディア（無料・APIキー不要）────────────────────────
+  // Quanta Magazine（数学・物理・生物を最高品質で解説）
+  {
+    url: "https://www.quantamagazine.org/feed/",
+    source: "Quanta Magazine",
+    category: "general",
+  },
+  // MIT News Research（MITの研究プレスリリース）
+  {
+    url: "http://news.mit.edu/rss/research",
+    source: "MIT News",
+    category: "general",
+  },
+  // Ars Technica Science（テック×科学ニュース、高品質）
+  {
+    url: "https://feeds.arstechnica.com/arstechnica/science",
+    source: "Ars Technica",
+    category: "it_ai",
+  },
+  // NSF News（米国国立科学財団、政府機関・完全無料）
+  {
+    url: "https://new.nsf.gov/feeds/news",
+    source: "NSF",
+    category: "general",
+  },
+  // CERN News（素粒子物理学・加速器実験）
+  {
+    url: "https://home.cern/news/rss.xml",
+    source: "CERN",
+    category: "physics",
+  },
+  // ScienceAlert（人気科学ニュース、平易な解説）
+  {
+    url: "https://www.sciencealert.com/feed",
+    source: "ScienceAlert",
+    category: "general",
+  },
+  // Smithsonian Magazine Science & Nature
+  {
+    url: "https://www.smithsonianmag.com/rss/science-nature/",
+    source: "Smithsonian",
+    category: "general",
+  },
+  // EarthSky（天文・地球科学・気候）
+  {
+    url: "https://earthsky.org/feed",
+    source: "EarthSky",
+    category: "astronomy",
+  },
+  // New Atlas（新技術・AI・ロボット・医療機器）
+  {
+    url: "https://newatlas.com/index.rss",
+    source: "New Atlas",
+    category: "it_ai",
+  },
 ];
 
 /** Deterministic ID from URL */

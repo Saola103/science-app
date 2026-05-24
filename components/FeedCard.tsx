@@ -169,19 +169,25 @@ async function trackInteraction(
   sessionId: string,
   item: FeedItemData,
   action: "like" | "unlike" | "save" | "skip" | "view",
-  userId?: string | null
+  userId?: string | null,
+  accessToken?: string | null
 ) {
   try {
     await fetch("/api/feed/interact", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        // Send JWT so the server can verify user identity server-side.
+        // Never send user_id in body — the API derives it from this token.
+        ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {}),
+      },
       body: JSON.stringify({
         item_id: item.id,
         item_type: item.type,
         action,
         session_id: sessionId,
         category: item.category,
-        user_id: userId || null,
+        // user_id intentionally omitted — derived server-side from JWT
       }),
     });
   } catch { /* non-critical */ }
@@ -245,6 +251,7 @@ export function FeedCard({
   const [shareMessage, setShareMessage] = useState<string | null>(null);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [userId, setUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [expertMode, setExpertMode] = useState(false);
   const [heartVisible, setHeartVisible] = useState(false);
   const viewTracked = useRef(false);
@@ -255,12 +262,16 @@ export function FeedCard({
     if (initialLiked !== undefined) setLiked(initialLiked);
   }, [initialLiked]);
 
-  // Auth state
+  // Auth state — also track access_token to send in Authorization header
   useEffect(() => {
     const supabase = getSupabaseClient();
-    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUserId(session?.user?.id ?? null);
+      setAccessToken(session?.access_token ?? null);
+    });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
       setUserId(session?.user?.id ?? null);
+      setAccessToken(session?.access_token ?? null);
     });
     return () => subscription.unsubscribe();
   }, []);
@@ -269,10 +280,10 @@ export function FeedCard({
   useEffect(() => {
     if (isActive && !viewTracked.current) {
       viewTracked.current = true;
-      trackInteraction(sessionId, item, "view", userId);
+      trackInteraction(sessionId, item, "view", userId, accessToken);
       onView?.();
     }
-  }, [isActive, sessionId, item, userId, onView]);
+  }, [isActive, sessionId, item, userId, accessToken, onView]);
 
   const triggerLike = useCallback(() => {
     if (!userId) { setShowLoginPrompt(true); return; }
@@ -280,9 +291,9 @@ export function FeedCard({
     setLiked(true);
     setHeartVisible(true);
     setTimeout(() => setHeartVisible(false), 800);
-    trackInteraction(sessionId, item, "like", userId);
+    trackInteraction(sessionId, item, "like", userId, accessToken);
     onLike?.(item.id);
-  }, [liked, userId, sessionId, item, onLike]);
+  }, [liked, userId, accessToken, sessionId, item, onLike]);
 
   // Double-tap to like, single tap to expand
   const handleTap = useCallback(() => {
@@ -303,13 +314,13 @@ export function FeedCard({
     if (next) {
       setHeartVisible(true);
       setTimeout(() => setHeartVisible(false), 800);
-      trackInteraction(sessionId, item, "like", userId);
+      trackInteraction(sessionId, item, "like", userId, accessToken);
       onLike?.(item.id);
     } else {
       // Unlike: delete the DB record
-      trackInteraction(sessionId, item, "unlike", userId);
+      trackInteraction(sessionId, item, "unlike", userId, accessToken);
     }
-  }, [liked, userId, sessionId, item, onLike]);
+  }, [liked, userId, accessToken, sessionId, item, onLike]);
 
   const isFollowed = followedCategories?.has((item.category ?? "").toLowerCase()) ?? false;
   const handleFollowCategory = useCallback((e: React.MouseEvent) => {
@@ -359,32 +370,29 @@ export function FeedCard({
 
   // --- Title extraction ---
   // New prompt format: title is on the FIRST LINE (before the first blank line).
-  // Split on \n first so we get the full first line, not just the first sentence.
+  // Only treat as a Japanese title if it's short enough (10–40 chars) and looks like a headline.
   const rawHeadline = generalSummary?.split('\n')?.[0]?.trim() || null;
 
-  // Discard artifacts from old/bad data:
-  //   - too short (< 4 chars) or too long (> 45 chars, likely body text)
-  //   - starts with known prompt artifacts or section labels
-  //   - starts with a bullet marker
-  const isPromptArtifact = (t: string) =>
-    t.length < 4 || t.length > 45 ||
-    /^(3つの|▍|【|ダイブポイント|要点：|専門的解説|魅力的な解説|研究の目的|目的：|目的: |手法：|手法: |結果：|結果: |意義：|意義: |科学的意義)/.test(t) ||
-    /^[•\-\*]\s/.test(t);
+  const isGoodHeadline = (t: string) =>
+    t.length >= 6 && t.length <= 40 &&
+    !/^(3つの|▍|【|ダイブポイント|要点|専門的解説|魅力的|研究の目的|目的[：:]\s|手法[：:]\s|結果[：:]\s|意義[：:]\s)/.test(t) &&
+    !/^[•\-\*\d]\s/.test(t) &&
+    // Must contain at least one Japanese character to be a Japanese headline
+    /[぀-ヿ一-鿿]/.test(t);
 
-  const japaneseHeadline =
-    rawHeadline && !isPromptArtifact(rawHeadline)
-      ? rawHeadline.replace(/^[•\-\*\+]\s*/, "").trim()
-      : null;
+  const japaneseHeadline = rawHeadline && isGoodHeadline(rawHeadline)
+    ? rawHeadline.trim()
+    : null;
 
   // Remove the title line from the body to avoid showing it twice.
-  // After stripping the title, also clean up the leading blank line.
   const generalBody = japaneseHeadline && generalSummary
     ? generalSummary.slice(japaneseHeadline.length).replace(/^\s*\n+/, "").trim()
     : generalSummary;
 
   const displaySummary = expertMode && hasExpert ? expertSummary : (generalBody || expertSummary);
   const displayTitle = item.title_ja || japaneseHeadline || item.title;
-  const showEnglishSub = !item.title_ja && japaneseHeadline && item.title;
+  // Show English subtitle only when Japanese headline was successfully extracted
+  const showEnglishSub = !item.title_ja && japaneseHeadline && item.title && item.title !== japaneseHeadline;
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
   const sourceText = item.type === "news" ? item.source : (item.source || "arXiv");
 
@@ -543,8 +551,8 @@ export function FeedCard({
                 {displaySummary}
               </p>
             ) : (
-              <p className="text-sm text-white/30 italic line-clamp-2">
-                {item.title}
+              <p className="text-xs text-white/30 italic">
+                要約を準備中です…
               </p>
             )}
           </div>

@@ -18,7 +18,7 @@ export async function generateText(prompt: string, temperature = 0.7): Promise<s
       model: MODEL,
       messages: [{ role: "user", content: prompt }],
       temperature,
-      max_tokens: 450,
+      max_tokens: 700,
     });
     return result.choices[0]?.message?.content || "";
   } catch (err) {

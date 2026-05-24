@@ -244,8 +244,21 @@ export async function collectNews(): Promise<{ collected: number; errors: number
 
     for (const article of articles) {
       try {
-        // Generate a Japanese summary using Groq
-        const prompt = `以下の英語ニュース記事を日本語で3〜5行に要約してください。科学的な内容を一般の読者にわかりやすく伝えてください。\n\nタイトル: ${article.title}\n\n内容: ${article.description}`;
+        // Generate a Japanese summary using Groq (same title-first format as paper summaries)
+        const catTag = article.category || "other";
+        const prompt = `あなたは人気サイエンスライターです。以下の科学ニュース記事を、好奇心旺盛な高校生が「もっと知りたい！」と感じる日本語コラムに変えてください。
+
+【出力フォーマット（厳守）】
+1行目: 10〜20文字の日本語タイトル（体言止めか短文。疑問形は絶対禁止。例:「AIが創薬を100倍加速」「ブラックホールの新発見」）
+（空行1つ）
+本文: 100〜150文字の連続した文章。箇条書き禁止。ですます調。
+（空行1つ）
+[${catTag}]
+
+=== ニュース記事 ===
+タイトル: ${article.title}
+
+内容: ${article.description}`;
 
         let summaryJa: string | null = null;
         try {

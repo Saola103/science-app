@@ -51,15 +51,24 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ message: "No papers found", fixed: 0 });
   }
 
-  // Filter: only papers where expert is null OR expert === general (identical content)
-  const needsFix = papers.filter((p) => {
-    if (!p.summary_expert) return true;
-    if (!p.summary_general) return true;
-    // Check if summaries are too similar (edit distance approximation: long common prefix)
-    const a = (p.summary_general || "").trim().slice(0, 80);
-    const b = (p.summary_expert || "").trim().slice(0, 80);
+  // Filter priority:
+  // 1. summary_general is null (no summary at all) — highest priority
+  // 2. summary_expert is null
+  // 3. summaries are too similar (identical content)
+  const noSummary = papers.filter((p) => !p.summary_general);
+  const noExpert  = papers.filter((p) => p.summary_general && !p.summary_expert);
+  const identical = papers.filter((p) => {
+    if (!p.summary_general || !p.summary_expert) return false;
+    const a = p.summary_general.trim().slice(0, 80);
+    const b = p.summary_expert.trim().slice(0, 80);
     return a === b;
-  }).slice(0, limit);
+  });
+
+  // Deduplicate and prioritize: no summary first, then no expert, then identical
+  const seen = new Set<string>();
+  const needsFix = [...noSummary, ...noExpert, ...identical]
+    .filter((p) => { if (seen.has(p.id)) return false; seen.add(p.id); return true; })
+    .slice(0, limit);
 
   console.log(`[fix-summaries] Found ${needsFix.length} papers to fix out of ${papers.length} checked`);
 
