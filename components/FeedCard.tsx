@@ -1,7 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Heart, Share2, Microscope, ChevronDown, ExternalLink, X, Plus, Check } from "lucide-react";
+import {
+  Heart, Share2, Microscope, ChevronDown, ExternalLink, X, Plus, Check,
+  Brain, Dna, Atom, Cpu, Telescope, HeartPulse, FlaskConical, Leaf, Sigma, Sparkles,
+} from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
 
@@ -69,31 +72,109 @@ function getCategoryLabel(category?: string | null): string {
   return category;
 }
 
-/** Category → vivid gradient for Instagram Reels / YouTube Shorts style */
-function getCategoryGradient(category?: string | null): string {
+/**
+ * Category → flat single-hue {base, dark} pair (Duolingo-style: one saturated
+ * scene color per field, not a gradient). `dark` backs the porthole well and
+ * the bottom sheet; the accent (yellow) stays constant across every category
+ * for brand consistency, same as Duolingo's own accent-vs-scene split.
+ */
+function getCategoryColors(category?: string | null): { base: string; dark: string } {
   const cat = (category ?? "").toLowerCase();
   if (cat.includes("neuro") || cat.includes("brain") || cat.includes("cognitive"))
-    return "from-violet-700 via-purple-800 to-indigo-900";
+    return { base: "#5B4FE8", dark: "#4A3FD8" };
   if (cat.includes("bio") || cat.includes("gene") || cat.includes("cell") || cat.includes("molecular"))
-    return "from-emerald-600 via-teal-700 to-cyan-900";
+    return { base: "#1FAE73", dark: "#178F5D" };
   if (cat.includes("physics") || cat.includes("quantum"))
-    return "from-sky-600 via-blue-700 to-indigo-900";
+    return { base: "#2E86F5", dark: "#1E6FD9" };
   if (cat.includes("ai") || cat.includes("machine") || cat.includes("cs") || cat.includes("computer") || cat.includes("robot"))
-    return "from-indigo-600 via-violet-700 to-purple-900";
+    return { base: "#8B3FE8", dark: "#722ED1" };
   if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos"))
-    return "from-blue-800 via-indigo-800 to-slate-900";
+    return { base: "#2447B0", dark: "#1B3690" };
   if (cat.includes("medic") || cat.includes("health") || cat.includes("clinic"))
-    return "from-rose-600 via-pink-700 to-red-900";
+    return { base: "#F0506E", dark: "#D93A57" };
   if (cat.includes("chem") || cat.includes("material"))
-    return "from-amber-600 via-orange-700 to-red-800";
+    return { base: "#F2843C", dark: "#D96B26" };
   if (cat.includes("climate") || cat.includes("ecol") || cat.includes("environment"))
-    return "from-green-600 via-emerald-700 to-teal-900";
+    return { base: "#17A398", dark: "#0F8A80" };
   if (cat.includes("math"))
-    return "from-cyan-600 via-sky-700 to-blue-900";
+    return { base: "#1AA6C9", dark: "#1189A8" };
   if (cat.includes("psych") || cat.includes("social"))
-    return "from-pink-600 via-rose-700 to-purple-900";
-  // news default: warm blue
-  return "from-blue-600 via-sky-700 to-indigo-900";
+    return { base: "#E85BA0", dark: "#CC4088" };
+  return { base: "#5B4FE8", dark: "#4A3FD8" };
+}
+
+const ACCENT = "#FFC95C";
+const ACCENT_DARK = "#D9A53F";
+
+/** Category → line icon shown in the porthole's default (non-mascot) state */
+function CategoryIcon({ category, size = 28 }: { category?: string | null; size?: number }) {
+  const cat = (category ?? "").toLowerCase();
+  const props = { size, strokeWidth: 2.2 };
+  if (cat.includes("neuro") || cat.includes("brain") || cat.includes("cognitive")) return <Brain {...props} />;
+  if (cat.includes("bio") || cat.includes("gene") || cat.includes("cell") || cat.includes("molecular")) return <Dna {...props} />;
+  if (cat.includes("physics") || cat.includes("quantum")) return <Atom {...props} />;
+  if (cat.includes("ai") || cat.includes("machine") || cat.includes("cs") || cat.includes("computer") || cat.includes("robot")) return <Cpu {...props} />;
+  if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos")) return <Telescope {...props} />;
+  if (cat.includes("medic") || cat.includes("health") || cat.includes("clinic")) return <HeartPulse {...props} />;
+  if (cat.includes("chem") || cat.includes("material")) return <FlaskConical {...props} />;
+  if (cat.includes("climate") || cat.includes("ecol") || cat.includes("environment")) return <Leaf {...props} />;
+  if (cat.includes("math")) return <Sigma {...props} />;
+  if (cat.includes("psych") || cat.includes("social")) return <Sparkles {...props} />;
+  return <Microscope {...props} />;
+}
+
+/** "Pocket Diver" mascot — only shown for the liked-card cameo, never by default */
+function PocketDiverMascot() {
+  return (
+    <svg width="82" height="89" viewBox="0 0 118 128" fill="none" style={{ marginTop: 23 }}>
+      <ellipse cx="59" cy="78" rx="42" ry="40" fill={ACCENT} stroke="#1a1a16" strokeWidth="4" />
+      <path d="M22 62 A37 37 0 0 1 96 62" fill="#eaf6ff" stroke="#1a1a16" strokeWidth="4" />
+      <circle cx="59" cy="60" r="3" fill="#1a1a16" />
+      <circle cx="44" cy="78" r="7" fill="#1a1a16" />
+      <circle cx="74" cy="78" r="7" fill="#1a1a16" />
+      <circle cx="46" cy="75" r="2" fill="#fff" />
+      <circle cx="76" cy="75" r="2" fill="#fff" />
+      <path d="M48 94c5 6 17 6 22 0" stroke="#1a1a16" strokeWidth="3.5" strokeLinecap="round" />
+    </svg>
+  );
+}
+
+/**
+ * Top-space visual: a submarine "porthole" with the category icon by default;
+ * once the card is liked it becomes a one-off mascot cameo with a small badge.
+ * Keeping the mascot tied to a real, infrequent moment (liking something) —
+ * rather than showing it on every card — is deliberate: a recurring character
+ * on every screen is exactly what made Duolingo's owl grate at scale.
+ */
+function TopSpaceVisual({ category, dark, liked }: { category?: string | null; dark: string; liked: boolean }) {
+  return (
+    <div className="flex flex-col items-center" style={{ marginTop: 8 }}>
+      {liked && (
+        <span
+          className="font-black text-[11px] px-3.5 py-1.5 rounded-full mb-2 whitespace-nowrap"
+          style={{ background: ACCENT, color: "#1a1a16", boxShadow: `0 3px 0 ${ACCENT_DARK}`, fontFamily: "var(--font-zen-maru), sans-serif" }}
+        >
+          気に入ってくれてありがとう！
+        </span>
+      )}
+      <div
+        className="rounded-full flex items-center justify-center overflow-hidden"
+        style={{
+          width: 108, height: 108,
+          background: dark,
+          border: `5px solid ${liked ? ACCENT : "rgba(255,255,255,0.25)"}`,
+        }}
+      >
+        {liked ? (
+          <PocketDiverMascot />
+        ) : (
+          <div className="w-[86px] h-[86px] rounded-full flex items-center justify-center" style={{ background: "#EAF6FF", color: dark }}>
+            <CategoryIcon category={category} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -148,21 +229,6 @@ function stripMarkdownExpert(text: string): string {
     .replace(/\[[\w_]+\]/g, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-}
-
-/** Category → emoji */
-function getCategoryEmoji(category?: string | null): string {
-  const cat = (category ?? "").toLowerCase();
-  if (cat.includes("neuro") || cat.includes("brain") || cat.includes("cognitive")) return "🧠";
-  if (cat.includes("bio") || cat.includes("gene") || cat.includes("cell") || cat.includes("molecular")) return "🧬";
-  if (cat.includes("physics") || cat.includes("quantum")) return "⚛️";
-  if (cat.includes("ai") || cat.includes("machine") || cat.includes("cs") || cat.includes("computer") || cat.includes("robot")) return "🤖";
-  if (cat.includes("astro") || cat.includes("space") || cat.includes("cosmos")) return "🔭";
-  if (cat.includes("medic") || cat.includes("health") || cat.includes("neuro")) return "🏥";
-  if (cat.includes("chem") || cat.includes("material")) return "🧪";
-  if (cat.includes("math")) return "📐";
-  if (cat.includes("climate") || cat.includes("ecol") || cat.includes("environment")) return "🌍";
-  return "🔬";
 }
 
 async function trackInteraction(
@@ -396,15 +462,16 @@ export function FeedCard({
   const authorsText = item.authors?.slice(0, 2).join(", ") ?? "";
   const sourceText = item.type === "news" ? item.source : (item.source || "arXiv");
 
-  const gradient = getCategoryGradient(item.category);
+  const { base: baseColor, dark: darkColor } = getCategoryColors(item.category);
+  const zenMaru = { fontFamily: "var(--font-zen-maru), sans-serif" };
 
   return (
     <>
       {showLoginPrompt && <LoginPrompt onClose={() => setShowLoginPrompt(false)} locale={locale} />}
 
       <div
-        className={`relative w-full h-svh flex-shrink-0 bg-gradient-to-b ${gradient} overflow-hidden select-none`}
-        style={{ scrollSnapAlign: "start" }}
+        className="relative w-full h-svh flex-shrink-0 overflow-hidden select-none"
+        style={{ scrollSnapAlign: "start", background: baseColor }}
       >
         {/* Double-tap heart burst */}
         <HeartBurst visible={heartVisible} />
@@ -414,21 +481,21 @@ export function FeedCard({
 
         {/* ── TOP BAR ── */}
         <div className="absolute top-0 left-0 right-0 z-20 flex items-center gap-2 px-4 pt-12 pb-3 pr-[72px]">
-          <span className={`text-[10px] font-black tracking-widest uppercase px-2.5 py-1 rounded-full ${
-            item.type === "paper"
-              ? "bg-white/25 text-white"
-              : "bg-white/15 text-white/80"
-          }`}>
-            {item.type === "paper" ? "📄 論文" : "📰 ニュース"}
+          <span
+            className="text-[10px] font-black tracking-widest px-2.5 py-1 rounded-full"
+            style={item.type === "paper"
+              ? { ...zenMaru, background: "#fff", color: baseColor }
+              : { ...zenMaru, background: "rgba(255,255,255,0.14)", color: "#fff" }}
+          >
+            {item.type === "paper" ? "論文" : "ニュース"}
           </span>
           {/* Category badge with follow button */}
           <button
             onClick={handleFollowCategory}
-            className={`flex items-center gap-1 text-[10px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm transition-all active:scale-95 ${
-              isFollowed
-                ? "bg-white/25 text-white border border-white/40"
-                : "bg-white/10 text-white/70 border border-transparent"
-            }`}
+            className="flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-full transition-all active:scale-95"
+            style={isFollowed
+              ? { ...zenMaru, background: "rgba(255,255,255,0.2)", color: "#fff", border: "2px solid rgba(255,255,255,0.5)" }
+              : { ...zenMaru, color: "rgba(255,255,255,0.75)", border: "2px solid rgba(255,255,255,0.28)" }}
           >
             {getCategoryLabel(item.category)}
             {isFollowed
@@ -441,22 +508,31 @@ export function FeedCard({
           </span>
         </div>
 
-        {/* ── RIGHT ACTION COLUMN ── */}
-        <div className="absolute right-3 bottom-28 z-20 flex flex-col items-center gap-6">
+        {/* ── TOP-SPACE VISUAL — porthole icon by default, mascot cameo once liked ── */}
+        {!expanded && (
+          <div className="absolute left-0 z-15 flex justify-center" style={{ top: 78, right: 72 }}>
+            <TopSpaceVisual category={item.category} dark={darkColor} liked={liked} />
+          </div>
+        )}
+
+        {/* ── RIGHT ACTION COLUMN — solid fill + hard offset shadow, no blur ── */}
+        <div className="absolute right-3 bottom-28 z-20 flex flex-col items-center gap-5">
           {/* Like */}
           <button
             onClick={handleLike}
             className="flex flex-col items-center gap-1.5 group"
             aria-label="いいね"
           >
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center shadow-lg transition-all duration-200 active:scale-90 ${
-              liked
-                ? "bg-red-500 scale-110 shadow-red-500/40"
-                : "bg-white/20 backdrop-blur-md border border-white/30 group-hover:bg-white/30"
-            }`}>
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-150 active:translate-y-[2px]"
+              style={{
+                background: liked ? "#EF476F" : "rgba(255,255,255,0.16)",
+                boxShadow: liked ? "0 3px 0 #C7355A" : "0 3px 0 rgba(0,0,0,0.18)",
+              }}
+            >
               <Heart className={`w-6 h-6 transition-all ${liked ? "fill-white text-white" : "text-white"}`} />
             </div>
-            <span className={`text-[10px] font-black ${liked ? "text-red-300" : "text-white/60"}`}>
+            <span className="text-[10px] font-black text-white/70">
               {liked ? "♥" : "いいね"}
             </span>
           </button>
@@ -467,10 +543,13 @@ export function FeedCard({
             className="flex flex-col items-center gap-1.5 group"
             aria-label="共有"
           >
-            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md border border-white/30 shadow-lg transition-all duration-200 group-hover:bg-white/30 active:scale-90">
+            <div
+              className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-150 active:translate-y-[2px]"
+              style={{ background: "rgba(255,255,255,0.16)", boxShadow: "0 3px 0 rgba(0,0,0,0.18)" }}
+            >
               <Share2 className="w-6 h-6 text-white" />
             </div>
-            <span className="text-[10px] font-black text-white/60">
+            <span className="text-[10px] font-black text-white/70">
               {shareMessage || "シェア"}
             </span>
           </button>
@@ -485,41 +564,42 @@ export function FeedCard({
               aria-label="原文を読む"
               className="flex flex-col items-center gap-1.5 group"
             >
-              <div className="w-12 h-12 rounded-full flex items-center justify-center bg-white/20 backdrop-blur-md border border-white/30 shadow-lg transition-all duration-200 group-hover:bg-white/30 active:scale-90">
-                <Microscope className="w-6 h-6 text-white" />
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-150 active:translate-y-[2px]"
+                style={{ background: ACCENT, boxShadow: `0 3px 0 ${ACCENT_DARK}` }}
+              >
+                <Microscope className="w-6 h-6" style={{ color: "#1a1a16" }} />
               </div>
-              <span className="text-[10px] font-black text-white/60 text-center leading-tight">
+              <span className="text-[10px] font-black text-white/70 text-center leading-tight">
                 深く潜る
               </span>
             </a>
           )}
         </div>
 
-        {/* ── BOTTOM GRADIENT FADE ── */}
-        <div className="absolute bottom-0 left-0 right-0 h-80 bg-gradient-to-t from-black/80 via-black/40 to-transparent pointer-events-none z-15" />
-
-        {/* ── BOTTOM CONTENT — stays left of action column ── */}
-        <div className={`absolute bottom-0 left-0 z-20 px-4 ${nextItem ? "pb-12" : "pb-6"}`} style={{ right: "72px" }}>
+        {/* ── BOTTOM SHEET — flat single hue, one shade darker than the card ── */}
+        <div
+          className={`absolute bottom-0 left-0 right-0 z-20 px-4 rounded-t-[28px] ${nextItem ? "pb-12" : "pb-6"}`}
+          style={{ background: darkColor, paddingTop: 20 }}
+        >
           {/* Difficulty toggle */}
           {hasExpert && (
             <div className="flex items-center gap-2 mb-3" onClick={(e) => e.stopPropagation()}>
               <button
                 onClick={() => setExpertMode(false)}
-                className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all ${
-                  !expertMode
-                    ? "bg-white text-gray-900 border-white shadow-lg"
-                    : "border-white/30 text-white/50 hover:border-white/50"
-                }`}
+                className="text-[11px] font-black px-3.5 py-1.5 rounded-2xl transition-all"
+                style={!expertMode
+                  ? { ...zenMaru, background: ACCENT, color: "#1a1a16", boxShadow: `0 3px 0 ${ACCENT_DARK}` }
+                  : { ...zenMaru, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}
               >
                 やさしく
               </button>
               <button
                 onClick={() => setExpertMode(true)}
-                className={`text-[11px] font-black px-3 py-1.5 rounded-full border transition-all ${
-                  expertMode
-                    ? "bg-white text-gray-900 border-white shadow-lg"
-                    : "border-white/30 text-white/50 hover:border-white/50"
-                }`}
+                className="text-[11px] font-black px-3.5 py-1.5 rounded-2xl transition-all"
+                style={expertMode
+                  ? { ...zenMaru, background: ACCENT, color: "#1a1a16", boxShadow: `0 3px 0 ${ACCENT_DARK}` }
+                  : { ...zenMaru, background: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.6)" }}
               >
                 くわしく
               </button>
@@ -527,7 +607,7 @@ export function FeedCard({
           )}
 
           {/* Title */}
-          <h2 className="text-[22px] font-black text-white leading-snug mb-1 drop-shadow-lg line-clamp-3">
+          <h2 className="text-[22px] font-black text-white leading-[1.4] mb-1 line-clamp-3" style={zenMaru}>
             {displayTitle}
           </h2>
 
@@ -545,13 +625,13 @@ export function FeedCard({
           >
             {displaySummary ? (
               <p
-                className={`text-sm text-white/85 leading-relaxed drop-shadow ${expanded ? "" : "line-clamp-2"}`}
+                className={`text-sm text-white/85 leading-relaxed ${expanded ? "" : "line-clamp-2"}`}
                 style={{ whiteSpace: expertMode ? "pre-line" : "normal" }}
               >
                 {displaySummary}
               </p>
             ) : (
-              <p className="text-xs text-white/30 italic">
+              <p className="text-xs text-white/35 italic">
                 要約を準備中です…
               </p>
             )}
@@ -604,12 +684,15 @@ export function FeedCard({
 
         {/* ── NEXT CARD PREVIEW ── */}
         {nextItem && (
-          <div className="absolute bottom-0 left-0 right-0 z-25 flex items-center justify-center gap-1.5 py-2 bg-black/50 backdrop-blur-sm pointer-events-none">
-            <span className="text-[9px] text-white/35 font-bold uppercase tracking-widest">次</span>
-            <span className="text-[11px] text-white/65 font-black">
-              {getCategoryEmoji(nextItem.category)} {getCategoryLabel(nextItem.category)}
+          <div
+            className="absolute bottom-0 left-0 right-0 z-25 flex items-center justify-center gap-1.5 py-2 pointer-events-none"
+            style={{ background: "rgba(0,0,0,0.22)" }}
+          >
+            <span className="text-[9px] text-white/40 font-bold uppercase tracking-widest">次</span>
+            <span className="text-[11px] text-white/70 font-black">
+              {getCategoryLabel(nextItem.category)}
             </span>
-            <span className="text-[9px] text-white/35">▾</span>
+            <span className="text-[9px] text-white/40">▾</span>
           </div>
         )}
       </div>

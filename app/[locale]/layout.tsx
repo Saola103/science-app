@@ -7,7 +7,7 @@ import Script from 'next/script';
 import "../globals.css";
 import { AppProvider } from "../../components/LanguageProvider";
 import { BottomNav } from "../../components/BottomNav";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Zen_Maru_Gothic } from "next/font/google";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -17,6 +17,14 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+});
+
+// Feed-card headlines only (see components/FeedCard.tsx) — the rounded,
+// chunky weight is part of the "Duolingo of Science" visual direction.
+const zenMaru = Zen_Maru_Gothic({
+  variable: "--font-zen-maru",
+  subsets: ["latin"],
+  weight: ["700", "900"],
 });
 
 const APP_URL = "https://scienceapp-alpha.vercel.app";
@@ -101,7 +109,7 @@ export default async function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="POCKET DIVE" />
       </head>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white`}>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${zenMaru.variable} antialiased bg-black text-white`}>
 
         {/* Google Analytics 4 — NEXT_PUBLIC_GA_MEASUREMENT_ID を Vercel env に設定してください */}
         {GA_ID && (
