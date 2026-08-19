@@ -110,8 +110,8 @@ function stripMarkdown(text: string): string {
     .replace(/^(研究の目的|主要な結果|科学的意義|専門的解説|魅力的な解説)[と：:。\s]/gm, "")
     .replace(/#{1,6}\s*/g, "")
     // bold / italic
-    .replace(/\*\*(.+?)\*\*/gs, "$1")
-    .replace(/\*(.+?)\*/gs, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
     // Category tags (new format: [biology] at end of casual summary)
     .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
     .replace(/\[[\w_]+\]/g, "")
@@ -140,8 +140,8 @@ function stripMarkdownExpert(text: string): string {
     // Remove category tags if somehow present
     .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
     // Markdown formatting
-    .replace(/\*\*(.+?)\*\*/gs, "$1")
-    .replace(/\*(.+?)\*/gs, "$1")
+    .replace(/\*\*(.+?)\*\*/g, "$1")
+    .replace(/\*(.+?)\*/g, "$1")
     .replace(/#{1,6}\s*/g, "")
     // Old 【...】 artifacts
     .replace(/【カテゴリ】[^\n]*/g, "")

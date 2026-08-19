@@ -33,12 +33,19 @@ const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
 
 /**
  * How many papers to collect per category per run.
- * max_tokens was reduced from 2048→450, so actual token usage per call
- * dropped ~4x. This allows us to safely collect more papers per run.
- * Estimated daily usage: 8 cats × 8 papers × 2 summaries × ~350 tokens ≈ 45k tokens
- * Plus bioRxiv and news: ~25k tokens. Total ≈ 70k / 100k daily limit.
+ *
+ * Token budget (Groq free tier: 100k TPD):
+ *   - arXiv 8 cats × N papers × 2 summaries × ~800 tokens/call
+ *   - bioRxiv 7 cats × N papers × 2 summaries × ~800 tokens/call
+ *   - News ~15 articles × 1 summary × ~700 tokens/call
+ *
+ * N=3: (30×3 + 15) × 800 = 84,000 tokens → 16k buffer for fix-summaries
+ * N=4: (30×4 + 15) × 800 = 108,000 tokens → OVER LIMIT
+ *
+ * Keep at 3 to ensure (a) all papers get summaries and (b) fix-summaries
+ * can still run daily to repair old entries.
  */
-const PAPERS_PER_CATEGORY = 8;
+const PAPERS_PER_CATEGORY = 3;
 
 /** Delay between API calls to be polite */
 function delay(ms: number): Promise<void> {
