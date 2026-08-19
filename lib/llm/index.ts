@@ -1,6 +1,32 @@
 import Groq from "groq-sdk";
 
-const MODEL = "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile was decommissioned by Groq (Aug 2026). gpt-oss-120b is
+// the closest replacement in quality; free tier limit is 8000 tokens/min (TPM),
+// not a daily cap, so pacing (see waitForTokenBudget below) matters more than
+// a per-run item count.
+const MODEL = "openai/gpt-oss-120b";
+const EMBEDDING_MODEL = "gemini-embedding-001";
+const EMBEDDING_DIMENSIONS = 768; // must match the `vector(768)` column in supabase/migrations/001_vector_search.sql
+
+// Stay under Groq's 8000 TPM free-tier limit with headroom for other callers
+// hitting the same key concurrently (Vercel cron + admin routes + this script).
+const TPM_BUDGET = 6000;
+const usageLog: { time: number; tokens: number }[] = [];
+
+/** Blocks until issuing `estimatedTokens` more would stay within TPM_BUDGET over the trailing 60s. */
+async function waitForTokenBudget(estimatedTokens: number): Promise<void> {
+  for (;;) {
+    const now = Date.now();
+    while (usageLog.length && now - usageLog[0].time > 60_000) usageLog.shift();
+    const used = usageLog.reduce((s, u) => s + u.tokens, 0);
+    if (used + estimatedTokens <= TPM_BUDGET) {
+      usageLog.push({ time: now, tokens: estimatedTokens });
+      return;
+    }
+    const oldestAge = now - usageLog[0].time;
+    await new Promise((r) => setTimeout(r, Math.max(500, 60_000 - oldestAge)));
+  }
+}
 
 function getGroqClient(): Groq {
   const apiKey = process.env.GROQ_API_KEY;
@@ -12,26 +38,68 @@ function getGroqClient(): Groq {
 }
 
 export async function generateText(prompt: string, temperature = 0.7): Promise<string> {
-  try {
-    const client = getGroqClient();
-    const result = await client.chat.completions.create({
-      model: MODEL,
-      messages: [{ role: "user", content: prompt }],
-      temperature,
-      max_tokens: 700,
-    });
-    return result.choices[0]?.message?.content || "";
-  } catch (err) {
-    console.error("[Groq generateText Error]:", err);
-    throw err;
+  const client = getGroqClient();
+  const maxTokens = 700;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    await waitForTokenBudget(maxTokens);
+    try {
+      const result = await client.chat.completions.create({
+        model: MODEL,
+        messages: [{ role: "user", content: prompt }],
+        temperature,
+        max_tokens: maxTokens,
+        reasoning_effort: "low",
+      });
+      return result.choices[0]?.message?.content || "";
+    } catch (err) {
+      const isRateLimit = err instanceof Groq.APIError && err.status === 429;
+      if (isRateLimit && attempt < 2) {
+        console.warn(`[Groq generateText] Rate limited, retrying (attempt ${attempt + 1})...`);
+        await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
+        continue;
+      }
+      console.error("[Groq generateText Error]:", err);
+      throw err;
+    }
   }
+  throw new Error("unreachable");
 }
 
 /**
- * Embedding is not available on Groq free tier.
- * Returns empty array - vector search will gracefully fall back.
+ * Generates a 768-dim embedding via the Gemini embedding API (separate quota
+ * from Groq — does not compete with the summarization token budget).
+ * Calls the REST endpoint directly: the installed @google/generative-ai SDK
+ * (0.24.1) predates `outputDimensionality` support in its types.
+ * Returns an empty array on failure so callers can gracefully skip vector search.
  */
-export async function embedText(_text: string): Promise<number[]> {
-  console.warn("[embedText] Embedding not available on Groq free tier. Skipping.");
-  return [];
+export async function embedText(text: string): Promise<number[]> {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    console.warn("[embedText] GEMINI_API_KEY is missing. Skipping embedding.");
+    return [];
+  }
+  try {
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: `models/${EMBEDDING_MODEL}`,
+          content: { parts: [{ text }] },
+          outputDimensionality: EMBEDDING_DIMENSIONS,
+        }),
+      }
+    );
+    if (!res.ok) {
+      console.error("[embedText] Gemini embedding failed:", res.status, await res.text());
+      return [];
+    }
+    const data = await res.json();
+    return data.embedding?.values ?? [];
+  } catch (err) {
+    console.error("[embedText] Gemini embedding failed:", err);
+    return [];
+  }
 }

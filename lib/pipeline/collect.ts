@@ -34,16 +34,15 @@ const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
 /**
  * How many papers to collect per category per run.
  *
- * Token budget (Groq free tier: 100k TPD):
- *   - arXiv 8 cats × N papers × 2 summaries × ~800 tokens/call
- *   - bioRxiv 7 cats × N papers × 2 summaries × ~800 tokens/call
- *   - News ~15 articles × 1 summary × ~700 tokens/call
- *
- * N=3: (30×3 + 15) × 800 = 84,000 tokens → 16k buffer for fix-summaries
- * N=4: (30×4 + 15) × 800 = 108,000 tokens → OVER LIMIT
- *
- * Keep at 3 to ensure (a) all papers get summaries and (b) fix-summaries
- * can still run daily to repair old entries.
+ * Groq's free tier limit (as of the current model, openai/gpt-oss-120b — see
+ * lib/llm/index.ts) is 8000 tokens/minute, not a daily cap. generateText()
+ * self-throttles to that budget across all callers sharing the API key, so
+ * raising this number no longer risks silent null summaries — it just makes
+ * a single cron invocation take longer. The real ceiling is Vercel's
+ * maxDuration (300s here): at ~6 LLM calls/min sustainable, one run can
+ * realistically summarize on the order of a few dozen items before timing
+ * out, so keep N modest and let repeated daily runs (plus the fix-summaries
+ * repair cron) fill in the rest.
  */
 const PAPERS_PER_CATEGORY = 3;
 

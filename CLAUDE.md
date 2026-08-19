@@ -24,6 +24,10 @@ npm run lint
 
 `GROQ_API_KEY` / `GEMINI_API_KEY` / `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `RESEND_API_KEY` / `FROM_EMAIL` / `CRON_SECRET`（任意で `ADMIN_PASSWORD`）。値は絶対に読み上げたりコミットしたりしない。
 
+## 改善サイクル（builder / judge）
+
+`/pocketdive-cycle` で1サイクル実行できる: `pocketdive-builder` サブエージェントが最優先の改善を1件実装・検証・ローカルコミットし、`pocketdive-judge` サブエージェントが類似サービスと比較してその変更とプロダクト全体を評価し、`docs/judge-feedback.md` に次の優先事項を書き残す。定義は `.claude/agents/pocketdive-builder.md` / `.claude/agents/pocketdive-judge.md`。手動起動のみで、自動ループはしない。`git push` はどちらのエージェントも行わない。
+
 ## 運用上の制約
 
 - Groq 無料枠は 1日 100k トークン。`lib/pipeline/collect.ts` の `PAPERS_PER_CATEGORY` はこの上限内に収まるよう調整してあるので、収集件数を増やす変更をするときは冒頭のコメントの計算式を更新しながら判断する。
