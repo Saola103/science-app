@@ -2,18 +2,17 @@
  * Vercel Cron Job: Daily Summary Repair
  *
  * Runs after the main collection cron to fix papers/news whose summaries
- * were skipped (null), identical, or in the old non-headline format.
+ * were skipped (null), identical, or in the old non-headline format, and
+ * backfills missing paper embeddings (needed for vector search).
  *
  * Schedule: Runs daily at 09:00 UTC (18:00 JST) — between the two collection crons
  * Configure in vercel.json: { "crons": [{ "path": "/api/cron/fix-summaries", "schedule": "0 9 * * *" }] }
- *
- * Also re-generates old-format news summaries (fixNews=true).
  */
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize } from "../../../../lib/llm/summarize";
-import { generateText } from "../../../../lib/llm/index";
+import { generateText, embedText } from "../../../../lib/llm/index";
 
 export const maxDuration = 300;
 
@@ -40,7 +39,14 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const limit = 15; // Conservative: ~15k tokens buffer after main cron
+  // Groq is now throttled to its TPM budget inside generateText() itself
+  // (see lib/llm/index.ts), so this limit is bounded by Vercel's maxDuration
+  // rather than a daily token cap — 40 summary-pairs comfortably fits in 300s.
+  const limit = 40;
+  // Gemini embeddings are capped at 1000/day (separate from Groq). New papers
+  // collected each day use ~45 of that; keep this well under the remainder so
+  // it never starves same-day collection.
+  const EMBED_LIMIT = 150;
   const supabase = getSupabaseServerClient();
 
   let totalFixed = 0;
@@ -169,9 +175,40 @@ export async function GET(req: NextRequest) {
     }
   }
 
+  // ── 3. Backfill missing embeddings (independent of summary status) ─────────
+  let embeddingsFixed = 0;
+  {
+    const { data: papers, error } = await supabase
+      .from("papers")
+      .select("id, title, abstract")
+      .is("summary_embedding", null)
+      .order("published_at", { ascending: false })
+      .limit(EMBED_LIMIT);
+
+    if (!error && papers && papers.length > 0) {
+      console.log(`[cron/fix-summaries] Embeddings to backfill: ${papers.length}`);
+      for (const paper of papers) {
+        const text = paper.abstract || paper.title || "";
+        if (!text.trim()) continue;
+        try {
+          const embedding = await embedText(text);
+          if (embedding.length === 0) continue;
+          const { error: updateError } = await supabase
+            .from("papers")
+            .update({ summary_embedding: embedding })
+            .eq("id", paper.id);
+          if (!updateError) embeddingsFixed++;
+        } catch (e) {
+          console.error(`[cron/fix-summaries] Embedding failed for ${paper.id}:`, e);
+        }
+      }
+    }
+  }
+
   return NextResponse.json({
     success: true,
     fixed: totalFixed,
+    embeddingsFixed,
     errors: totalErrors,
     results: allResults,
     timestamp: new Date().toISOString(),
