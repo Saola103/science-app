@@ -34,7 +34,25 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  
+
+  // Baseline security headers. Deliberately no Content-Security-Policy here —
+  // the app loads Google Fonts, GA, and other third-party scripts, and a CSP
+  // strict enough to matter is easy to get wrong and silently break those;
+  // that needs its own careful pass, not a drive-by addition.
+  async headers() {
+    return [
+      {
+        source: "/:path*",
+        headers: [
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+          { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+        ],
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

@@ -52,9 +52,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get("cursor"); // ISO timestamp for pagination
-    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 20);
+    // 20 -> 60: app/[locale]/feedapp fetches larger batches (for client-side
+    // personalization weighting and to keep infinite scroll from re-hitting
+    // the API too often) than the original 10-20/page /feed route did.
+    // Existing callers (app/[locale]/feed, /search, /profile) all pass
+    // limit<=20 explicitly, so this is additive — their behavior is unchanged.
+    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 60);
     const preferencesStr = searchParams.get("preferences");
     const categoryFilter = searchParams.get("category"); // optional category filter
+    const q = searchParams.get("q")?.trim(); // optional free-text search (title/summary)
+    const idsParam = searchParams.get("ids"); // optional: fetch specific items by id, e.g. "paper-<uuid>,news-<uuid>"
 
     let preferences: Record<string, number> = {};
     if (preferencesStr) {
@@ -67,6 +74,53 @@ export async function GET(req: NextRequest) {
 
     const supabase = getSupabaseServerClient();
 
+    // ids lookup mode: used by app/[locale]/feedapp/mypage (saved articles),
+    // which only has ids in localStorage, not full article data. Bypasses
+    // cursor/category/q entirely — it's a direct fetch-by-id, not a feed page.
+    if (idsParam) {
+      const rawIds = idsParam.split(",").map((s) => s.trim()).filter(Boolean);
+      const paperIds = rawIds.filter((id) => id.startsWith("paper-")).map((id) => id.slice("paper-".length));
+      const newsIds = rawIds.filter((id) => id.startsWith("news-")).map((id) => id.slice("news-".length));
+
+      const [papersRes, newsRes] = await Promise.allSettled([
+        paperIds.length > 0
+          ? supabase
+              .from("papers")
+              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+              .in("id", paperIds)
+          : Promise.resolve({ data: [] as never[] }),
+        newsIds.length > 0
+          ? supabase
+              .from("news")
+              .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
+              .in("id", newsIds)
+          : Promise.resolve({ data: [] as never[] }),
+      ]);
+
+      const items: FeedItem[] = [];
+      if (papersRes.status === "fulfilled" && papersRes.value.data) {
+        for (const p of papersRes.value.data) {
+          items.push({
+            id: p.id, type: "paper", title: p.title,
+            summary: p.summary_general || p.summary, summary_general: p.summary_general, summary_expert: p.summary_expert,
+            category: p.category, published_at: p.published_at, url: p.url,
+            authors: Array.isArray(p.authors) ? p.authors : [], source: p.source || "arXiv", image_url: p.image_url,
+          });
+        }
+      }
+      if (newsRes.status === "fulfilled" && newsRes.value.data) {
+        for (const n of newsRes.value.data) {
+          items.push({
+            id: n.id, type: "news", title: n.title,
+            summary: n.summary_general || n.description, summary_general: n.summary_general,
+            category: n.category, published_at: n.published_at, url: n.url, source: n.source_name, image_url: n.image_url,
+          });
+        }
+      }
+      const resultItems = items.map((item) => ({ ...item, gradient: getCategoryGradient(item.category) }));
+      return NextResponse.json({ items: resultItems, nextCursor: null, hasMore: false });
+    }
+
     // Each type gets half the limit so both always appear
     const half = Math.ceil(limit / 2);
 
@@ -76,12 +130,13 @@ export async function GET(req: NextRequest) {
       .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
       .in("source", ["arXiv", "bioRxiv", "medRxiv"])
       .order("published_at", { ascending: false })
-      .limit(categoryFilter ? limit : half);
+      .limit(categoryFilter || q ? limit : half);
 
     if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
     if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
+    if (q) papersQuery = papersQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,summary.ilike.%${q}%`);
 
-    // Fetch news (skip if category filter is set — category feed = papers only)
+    // Fetch news too (also filtered by category/q when set, same as papers)
     let newsQuery = supabase
       .from("news")
       .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
@@ -90,6 +145,7 @@ export async function GET(req: NextRequest) {
 
     if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
     if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
+    if (q) newsQuery = newsQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,description.ilike.%${q}%`);
 
     const [papersResult, newsResult] = await Promise.allSettled([papersQuery, newsQuery]);
 

@@ -43,8 +43,20 @@ const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
  * realistically summarize on the order of a few dozen items before timing
  * out, so keep N modest and let repeated daily runs (plus the fix-summaries
  * repair cron) fill in the rest.
+ *
+ * Category count today: 8 arXiv categories (ARXIV_CATEGORY_QUERIES) + 10
+ * bioRxiv/medRxiv categories (BIORXIV_CATEGORY_QUERIES) = 18. Each paper
+ * costs up to 3 calls (general summary + expert summary + embedding), so the
+ * theoretical ceiling at N=4 is 18*4*3 = 216 calls/run — but that's a worst
+ * case that essentially never happens: most bioRxiv/medRxiv category queries
+ * (7-day window) and several arXiv categories return well under N candidates
+ * per run, so real call volume stays much lower in practice. Bumped 3 -> 4
+ * (a ~33% increase, per app/[locale]/feedapp needing more real volume to
+ * paginate/personalize against) rather than further, to stay clear of
+ * maxDuration on this live cron; if items start timing out or app/api/cron's
+ * logs show truncated runs, drop this back to 3.
  */
-const PAPERS_PER_CATEGORY = 3;
+const PAPERS_PER_CATEGORY = 4;
 
 /** Delay between API calls to be polite */
 function delay(ms: number): Promise<void> {

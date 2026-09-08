@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { getSupabaseClient } from "../lib/supabase/client";
 import { useParams, useRouter } from "next/navigation";
+import { stripMarkdown, stripMarkdownExpert } from "../lib/format/summaryText";
 
 export type FeedItemData = {
   id: string;
@@ -175,60 +176,6 @@ function TopSpaceVisual({ category, dark, liked }: { category?: string | null; d
       </div>
     </div>
   );
-}
-
-/**
- * Strip markdown syntax from casual summaries.
- * Removes section headers, category tags, and markdown formatting.
- * The new prompt format outputs title on line 1, body after empty line,
- * and [category] at the end — all of which are handled here.
- */
-function stripMarkdown(text: string): string {
-  return text
-    // Old-format section headers (▍見出し from previous prompt version)
-    .replace(/^▍[^\n]*/gm, "")
-    .replace(/^3つの[ダ要][イブポイント点]+[：:][^\n]*/gm, "")
-    .replace(/^(研究の目的|主要な結果|科学的意義|専門的解説|魅力的な解説)[と：:。\s]/gm, "")
-    .replace(/#{1,6}\s*/g, "")
-    // bold / italic
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    // Category tags (new format: [biology] at end of casual summary)
-    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    .replace(/\[[\w_]+\]/g, "")
-    // Old-format 【...】 headers
-    .replace(/【カテゴリ】[^\n]*/g, "")
-    .replace(/【([^】]+)】/g, "$1：")
-    // Second pass to clean up any "xxx：" section headers left by 【】 conversion
-    .replace(/^(?:3つのダイブポイント|3つの要点|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説|核心的貢献)[：:][^\n]*/gm, "")
-    .replace(/\nカテゴリ：\s*\S+\s*$/i, "")
-    // Bullet markers
-    .replace(/^\s*[-*+•]\s*/gm, "• ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-/**
- * Lighter stripping for expert summaries.
- * Preserves the label structure (目的: / 手法: / 結果: / 意義:)
- * that makes the expert view readable.
- * Only removes old ▍ headers, markdown formatting, and stale artifacts.
- */
-function stripMarkdownExpert(text: string): string {
-  return text
-    // Old-format ▍ section headers — remove the header line, keep content
-    .replace(/^▍([^\n]*)\n/gm, "")
-    // Remove category tags if somehow present
-    .replace(/\n?\[(?:physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other)\]\s*$/i, "")
-    // Markdown formatting
-    .replace(/\*\*(.+?)\*\*/g, "$1")
-    .replace(/\*(.+?)\*/g, "$1")
-    .replace(/#{1,6}\s*/g, "")
-    // Old 【...】 artifacts
-    .replace(/【カテゴリ】[^\n]*/g, "")
-    .replace(/\[[\w_]+\]/g, "")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
 }
 
 async function trackInteraction(

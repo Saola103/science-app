@@ -169,5 +169,82 @@
     "missionVision": "ミッション & ビジョン",
     "nonProfit": "非営利組織",
     "contactUs": "お問い合わせ"
+  },
+  "Proto": {
+    "nav": {
+      "discovery": "ディスカバリー",
+      "trending": "話題",
+      "search": "検索",
+      "mypage": "マイページ",
+      "feed": "フィード"
+    },
+    "discovery": {
+      "filterAll": "すべて",
+      "filterButtonAria": "分野を絞り込む",
+      "filterSheetTitle": "分野で絞り込む",
+      "tapHint": "タップで詳しく",
+      "loading": "読み込み中…",
+      "empty": "まだ記事がありません"
+    },
+    "contentType": {
+      "news": "ニュース",
+      "paper": "論文"
+    },
+    "detail": {
+      "easy": "やさしく",
+      "detailed": "くわしく",
+      "readOriginal": "原文を見る",
+      "close": "閉じる",
+      "loading": "生成中…"
+    },
+    "swipe": {
+      "emptyTitle": "このカテゴリの記事はまだありません",
+      "emptySubtitle": "他の分野も見てみましょう",
+      "milestone": "今日{count}件チェックしました",
+      "hint": "スワイプして次へ"
+    },
+    "toast": {},
+    "mypage": {
+      "title": "マイページ",
+      "savedHeading": "保存した記事",
+      "emptySaved": "まだ保存した記事はありません",
+      "settingsAria": "設定",
+      "removeAria": "削除",
+      "statsSeenToday": "今日チェックした数",
+      "statsSaved": "保存した数",
+      "statsStreak": "連続日数",
+      "pointsLabel": "累計 {points}pt",
+      "pointsToGo": "あと{points}ptで次のバッジ"
+    },
+    "settings": {
+      "title": "設定",
+      "back": "戻る",
+      "language": "言語"
+    },
+    "search": {
+      "placeholder": "気になるキーワードを入力",
+      "recent": "最近の検索",
+      "byCategory": "分野から探す",
+      "noResults": "見つかりませんでした",
+      "resultsCount": "{count}件"
+    },
+    "trending": {
+      "heading": "急上昇中のトピック",
+      "subheading": "みんなが興味を持っている話題",
+      "interestBadge": "あなたの興味"
+    },
+    "stack": {
+      "searchResultsFor": "「{query}」の検索結果",
+      "count": "{count}件",
+      "back": "戻る"
+    },
+    "feed": {
+      "saveLabel": "保存",
+      "savedLabel": "保存済み",
+      "detailLabel": "詳しく",
+      "originalLabel": "原文",
+      "followedToast": "「{category}」をフォロー中",
+      "unfollowedToast": "「{category}」のフォローを解除しました"
+    }
   }
 }

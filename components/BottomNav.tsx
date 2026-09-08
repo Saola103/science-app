@@ -56,6 +56,9 @@ export function BottomNav() {
   const params = useParams();
   const locale = (params?.locale as string) || 'ja';
 
+  // /proto/* and /feedapp/* ship their own header + bottom nav (UI prototypes, separate from the shipped app chrome).
+  if (pathname?.includes('/proto') || pathname?.includes('/feedapp')) return null;
+
   const items = [
     { label: 'ホーム',    href: `/${locale}`,          icon: HomeIcon,    match: (p: string) => p === `/${locale}` || p === '/' },
     { label: 'フィード',  href: `/${locale}/feed`,      icon: FeedIcon,    match: (p: string) => p.includes('/feed') },

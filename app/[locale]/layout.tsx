@@ -7,6 +7,7 @@ import Script from 'next/script';
 import "../globals.css";
 import { AppProvider } from "../../components/LanguageProvider";
 import { BottomNav } from "../../components/BottomNav";
+import { MainShell } from "../../components/MainShell";
 import { Geist, Geist_Mono, Zen_Maru_Gothic } from "next/font/google";
 
 const geistSans = Geist({
@@ -41,6 +42,15 @@ export const metadata = {
   keywords: ["科学論文", "論文要約", "サイエンス", "arXiv", "AI要約", "理系", "研究", "TikTok 科学"],
   authors: [{ name: "POCKET DIVE" }],
   creator: "POCKET DIVE",
+  icons: {
+    icon: [
+      { url: "/icon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     type: "website",
     locale: "ja_JP",
@@ -133,9 +143,7 @@ export default async function RootLayout({
 
         <NextIntlClientProvider messages={messages}>
           <AppProvider>
-            <main className="min-h-screen pb-[60px]">
-              {children}
-            </main>
+            <MainShell>{children}</MainShell>
             <BottomNav />
           </AppProvider>
         </NextIntlClientProvider>

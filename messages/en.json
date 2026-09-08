@@ -169,5 +169,82 @@
     "missionVision": "Mission & Vision",
     "nonProfit": "Non-profit Organization",
     "contactUs": "Contact Us"
+  },
+  "Proto": {
+    "nav": {
+      "discovery": "Discovery",
+      "trending": "Trending",
+      "search": "Search",
+      "mypage": "My Page",
+      "feed": "Feed"
+    },
+    "discovery": {
+      "filterAll": "All",
+      "filterButtonAria": "Filter by category",
+      "filterSheetTitle": "Filter by category",
+      "tapHint": "Tap for more",
+      "loading": "Loading…",
+      "empty": "No articles yet"
+    },
+    "contentType": {
+      "news": "News",
+      "paper": "Paper"
+    },
+    "detail": {
+      "easy": "Simple",
+      "detailed": "Detailed",
+      "readOriginal": "Read original",
+      "close": "Close",
+      "loading": "Generating…"
+    },
+    "swipe": {
+      "emptyTitle": "No articles in this category yet",
+      "emptySubtitle": "Try another category",
+      "milestone": "You've checked {count} today",
+      "hint": "Swipe for more"
+    },
+    "toast": {},
+    "mypage": {
+      "title": "My Page",
+      "savedHeading": "Saved articles",
+      "emptySaved": "No saved articles yet",
+      "settingsAria": "Settings",
+      "removeAria": "Remove",
+      "statsSeenToday": "Checked today",
+      "statsSaved": "Saved",
+      "statsStreak": "Day streak",
+      "pointsLabel": "{points} pts total",
+      "pointsToGo": "{points} pts to next badge"
+    },
+    "settings": {
+      "title": "Settings",
+      "back": "Back",
+      "language": "Language"
+    },
+    "search": {
+      "placeholder": "Search for a topic",
+      "recent": "Recent searches",
+      "byCategory": "Browse by field",
+      "noResults": "No results found",
+      "resultsCount": "{count} results"
+    },
+    "trending": {
+      "heading": "Trending topics",
+      "subheading": "What people are into right now",
+      "interestBadge": "Your interest"
+    },
+    "stack": {
+      "searchResultsFor": "Results for \"{query}\"",
+      "count": "{count} items",
+      "back": "Back"
+    },
+    "feed": {
+      "saveLabel": "Save",
+      "savedLabel": "Saved",
+      "detailLabel": "Details",
+      "originalLabel": "Source",
+      "followedToast": "Following \"{category}\"",
+      "unfollowedToast": "Unfollowed \"{category}\""
+    }
   }
 }
