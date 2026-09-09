@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize } from "../../../../lib/llm/summarize";
 import { generateText } from "../../../../lib/llm/index";
+import { isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
 
 export const maxDuration = 300;
 
@@ -31,16 +32,7 @@ function isOldFormatSummary(summary: string): boolean {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const secret = searchParams.get("secret");
-  const cronSecret = process.env.CRON_SECRET;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  // Accept either CRON_SECRET or ADMIN_PASSWORD as the auth token
-  const validSecret =
-    secret &&
-    ((cronSecret && secret === cronSecret) ||
-      (adminPassword && secret === adminPassword));
-  if ((cronSecret || adminPassword) && !validSecret) {
+  if (!isAuthorizedAdmin(searchParams.get("secret"))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

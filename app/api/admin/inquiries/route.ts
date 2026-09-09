@@ -1,6 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
+import { timingSafeEqualString } from "../../../../lib/auth/adminAuth";
 
 export async function POST(req: NextRequest) {
   try {
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
     // 環境変数が設定されていない場合はアクセス不可にする
     const correctPassword = process.env.ADMIN_PASSWORD;
 
-    if (!correctPassword || password !== correctPassword) {
+    if (!correctPassword || typeof password !== "string" || !timingSafeEqualString(password, correctPassword)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 

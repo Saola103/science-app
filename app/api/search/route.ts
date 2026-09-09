@@ -5,9 +5,13 @@ import { fetchPubMedPapers } from "../../../lib/sources/pubmed";
 import { summarize } from "../../../lib/llm/summarize";
 import { generateText } from "../../../lib/llm/index";
 import { searchPapersByVector, hybridSearch } from "../../../lib/supabase/vectorSearch";
+import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
 
 // タイムアウト設定（VercelのHobbyプランだと10秒制限があるが、Proなら長い。一応長めに）
 export const maxDuration = 60;
+
+const MAX_QUERY_LENGTH = 300;
+const MAX_HISTORY = 10;
 
 type SearchRequest = {
   mode: "keyword" | "deep" | "drill";
@@ -20,8 +24,20 @@ type SearchRequest = {
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    if (!checkRateLimit(`search:${ip}`, 20, 60_000)) {
+      return NextResponse.json(
+        { error: "リクエストが多すぎます。少し時間をおいてから再度お試しください。" },
+        { status: 429 }
+      );
+    }
+
     const body: SearchRequest = await req.json();
-    const { mode, query, timeRange, format, history, source = "all" } = body;
+    const { mode, timeRange, format, source = "all" } = body;
+    const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : body.query;
+    const history = Array.isArray(body.history)
+      ? body.history.slice(-MAX_HISTORY).map((h) => ({ ...h, content: (h.content || "").slice(0, MAX_QUERY_LENGTH) }))
+      : body.history;
 
     // --- Mode A: Keyword Search & Mode C: Drill-down ---
     if (mode === "keyword" || mode === "drill") {

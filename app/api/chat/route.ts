@@ -3,6 +3,7 @@ import { streamText, generateText } from 'ai';
 import { searchArxivPapers } from '../../../lib/agents/arxivSearch';
 import { fetchPubMedPapers } from '../../../lib/sources/pubmed';
 import { searchPapersByVector } from '../../../lib/supabase/vectorSearch';
+import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
@@ -10,10 +11,30 @@ const groq = createGroq({
 
 export const maxDuration = 60;
 
+const MAX_MESSAGE_LENGTH = 2000;
+const MAX_HISTORY = 20;
+
 export async function POST(req: Request) {
+  const ip = getClientIp(req);
+  if (!checkRateLimit(`chat:${ip}`, 10, 60_000)) {
+    return new Response(
+      JSON.stringify({ error: "リクエストが多すぎます。少し時間をおいてから再度お試しください。" }),
+      { status: 429, headers: { "Content-Type": "application/json" } }
+    );
+  }
+
   const { messages } = await req.json();
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return new Response(JSON.stringify({ error: "messages is required" }), { status: 400 });
+  }
+
   const lastMessage = messages[messages.length - 1];
-  const userQuery = lastMessage.content;
+  const rawQuery = typeof lastMessage?.content === "string" ? lastMessage.content : "";
+  if (!rawQuery.trim()) {
+    return new Response(JSON.stringify({ error: "messages[].content is required" }), { status: 400 });
+  }
+  const userQuery = rawQuery.slice(0, MAX_MESSAGE_LENGTH);
+  const trimmedMessages = messages.slice(-MAX_HISTORY);
 
   let searchKeywords = userQuery;
   try {
@@ -86,7 +107,7 @@ export async function POST(req: Request) {
 
 【論文データ】
 ${context || "関連論文が見つかりませんでした。一般的な知識をもとに回答します。"}`,
-      messages,
+      messages: trimmedMessages,
       maxTokens: 1024,
     });
 

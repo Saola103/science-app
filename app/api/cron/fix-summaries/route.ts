@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize } from "../../../../lib/llm/summarize";
 import { generateText, embedText } from "../../../../lib/llm/index";
+import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
 
 export const maxDuration = 300;
 
@@ -27,15 +28,7 @@ function isOldFormatSummary(summary: string): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const isAuthorized =
-    (cronSecret && token === cronSecret) ||
-    (adminPassword && token === adminPassword);
-  if ((cronSecret || adminPassword) && !isAuthorized) {
+  if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

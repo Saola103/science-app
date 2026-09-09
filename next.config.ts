@@ -35,11 +35,41 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
-  // Baseline security headers. Deliberately no Content-Security-Policy here —
-  // the app loads Google Fonts, GA, and other third-party scripts, and a CSP
-  // strict enough to matter is easy to get wrong and silently break those;
-  // that needs its own careful pass, not a drive-by addition.
+  // Baseline security headers, plus a CSP.
+  //
+  // Fonts (next/font/google) are self-hosted at build time — no runtime
+  // connection to fonts.googleapis.com/gstatic.com needed, so that's not in
+  // the allowlist below despite what an earlier version of this comment said.
+  // The two things that DO need real origins are Google Analytics (a script
+  // tag from googletagmanager.com, an inline gtag() init block, and beacons
+  // to google-analytics.com) and the Supabase client used directly from a
+  // few client components (app/[locale]/{feed,profile,login}/page.tsx,
+  // components/{FeedCard,PaperCard,Header}.tsx) for auth/session — hence
+  // *.supabase.co in connect-src.
+  //
+  // Known compromise, not an oversight: script-src keeps 'unsafe-inline'
+  // rather than a nonce. Next.js's own App Router hydration payload and the
+  // GA init block are inline scripts; making them nonce-based needs a
+  // middleware change that stamps a per-request nonce onto every response
+  // and threads it through next/script — a bigger, riskier change than what
+  // this pass covers. This CSP still blocks the higher-probability risk here
+  // (loading a script/frame/connect target from an origin we didn't list —
+  // e.g. if RSS/LLM-derived content ever ended up somewhere it could inject
+  // a tag), just not inline-script-based XSS specifically.
   async headers() {
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://picsum.photos https://*.supabase.co",
+      "font-src 'self' data:",
+      "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://analytics.google.com",
+      "frame-ancestors 'self'",
+      "object-src 'none'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/:path*",
@@ -49,6 +79,7 @@ const nextConfig: NextConfig = {
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" },
+          { key: "Content-Security-Policy", value: csp },
         ],
       },
     ];

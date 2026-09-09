@@ -13,21 +13,14 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runCollectionPipeline } from "../../../../lib/pipeline/collect";
+import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
 
 export const maxDuration = 300; // 5 minutes max for Vercel Pro
 
 export async function GET(req: NextRequest) {
-  // Verify the request is from Vercel Cron or has the correct secret
-  const authHeader = req.headers.get("authorization");
-  const cronSecret = process.env.CRON_SECRET;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  // Accept: Vercel Cron (Bearer CRON_SECRET) or manual trigger (Bearer ADMIN_PASSWORD)
-  const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-  const isAuthorized =
-    (cronSecret && token === cronSecret) ||
-    (adminPassword && token === adminPassword);
-  if ((cronSecret || adminPassword) && !isAuthorized) {
+  // Verify the request is from Vercel Cron (Bearer CRON_SECRET) or a manual
+  // trigger (Bearer ADMIN_PASSWORD). Fails closed if neither secret is configured.
+  if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -10,13 +10,29 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
+import { checkRateLimit, getClientIp } from "../../../../lib/rateLimit";
+
+const MAX_FIELD_LENGTH = 200;
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req);
+    if (!checkRateLimit(`interact:${ip}`, 60, 60_000)) {
+      return NextResponse.json({ ok: true, note: "rate limited" });
+    }
+
     const body = await req.json();
     // NOTE: user_id from body is intentionally NOT destructured here.
     // We derive it from the JWT on the server to prevent cross-user spoofing.
     const { item_id, item_type, action, session_id, category } = body;
+
+    if (
+      (item_id && String(item_id).length > MAX_FIELD_LENGTH) ||
+      (session_id && String(session_id).length > MAX_FIELD_LENGTH) ||
+      (category && String(category).length > MAX_FIELD_LENGTH)
+    ) {
+      return NextResponse.json({ error: "field too long" }, { status: 400 });
+    }
 
     // --- Auth: verify user from Authorization header ---
     const supabase = getSupabaseServerClient();
