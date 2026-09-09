@@ -193,6 +193,7 @@
     "detail": {
       "easy": "Simple",
       "detailed": "Detailed",
+      "newsExplanation": "Explanation",
       "readOriginal": "Read original",
       "close": "Close",
       "loading": "Generating…"

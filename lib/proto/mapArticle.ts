@@ -37,12 +37,12 @@ function formatPublishedAt(iso?: string | null): string {
   if (!iso) return "";
   const d = new Date(iso);
   if (isNaN(d.getTime())) return "";
-  return `${d.getFullYear()}年${d.getMonth() + 1}月`;
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-// A short 2–3 sentence teaser out of a longer body, matching the mock data's
-// leadText length/feel (see lib/proto/mockData.ts's ARTICLES) without
-// truncating mid-sentence.
+// A short single-sentence teaser for the card front — deliberately shorter
+// than easyExplanation (shown in the detail sheet) so tapping "詳しく" reveals
+// more than the card already showed, instead of repeating it verbatim.
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
@@ -90,7 +90,10 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const publishedAt = formatPublishedAt(item.published_at);
 
   const easyExplanation = generalBody || item.title;
-  const leadText = firstSentences(easyExplanation, 3, 140) || easyExplanation.slice(0, 140);
+  // Deliberately just the first sentence, well short of the full easyExplanation
+  // shown in the detail sheet — the card teaser and the "やさしく" panel must
+  // read as "preview" vs. "the whole thing", not as duplicates of each other.
+  const leadText = firstSentences(easyExplanation, 1, 70) || easyExplanation.slice(0, 70);
 
   return {
     id: `${item.type}-${item.id}`,

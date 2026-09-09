@@ -20,7 +20,7 @@ import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/service
 import { CATEGORY_IMAGES } from "../llm/summarize";
 
 // arXiv category codes — broad science coverage
-const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
+export const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
   physics:          "cat:physics.*",
   astronomy:        "cat:astro-ph.*",
   math:             "cat:math.*",
@@ -99,7 +99,7 @@ type CollectResult = {
 /**
  * Process a single paper: generate summaries, embedding, and save to DB
  */
-async function processPaper(paper: {
+export async function processPaper(paper: {
   id: string;
   title: string;
   abstract?: string;

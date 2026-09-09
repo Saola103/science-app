@@ -50,20 +50,31 @@ function isOldFormatSummary(summary: string): boolean {
   return !hasJapanese || firstLine.length > 40;
 }
 
+/** True if general/expert are missing, or so similar they read as duplicates
+ * in the UI (the identical-prefix heuristic /api/admin/fix-summaries already
+ * uses — kept in sync here since this script covers the same backlog without
+ * that route's 300s Vercel ceiling). */
+function needsFix(p: { summary_general: string | null; summary_expert: string | null }): boolean {
+  if (!p.summary_general || !p.summary_expert) return true;
+  return p.summary_general.trim().slice(0, 80) === p.summary_expert.trim().slice(0, 80);
+}
+
 async function backfillPapers(supabase: ReturnType<typeof getSupabase>, limit: number) {
   if (limit <= 0) return;
   console.log(`\n=== Papers (target: ${limit}) ===`);
 
-  const { data: papers, error } = await supabase
+  // Over-fetch then filter client-side: catches null AND identical
+  // general/expert pairs, not just null ones (see needsFix above).
+  const { data: candidates, error } = await supabase
     .from("papers")
     .select("id, title, abstract, summary_general, summary_expert, summary_embedding")
-    .is("summary_general", null)
     .order("published_at", { ascending: false })
-    .limit(limit);
+    .limit(limit * 4);
 
   if (error) throw error;
-  if (!papers || papers.length === 0) {
-    console.log("No papers with missing summaries.");
+  const papers = (candidates || []).filter(needsFix).slice(0, limit);
+  if (papers.length === 0) {
+    console.log("No papers with missing/duplicate summaries.");
     return;
   }
 

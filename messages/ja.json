@@ -193,6 +193,7 @@
     "detail": {
       "easy": "やさしく",
       "detailed": "くわしく",
+      "newsExplanation": "解説",
       "readOriginal": "原文を見る",
       "close": "閉じる",
       "loading": "生成中…"
