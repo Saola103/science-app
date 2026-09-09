@@ -34,15 +34,19 @@ export const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
 /**
  * How many papers to collect per category per run.
  *
- * Groq's free tier limit (as of the current model, openai/gpt-oss-120b — see
- * lib/llm/index.ts) is 8000 tokens/minute, not a daily cap. generateText()
- * self-throttles to that budget across all callers sharing the API key, so
- * raising this number no longer risks silent null summaries — it just makes
- * a single cron invocation take longer. The real ceiling is Vercel's
- * maxDuration (300s here): at ~6 LLM calls/min sustainable, one run can
- * realistically summarize on the order of a few dozen items before timing
- * out, so keep N modest and let repeated daily runs (plus the fix-summaries
- * repair cron) fill in the rest.
+ * Groq (as of the current model, openai/gpt-oss-120b — see lib/llm/index.ts
+ * for the confirmed numbers) enforces BOTH an 8000 tokens/min rate limit AND
+ * a 200,000 tokens/day cap — a large one-off run (e.g. scripts/collect-once.ts
+ * at a high --per-category) can and did exhaust the whole day's budget by
+ * itself, well before this cron's own scheduled runs. generateText()
+ * self-throttles the per-minute rate across all callers sharing the API key,
+ * so raising this number doesn't risk silent null summaries from THAT
+ * limit — it just makes a single cron invocation take longer, bounded by
+ * Vercel's maxDuration (300s here, ~6 LLM calls/min sustainable = on the
+ * order of a few dozen items before timing out). It does NOT protect against
+ * the daily cap, which nothing here tracks across processes — keep N modest
+ * and let repeated daily runs (plus the fix-summaries repair cron) fill in
+ * the rest, rather than trying to front-load a day's worth of items here.
  *
  * Category count today: 8 arXiv categories (ARXIV_CATEGORY_QUERIES) + 10
  * bioRxiv/medRxiv categories (BIORXIV_CATEGORY_QUERIES) = 18. Each paper

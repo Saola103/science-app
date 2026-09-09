@@ -1,15 +1,25 @@
 import Groq from "groq-sdk";
 
 // llama-3.3-70b-versatile was decommissioned by Groq (Aug 2026). gpt-oss-120b is
-// the closest replacement in quality; free tier limit is 8000 tokens/min (TPM),
-// not a daily cap, so pacing (see waitForTokenBudget below) matters more than
-// a per-run item count.
+// the closest replacement in quality. Groq enforces BOTH an 8000 tokens/min
+// (TPM) rate limit AND a 200,000 tokens/day (TPD) cap on this model/tier —
+// confirmed live via a 429 ("tokens per day (TPD): Limit 200000") after a
+// large one-off collection run. An earlier version of this comment claimed
+// there was no daily cap; that was wrong. waitForTokenBudget below only
+// paces the per-minute rate — it does NOT track the daily cap (that would
+// need to persist across process restarts, which no caller here does), so a
+// big batch (collect-once.ts, collect-historical.ts, backfill.ts) can still
+// exhaust the whole day's 200k budget and start failing with 429s; when that
+// happens, the failure is real and the fix is to wait for the daily reset,
+// not to retry harder.
 const MODEL = "openai/gpt-oss-120b";
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const EMBEDDING_DIMENSIONS = 768; // must match the `vector(768)` column in supabase/migrations/001_vector_search.sql
 
-// Stay under Groq's 8000 TPM free-tier limit with headroom for other callers
+// Stay under Groq's 8000 TPM rate limit with headroom for other callers
 // hitting the same key concurrently (Vercel cron + admin routes + this script).
+// This budget is per-minute only — see the daily-cap note above for the
+// separate constraint this does NOT cover.
 const TPM_BUDGET = 6000;
 const usageLog: { time: number; tokens: number }[] = [];
 
