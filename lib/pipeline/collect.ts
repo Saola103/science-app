@@ -168,8 +168,12 @@ async function processPaper(paper: {
 
 /**
  * Collect papers from arXiv for all configured categories
+ *
+ * `perCategory` defaults to PAPERS_PER_CATEGORY (the Vercel-cron-safe budget)
+ * but can be overridden for a one-off local run without the 300s maxDuration
+ * constraint — see scripts/collect-once.ts.
  */
-export async function collectFromArxiv(): Promise<CollectResult[]> {
+export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promise<CollectResult[]> {
   const results: CollectResult[] = [];
 
   for (const [category, query] of Object.entries(ARXIV_CATEGORY_QUERIES)) {
@@ -177,7 +181,7 @@ export async function collectFromArxiv(): Promise<CollectResult[]> {
     let errors = 0;
 
     try {
-      const papers = await fetchArxivOpenAccessPapers(query, PAPERS_PER_CATEGORY, "submittedDate");
+      const papers = await fetchArxivOpenAccessPapers(query, perCategory, "submittedDate");
       await delay(3000); // arXiv rate limit
 
       for (const paper of papers) {
@@ -207,7 +211,7 @@ export async function collectFromArxiv(): Promise<CollectResult[]> {
 /**
  * Collect papers from bioRxiv / medRxiv (neuroscience + biology focus)
  */
-export async function collectFromBiorxiv(): Promise<CollectResult[]> {
+export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Promise<CollectResult[]> {
   const results: CollectResult[] = [];
 
   for (const { server, category, internalCategory } of BIORXIV_CATEGORY_QUERIES) {
@@ -215,7 +219,7 @@ export async function collectFromBiorxiv(): Promise<CollectResult[]> {
     let errors = 0;
 
     try {
-      const papers = await fetchBiorxivPapers(server, category, 7, PAPERS_PER_CATEGORY); // 7日分に拡大（2日だと空になるカテゴリがある）
+      const papers = await fetchBiorxivPapers(server, category, 7, perCategory); // 7日分に拡大（2日だと空になるカテゴリがある）
       await delay(1000); // polite delay
 
       for (const paper of papers) {
@@ -315,7 +319,7 @@ export async function collectNews(): Promise<{ collected: number; errors: number
 /**
  * Run the full collection pipeline (arXiv + bioRxiv/medRxiv + News)
  */
-export async function runCollectionPipeline(): Promise<{
+export async function runCollectionPipeline(opts?: { perCategory?: number }): Promise<{
   arXiv: CollectResult[];
   bioRxiv: CollectResult[];
   news: { collected: number; errors: number };
@@ -327,8 +331,8 @@ export async function runCollectionPipeline(): Promise<{
 
   // Run all three in parallel
   const [arXiv, bioRxiv, news] = await Promise.all([
-    collectFromArxiv(),
-    collectFromBiorxiv(),
+    collectFromArxiv(opts?.perCategory),
+    collectFromBiorxiv(opts?.perCategory),
     collectNews(),
   ]);
 
