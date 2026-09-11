@@ -133,9 +133,18 @@ export async function GET(req: NextRequest) {
     // there's no skipping or duplication once a session has picked a window.
     const randomizeFirstPage = !cursor && !categoryFilter && !q;
 
+    // Items with no AI-generated Japanese summary yet (summarization failed,
+    // or backfill hasn't reached them) would otherwise fall back to the raw
+    // English title/abstract on the card (see lib/proto/mapArticle.ts) — never
+    // serve those into the feed at all, not just on the randomized first page.
+    function withJapaneseSummary(query: any): any {
+      return query.not("summary_general", "is", null).neq("summary_general", "");
+    }
+
     async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
       let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
       if (sourceFilter) countQuery = countQuery.in("source", sourceFilter);
+      countQuery = withJapaneseSummary(countQuery);
       const { count } = await countQuery;
       const poolSize = count ?? 0;
       const maxOffset = Math.max(0, poolSize - half);
@@ -150,11 +159,12 @@ export async function GET(req: NextRequest) {
       : [0, 0];
 
     // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
-    let papersQuery = supabase
-      .from("papers")
-      .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-      .in("source", ["arXiv", "bioRxiv", "medRxiv"])
-      .order("published_at", { ascending: false });
+    let papersQuery = withJapaneseSummary(
+      supabase
+        .from("papers")
+        .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+        .in("source", ["arXiv", "bioRxiv", "medRxiv"])
+    ).order("published_at", { ascending: false });
 
     if (randomizeFirstPage) {
       papersQuery = papersQuery.range(papersOffset, papersOffset + half - 1);
@@ -166,10 +176,11 @@ export async function GET(req: NextRequest) {
     if (q) papersQuery = papersQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,summary.ilike.%${q}%`);
 
     // Fetch news too (also filtered by category/q when set, same as papers)
-    let newsQuery = supabase
-      .from("news")
-      .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
-      .order("published_at", { ascending: false });
+    let newsQuery = withJapaneseSummary(
+      supabase
+        .from("news")
+        .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
+    ).order("published_at", { ascending: false });
 
     if (randomizeFirstPage) {
       newsQuery = newsQuery.range(newsOffset, newsOffset + half - 1);
