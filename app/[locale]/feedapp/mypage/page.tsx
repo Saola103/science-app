@@ -58,6 +58,64 @@ function PointsProgress({ points, label, toGoLabel }: { points: number; label: s
   );
 }
 
+function FeedbackForm() {
+  const t = useTranslations("Proto.mypage");
+  const [text, setText] = useState("");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!text.trim() || status === "sending") return;
+    setStatus("sending");
+    try {
+      const res = await fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: text.trim() }),
+      });
+      if (!res.ok) throw new Error("failed");
+      setStatus("sent");
+      setText("");
+    } catch {
+      setStatus("error");
+    }
+  };
+
+  return (
+    <div className="rounded-2xl px-4 py-4 mt-6" style={{ background: "#F7F9FC" }}>
+      <h2 className="text-[14.5px] font-bold text-[#1A1D29] mb-1">{t("feedbackHeading")}</h2>
+      <p className="text-[11.5px] text-[#94A3B8] mb-3">{t("feedbackDesc")}</p>
+      <form onSubmit={handleSubmit}>
+        <textarea
+          value={text}
+          onChange={(e) => {
+            setText(e.target.value);
+            if (status === "sent" || status === "error") setStatus("idle");
+          }}
+          maxLength={1000}
+          rows={3}
+          placeholder={t("feedbackPlaceholder")}
+          className="w-full rounded-xl px-3.5 py-3 text-[13px] text-[#1A1D29] placeholder:text-[#B0B8C4] outline-none resize-none"
+          style={{ background: "#FFFFFF", border: "1px solid #E7EAF0" }}
+        />
+        <div className="flex items-center justify-between mt-2.5">
+          <span className="text-[11px]" style={{ color: status === "error" ? "#E24C4C" : status === "sent" ? "#2F9E5B" : "#94A3B8" }}>
+            {status === "sent" ? t("feedbackSent") : status === "error" ? t("feedbackError") : ""}
+          </span>
+          <button
+            type="submit"
+            disabled={!text.trim() || status === "sending"}
+            className="text-[13px] font-bold px-4 py-2 rounded-full disabled:opacity-40"
+            style={{ background: "#2F6FED", color: "#FFFFFF" }}
+          >
+            {status === "sending" ? t("feedbackSending") : t("feedbackSubmit")}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 function SavedRow({ article, onOpen, onRemove, removeLabel }: { article: Article; onOpen: () => void; onRemove: () => void; removeLabel: string }) {
   const locale = useLocale();
   const catStyle = CATEGORY_STYLE[article.category] ?? { bg: "#F1F5F9", text: "#475569" };
@@ -173,6 +231,8 @@ export default function MyPage() {
           ))}
         </div>
       )}
+
+      <FeedbackForm />
 
       {openArticle && <ArticleDetailSheet article={openArticle} onClose={() => setOpenArticle(null)} />}
     </div>

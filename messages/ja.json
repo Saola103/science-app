@@ -215,7 +215,14 @@
       "statsSaved": "保存した数",
       "statsStreak": "連続日数",
       "pointsLabel": "累計 {points}pt",
-      "pointsToGo": "あと{points}ptで次のバッジ"
+      "pointsToGo": "あと{points}ptで次のバッジ",
+      "feedbackHeading": "ご意見・ご要望",
+      "feedbackDesc": "匿名で送信されます。開発の参考にさせていただきます。",
+      "feedbackPlaceholder": "こんな機能が欲しい、ここが使いにくい、など何でもどうぞ",
+      "feedbackSubmit": "送信する",
+      "feedbackSending": "送信中…",
+      "feedbackSent": "送信しました。ありがとうございます！",
+      "feedbackError": "送信に失敗しました。時間をおいて試してください。"
     },
     "settings": {
       "title": "設定",

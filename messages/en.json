@@ -215,7 +215,14 @@
       "statsSaved": "Saved",
       "statsStreak": "Day streak",
       "pointsLabel": "{points} pts total",
-      "pointsToGo": "{points} pts to next badge"
+      "pointsToGo": "{points} pts to next badge",
+      "feedbackHeading": "Feedback",
+      "feedbackDesc": "Sent anonymously. Helps us improve the app.",
+      "feedbackPlaceholder": "A feature you'd like, something that's hard to use, anything goes",
+      "feedbackSubmit": "Send",
+      "feedbackSending": "Sending…",
+      "feedbackSent": "Sent — thank you!",
+      "feedbackError": "Couldn't send. Please try again later."
     },
     "settings": {
       "title": "Settings",
