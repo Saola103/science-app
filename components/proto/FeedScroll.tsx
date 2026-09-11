@@ -6,6 +6,7 @@ import { Brain, Atom, Dna, FlaskConical, Telescope, HeartPulse, Cpu, Leaf, Sigma
 import { getCategoryLabel } from "../../lib/proto/mockData";
 import { Article } from "../../lib/proto/types";
 import { HEADER_H, NAV_H } from "../../lib/proto/layoutMetrics";
+import { useProtoStore } from "../../lib/proto/store";
 
 export const zen = { fontFamily: "var(--font-zen-maru), sans-serif" };
 
@@ -207,6 +208,39 @@ function FeedSlide({
   // back to a search link built from source+summary in that case.
   const originalHref = article.url || `https://www.google.com/search?q=${encodeURIComponent(`${article.source} ${article.summary}`)}`;
 
+  const { showToast } = useProtoStore();
+  // No stopPropagation needed: the rail sits in its own sibling div, outside
+  // the content div that handles double-tap-to-save (see handleContentTap),
+  // so rail button clicks never reach it in the first place.
+  const handleShare = async () => {
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    // Papers get the OG-tag-rich share landing page (app/[locale]/paper) so a
+    // recipient sees the real headline/summary as a link preview and lands
+    // back in the app, not the raw source; news has no equivalent page yet,
+    // so it shares the feed itself. Article.id is `${type}-${rawId}` (see
+    // lib/proto/mapArticle.ts) — strip the known prefix to recover rawId.
+    const shareUrl =
+      article.contentType === "paper"
+        ? `${origin}/${locale}/paper?id=${encodeURIComponent(article.id.replace(/^paper-/, ""))}`
+        : `${origin}/${locale}/feedapp/feed`;
+    const shareData = { title: article.summary, text: article.leadText, url: shareUrl };
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share(shareData);
+      } catch {
+        // User cancelled the native share sheet — not an error, no toast.
+      }
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showToast(t("shareCopiedToast"));
+    } catch {
+      showToast(t("shareFailedToast"));
+    }
+  };
+
   return (
     <div
       ref={ref}
@@ -295,6 +329,15 @@ function FeedSlide({
         <RailButton onClick={onOpenDetail} label={t("detailLabel")}>
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-4-1L3 20l1-5.5a8.38 8.38 0 0 1-1-4A8.5 8.5 0 0 1 11.5 2a8.38 8.38 0 0 1 8.5 8.5Z" />
+          </svg>
+        </RailButton>
+        <RailButton onClick={handleShare} label={t("shareLabel")}>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="18" cy="5" r="3" />
+            <circle cx="6" cy="12" r="3" />
+            <circle cx="18" cy="19" r="3" />
+            <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+            <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
           </svg>
         </RailButton>
         <a href={originalHref} target="_blank" rel="noopener noreferrer" className="flex flex-col items-center gap-1">

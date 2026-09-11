@@ -244,6 +244,9 @@
       "savedLabel": "Saved",
       "detailLabel": "Details",
       "originalLabel": "Source",
+      "shareLabel": "Share",
+      "shareCopiedToast": "Link copied",
+      "shareFailedToast": "Share failed",
       "followedToast": "Following \"{category}\"",
       "unfollowedToast": "Unfollowed \"{category}\""
     }

@@ -244,6 +244,9 @@
       "savedLabel": "保存済み",
       "detailLabel": "詳しく",
       "originalLabel": "原文",
+      "shareLabel": "共有",
+      "shareCopiedToast": "リンクをコピーしました",
+      "shareFailedToast": "共有に失敗しました",
       "followedToast": "「{category}」をフォロー中",
       "unfollowedToast": "「{category}」のフォローを解除しました"
     }
