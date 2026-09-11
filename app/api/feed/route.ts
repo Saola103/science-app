@@ -124,15 +124,44 @@ export async function GET(req: NextRequest) {
     // Each type gets half the limit so both always appear
     const half = Math.ceil(limit / 2);
 
+    // A plain "open the feed" request (no cursor, no filter, no search) used
+    // to always return the same newest-first items on every refresh, even
+    // though the DB has hundreds of collected items sitting unseen further
+    // back. Randomize which chronological window of the backlog this first
+    // page draws from — subsequent infinite-scroll pages (which pass a
+    // `cursor`) continue strictly older than that window's last item, so
+    // there's no skipping or duplication once a session has picked a window.
+    const randomizeFirstPage = !cursor && !categoryFilter && !q;
+
+    async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
+      let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
+      if (sourceFilter) countQuery = countQuery.in("source", sourceFilter);
+      const { count } = await countQuery;
+      const poolSize = count ?? 0;
+      const maxOffset = Math.max(0, poolSize - half);
+      return maxOffset > 0 ? Math.floor(Math.random() * (maxOffset + 1)) : 0;
+    }
+
+    const [papersOffset, newsOffset] = randomizeFirstPage
+      ? await Promise.all([
+          randomOffset("papers", ["arXiv", "bioRxiv", "medRxiv"]),
+          randomOffset("news"),
+        ])
+      : [0, 0];
+
     // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
     let papersQuery = supabase
       .from("papers")
       .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
       .in("source", ["arXiv", "bioRxiv", "medRxiv"])
-      .order("published_at", { ascending: false })
-      .limit(categoryFilter || q ? limit : half);
+      .order("published_at", { ascending: false });
 
-    if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
+    if (randomizeFirstPage) {
+      papersQuery = papersQuery.range(papersOffset, papersOffset + half - 1);
+    } else {
+      papersQuery = papersQuery.limit(categoryFilter || q ? limit : half);
+      if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
+    }
     if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
     if (q) papersQuery = papersQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,summary.ilike.%${q}%`);
 
@@ -140,10 +169,14 @@ export async function GET(req: NextRequest) {
     let newsQuery = supabase
       .from("news")
       .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
-      .order("published_at", { ascending: false })
-      .limit(half);
+      .order("published_at", { ascending: false });
 
-    if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
+    if (randomizeFirstPage) {
+      newsQuery = newsQuery.range(newsOffset, newsOffset + half - 1);
+    } else {
+      newsQuery = newsQuery.limit(half);
+      if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
+    }
     if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
     if (q) newsQuery = newsQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,description.ilike.%${q}%`);
 
