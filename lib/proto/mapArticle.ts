@@ -77,6 +77,23 @@ function formatAuthors(authors: string[] | null | undefined, source: string | nu
  * - `divePoints` are derived from real fields only (source, published date,
  *   category) — no fabricated "insight" text, and no extra LLM call.
  */
+// Some older records were summarized before the prompt reliably produced a
+// distinct "headline\n\nbody" shape — their summary_general is one long
+// Japanese paragraph with no short first line, so parseGeneralSummary's
+// isGoodHeadline() rejects it (too long) and headline comes back null. That
+// used to fall through to the raw English DB title (item.title) as the
+// card's displayed headline — a real bug, not a missing-translation issue:
+// the Japanese text was already there, just not split into a headline. This
+// derives a short headline straight from the (already Japanese) body instead,
+// so the card never has to fall back to English.
+function deriveHeadlineFromBody(body: string, maxChars = 50): string | null {
+  if (!body) return null;
+  const firstSentenceMatch = body.match(/^[^。！？\n]*[。！？]/);
+  const candidate = (firstSentenceMatch ? firstSentenceMatch[0] : body).trim();
+  if (!candidate) return null;
+  return candidate.length <= maxChars ? candidate : `${candidate.slice(0, maxChars)}…`;
+}
+
 export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const rawGeneral = item.summary_general || item.summary || "";
   const { headline, body } = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "" };
@@ -99,7 +116,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
     id: `${item.type}-${item.id}`,
     category,
     contentType: item.type,
-    summary: headline || item.title,
+    summary: headline || deriveHeadlineFromBody(generalBody) || item.title,
     leadText,
     illustration: pickIllustration(item.id),
     divePoints: [
