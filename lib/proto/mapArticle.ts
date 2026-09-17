@@ -53,7 +53,7 @@ function formatPublishedAt(iso?: string | null): string {
 // chars. Below MIN_CHARS_BEFORE_TRUNCATE, take a truncated slice of the
 // overflowing sentence instead of giving up, so every card reaches a
 // consistent minimum length.
-const MIN_CHARS_BEFORE_TRUNCATE = 70;
+const MIN_CHARS_BEFORE_TRUNCATE = 64;
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
@@ -69,6 +69,14 @@ function firstSentences(text: string, maxSentences: number, maxChars: number): s
   }
   if (!out) out = text.slice(0, maxChars);
   return out.trim();
+}
+
+// Last-resort hard cap: `headline` may still come from the raw (unbounded)
+// item.title when there's no summary_general/summary at all — this is the
+// only thing that guarantees the card title never overflows its 3-line box
+// regardless of which path produced it.
+function hardTruncate(text: string, maxChars: number): string {
+  return text.length <= maxChars ? text : `${text.slice(0, maxChars - 1).trim()}…`;
 }
 
 function formatAuthors(authors: string[] | null | undefined, source: string | null | undefined, type: "paper" | "news"): string {
@@ -107,7 +115,7 @@ function formatAuthors(authors: string[] | null | undefined, source: string | nu
 // end up showing the exact same sentence twice (a real bug this same fix
 // once introduced: deriving the headline without trimming it back out of the
 // body first).
-const HEADLINE_MAX_CHARS = 32; // keeps the card title to roughly 1–2 lines
+const HEADLINE_MAX_CHARS = 44; // keeps the card title within 3 lines (~15 chars/line)
 function splitBodyForFallbackHeadline(body: string): { headline: string | null; remainder: string } {
   if (!body) return { headline: null, remainder: body };
   const match = body.match(/^[^。！？\n]*[。！？]/);
@@ -181,13 +189,13 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   // shorter than the full easyExplanation shown in the detail sheet, so
   // tapping "詳しく" reveals more than the card already showed.
   const teaserSource = bodyForTeaser(headline, easyExplanation);
-  const leadText = firstSentences(teaserSource, 3, 100) || teaserSource.slice(0, 100);
+  const leadText = hardTruncate(firstSentences(teaserSource, 3, 91) || teaserSource.slice(0, 91), 91);
 
   return {
     id: `${item.type}-${item.id}`,
     category,
     contentType: item.type,
-    summary: headline || item.title,
+    summary: hardTruncate(headline || item.title, HEADLINE_MAX_CHARS),
     leadText,
     illustration: pickIllustration(item.id),
     divePoints: [

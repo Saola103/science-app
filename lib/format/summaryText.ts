@@ -66,7 +66,7 @@ export function stripMarkdownExpert(text: string): string {
 function isGoodHeadline(t: string): boolean {
   return (
     t.length >= 6 &&
-    t.length <= 32 && // keeps the displayed card title to roughly 1-2 lines
+    t.length <= 44 && // keeps the displayed card title within 3 lines (~15 chars/line)
 
     !/^(3つの|▍|【|ダイブポイント|要点|専門的解説|魅力的|研究の目的|目的[：:]\s|手法[：:]\s|結果[：:]\s|意義[：:]\s)/.test(t) &&
     !/^[•\-\*\d]\s/.test(t) &&

@@ -284,18 +284,18 @@ function FeedSlide({
           <h2 className="text-[21px] font-black leading-[1.42] text-white pt-1" style={zen}>{article.summary}</h2>
         </div>
 
-        <p className="pt-4 pr-14 text-[14.5px] leading-[1.8]" style={{ ...zen, color: "rgba(255,255,255,0.9)" }}>{article.leadText}</p>
+        <p className="pt-4 pr-14 text-[16px] leading-[1.8]" style={{ ...zen, color: "rgba(255,255,255,0.9)" }}>{article.leadText}</p>
 
         <div className="pt-4 pr-14 space-y-2.5">
           {article.divePoints.map((dp) => (
-            <div key={dp.label} className="flex gap-2 text-[13.5px] leading-[1.65]" style={zen}>
+            <div key={dp.label} className="flex gap-2 text-[14.85px] leading-[1.65]" style={zen}>
               <span className="font-extrabold shrink-0" style={{ color: "#FFC95C" }}>{dp.label}：</span>
               <span style={{ color: "rgba(255,255,255,0.85)" }}>{dp.text}</span>
             </div>
           ))}
         </div>
 
-        <p className="pt-5 pr-14 text-[12px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.55)" }}>
+        <p className="pt-5 pr-14 text-[13.2px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.55)" }}>
           {article.source} ・ {article.author} ・ {article.publishedAt}
         </p>
       </div>
