@@ -40,9 +40,11 @@ function formatPublishedAt(iso?: string | null): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-// A short single-sentence teaser for the card front — deliberately shorter
-// than easyExplanation (shown in the detail sheet) so tapping "詳しく" reveals
-// more than the card already showed, instead of repeating it verbatim.
+// A short teaser for the card front — several sentences up to a char budget
+// (not just "the first sentence") so a short opening sentence doesn't leave
+// the card looking thinner than its neighbors; still shorter than the full
+// easyExplanation shown in the detail sheet, so tapping "詳しく" reveals more
+// than the card already showed instead of repeating it verbatim.
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
@@ -83,21 +85,44 @@ function formatAuthors(authors: string[] | null | undefined, source: string | nu
 // isGoodHeadline() rejects it (too long) and headline comes back null. That
 // used to fall through to the raw English DB title (item.title) as the
 // card's displayed headline — a real bug, not a missing-translation issue:
-// the Japanese text was already there, just not split into a headline. This
-// derives a short headline straight from the (already Japanese) body instead,
-// so the card never has to fall back to English.
-function deriveHeadlineFromBody(body: string, maxChars = 50): string | null {
-  if (!body) return null;
-  const firstSentenceMatch = body.match(/^[^。！？\n]*[。！？]/);
-  const candidate = (firstSentenceMatch ? firstSentenceMatch[0] : body).trim();
-  if (!candidate) return null;
-  return candidate.length <= maxChars ? candidate : `${candidate.slice(0, maxChars)}…`;
+// the Japanese text was already there, just not split into a headline.
+//
+// This derives a short headline straight from the (already Japanese) body's
+// first sentence, and — critically — returns the REMAINDER of the body with
+// that sentence removed, so the card's title and its teaser/body text don't
+// end up showing the exact same sentence twice (a real bug this same fix
+// once introduced: deriving the headline without trimming it back out of the
+// body first).
+const HEADLINE_MAX_CHARS = 32; // keeps the card title to roughly 1–2 lines
+function splitBodyForFallbackHeadline(body: string): { headline: string | null; remainder: string } {
+  if (!body) return { headline: null, remainder: body };
+  const match = body.match(/^[^。！？\n]*[。！？]/);
+  const rawSentence = match ? match[0] : body;
+  const trimmed = rawSentence.trim();
+  if (!trimmed) return { headline: null, remainder: body };
+  const headline = trimmed.length <= HEADLINE_MAX_CHARS ? trimmed : `${trimmed.slice(0, HEADLINE_MAX_CHARS)}…`;
+  const remainder = body.slice(rawSentence.length).replace(/^\s+/, "").trim();
+  // If removing the headline sentence leaves nothing, keep the original body
+  // for the teaser/explanation rather than showing an empty card.
+  return { headline, remainder: remainder || body };
 }
 
 export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const rawGeneral = item.summary_general || item.summary || "";
-  const { headline, body } = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "" };
-  const generalBody = body || (item.summary ? stripMarkdown(item.summary) : "");
+  const parsed = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "" };
+  let headline = parsed.headline;
+  let generalBody = parsed.body || (item.summary ? stripMarkdown(item.summary) : "");
+
+  // No real headline line was found (see splitBodyForFallbackHeadline above) —
+  // derive one from the body's first sentence, and use the rest of the body
+  // (not the same text again) for the teaser/full explanation below.
+  if (!headline && generalBody) {
+    const split = splitBodyForFallbackHeadline(generalBody);
+    if (split.headline) {
+      headline = split.headline;
+      generalBody = split.remainder;
+    }
+  }
 
   const rawExpert = item.summary_expert;
   const expertBody = rawExpert ? stripMarkdownExpert(rawExpert) : null;
@@ -107,16 +132,18 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const publishedAt = formatPublishedAt(item.published_at);
 
   const easyExplanation = generalBody || item.title;
-  // Deliberately just the first sentence, well short of the full easyExplanation
-  // shown in the detail sheet — the card teaser and the "やさしく" panel must
-  // read as "preview" vs. "the whole thing", not as duplicates of each other.
-  const leadText = firstSentences(easyExplanation, 1, 70) || easyExplanation.slice(0, 70);
+  // Several sentences up to a char budget — sized to fill roughly 3-4 lines
+  // of the card's teaser text consistently (a single short first sentence
+  // used to leave some cards looking noticeably thinner than others). Still
+  // shorter than the full easyExplanation shown in the detail sheet, so
+  // tapping "詳しく" reveals more than the card already showed.
+  const leadText = firstSentences(easyExplanation, 3, 100) || easyExplanation.slice(0, 100);
 
   return {
     id: `${item.type}-${item.id}`,
     category,
     contentType: item.type,
-    summary: headline || deriveHeadlineFromBody(generalBody) || item.title,
+    summary: headline || item.title,
     leadText,
     illustration: pickIllustration(item.id),
     divePoints: [
