@@ -45,13 +45,27 @@ function formatPublishedAt(iso?: string | null): string {
 // the card looking thinner than its neighbors; still shorter than the full
 // easyExplanation shown in the detail sheet, so tapping "詳しく" reveals more
 // than the card already showed instead of repeating it verbatim.
+//
+// A short first sentence followed by one long second sentence used to make
+// this bail out after just the first sentence (the old "stop as soon as the
+// next whole sentence would overflow" rule) — measured on live feed data as
+// several cards with a ~25-char teaser next to neighbors around 80-100
+// chars. Below MIN_CHARS_BEFORE_TRUNCATE, take a truncated slice of the
+// overflowing sentence instead of giving up, so every card reaches a
+// consistent minimum length.
+const MIN_CHARS_BEFORE_TRUNCATE = 70;
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
   let out = "";
   for (let i = 0; i < Math.min(maxSentences, sentences.length); i++) {
-    if (out.length + sentences[i].length > maxChars && out.length > 0) break;
-    out += sentences[i];
+    const next = out + sentences[i];
+    if (next.length > maxChars) {
+      if (out.length >= MIN_CHARS_BEFORE_TRUNCATE) break;
+      out = `${next.slice(0, maxChars).trim()}…`;
+      break;
+    }
+    out = next;
   }
   if (!out) out = text.slice(0, maxChars);
   return out.trim();
