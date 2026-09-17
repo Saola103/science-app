@@ -222,7 +222,14 @@
       "feedbackSubmit": "Send",
       "feedbackSending": "Sending…",
       "feedbackSent": "Sent — thank you!",
-      "feedbackError": "Couldn't send. Please try again later."
+      "feedbackError": "Couldn't send. Please try again later.",
+      "badgeLabel": "Title: {name}",
+      "badgeUnearned": "No title yet",
+      "badgeToGo": "{count} more to next title",
+      "badgeEarnedToast": "You earned the \"{name}\" title!",
+      "followHeading": "Followed fields",
+      "followDesc": "Tap to follow or unfollow. Followed fields are shown more often in your feed.",
+      "followEmptyHint": "Tap a field you're interested in to follow it"
     },
     "settings": {
       "title": "Settings",

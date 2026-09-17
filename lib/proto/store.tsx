@@ -10,6 +10,7 @@ type ProtoStore = {
   markSeen: (id: string) => void;
   streak: number;
   totalPoints: number;
+  readCount: number;
 
   followed: string[];
   toggleFollow: (category: string) => void;
@@ -226,6 +227,7 @@ export function ProtoProvider({ children }: { children: React.ReactNode }) {
         markSeen,
         streak,
         totalPoints: allTimeSeen.length + saved.length * 3,
+        readCount: allTimeSeen.length,
         followed,
         toggleFollow,
         viewSeconds,

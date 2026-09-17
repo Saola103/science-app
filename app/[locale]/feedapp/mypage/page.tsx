@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { useProtoStore } from "../../../../lib/proto/store";
-import { CATEGORY_STYLE, getCategoryLabel } from "../../../../lib/proto/mockData";
+import { CATEGORIES, CATEGORY_STYLE, getCategoryLabel } from "../../../../lib/proto/mockData";
 import { mapFeedItemToArticle, FeedApiItem } from "../../../../lib/proto/mapArticle";
 import { ArticleIllustration } from "../../../../components/proto/illustrations";
 import { ArticleDetailSheet } from "../../../../components/proto/ArticleDetailSheet";
@@ -53,6 +53,77 @@ function PointsProgress({ points, label, toGoLabel }: { points: number; label: s
       </div>
       <div className="rounded-full overflow-hidden" style={{ height: 6, background: "#E7EAF0" }}>
         <div className="h-full rounded-full" style={{ width: `${ratio * 100}%`, background: "#2F6FED", transition: "width 0.4s ease" }} />
+      </div>
+    </div>
+  );
+}
+
+function FollowedCategories({ followed, onToggle, heading, desc, emptyHint }: { followed: string[]; onToggle: (category: string) => void; heading: string; desc: string; emptyHint: string }) {
+  const locale = useLocale();
+  return (
+    <div className="mb-5">
+      <div className="flex items-baseline gap-2 mb-1">
+        <h2 className="text-[14.5px] font-bold text-[#1A1D29]">{heading}</h2>
+        <span className="text-[12px] text-[#94A3B8]">{followed.length}</span>
+      </div>
+      <p className="text-[11.5px] text-[#94A3B8] mb-2.5">{desc}</p>
+      <div className="flex flex-wrap gap-2">
+        {CATEGORIES.map((category) => {
+          const isFollowed = followed.includes(category);
+          const style = CATEGORY_STYLE[category] ?? { bg: "#F1F5F9", text: "#64748B" };
+          return (
+            <button
+              key={category}
+              onClick={() => onToggle(category)}
+              className="text-[12px] font-bold px-3 py-1.5 rounded-full transition-opacity"
+              style={
+                isFollowed
+                  ? { background: style.bg, color: style.text }
+                  : { background: "#F7F9FC", color: "#B0B8C4", border: "1px solid #EEF0F4" }
+              }
+            >
+              {getCategoryLabel(category, locale)}
+            </button>
+          );
+        })}
+      </div>
+      {followed.length === 0 && <p className="text-[11px] text-[#B0B8C4] mt-2">{emptyHint}</p>}
+    </div>
+  );
+}
+
+const BADGE_MILESTONES: { threshold: number; label: string }[] = [
+  { threshold: 10, label: "はじめの一歩" },
+  { threshold: 50, label: "好奇心の芽" },
+  { threshold: 100, label: "探究者" },
+  { threshold: 300, label: "深海ダイバー" },
+  { threshold: 500, label: "知識のマスター" },
+  { threshold: 1000, label: "伝説の探究者" },
+];
+
+function currentBadge(readCount: number) {
+  let current: { threshold: number; label: string } | null = null;
+  for (const m of BADGE_MILESTONES) {
+    if (readCount >= m.threshold) current = m;
+  }
+  return current;
+}
+
+function BadgeProgress({ readCount, label, toGoLabel, unearnedLabel }: { readCount: number; label: (name: string) => string; toGoLabel: (n: number) => string; unearnedLabel: string }) {
+  const next = BADGE_MILESTONES.find((m) => m.threshold > readCount) ?? BADGE_MILESTONES[BADGE_MILESTONES.length - 1];
+  const prevIndex = BADGE_MILESTONES.findIndex((m) => m.threshold === next.threshold) - 1;
+  const prevThreshold = prevIndex >= 0 ? BADGE_MILESTONES[prevIndex].threshold : 0;
+  const ratio = next.threshold === prevThreshold ? 1 : Math.min(1, (readCount - prevThreshold) / (next.threshold - prevThreshold));
+  const badge = currentBadge(readCount);
+
+  return (
+    <div className="rounded-2xl px-4 py-3.5 mb-5" style={{ background: "#F7F9FC" }}>
+      <div className="flex items-baseline justify-between mb-2">
+        <span className="text-[12px] font-bold text-[#4B5563]">{badge ? label(badge.label) : unearnedLabel}</span>
+        <span className="text-[11px] text-[#94A3B8]">{readCount < next.threshold ? toGoLabel(next.threshold - readCount) : ""}</span>
+      </div>
+      <div className="rounded-full overflow-hidden" style={{ height: 6, background: "#E7EAF0" }}>
+        <div className="h-full rounded-full" style={{ width: `${ratio * 100}%`, background: "#FF9640", transition: "width 0.4s ease" }} />
       </div>
     </div>
   );
@@ -145,11 +216,23 @@ function SavedRow({ article, onOpen, onRemove, removeLabel }: { article: Article
 }
 
 export default function MyPage() {
-  const { saved, seen, streak, totalPoints, removeSaved, hydrated } = useProtoStore();
+  const { saved, seen, streak, totalPoints, readCount, followed, toggleFollow, removeSaved, hydrated, showToast } = useProtoStore();
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
   const [items, setItems] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const t = useTranslations("Proto.mypage");
+
+  // Celebrate a newly-crossed badge threshold with a toast, once per crossing
+  // (not on every render) — mirrors the existing feed follow/unfollow toasts.
+  const lastBadgeRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!hydrated) return;
+    const badge = currentBadge(readCount);
+    if (badge && lastBadgeRef.current !== null && lastBadgeRef.current !== badge.label) {
+      showToast(t("badgeEarnedToast", { name: badge.label }));
+    }
+    lastBadgeRef.current = badge?.label ?? lastBadgeRef.current;
+  }, [readCount, hydrated, showToast, t]);
 
   // Saved ids in localStorage (lib/proto/store.tsx) reference real DB rows —
   // fetch their current data by id rather than looking them up in the old
@@ -209,6 +292,21 @@ export default function MyPage() {
         points={totalPoints}
         label={t("pointsLabel", { points: totalPoints })}
         toGoLabel={(n) => t("pointsToGo", { points: n })}
+      />
+
+      <BadgeProgress
+        readCount={readCount}
+        label={(name) => t("badgeLabel", { name })}
+        toGoLabel={(n) => t("badgeToGo", { count: n })}
+        unearnedLabel={t("badgeUnearned")}
+      />
+
+      <FollowedCategories
+        followed={followed}
+        onToggle={toggleFollow}
+        heading={t("followHeading")}
+        desc={t("followDesc")}
+        emptyHint={t("followEmptyHint")}
       />
 
       <div className="flex items-baseline gap-2 mb-1">
