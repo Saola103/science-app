@@ -102,9 +102,14 @@ function splitBodyForFallbackHeadline(body: string): { headline: string | null; 
   if (!trimmed) return { headline: null, remainder: body };
   const headline = trimmed.length <= HEADLINE_MAX_CHARS ? trimmed : `${trimmed.slice(0, HEADLINE_MAX_CHARS)}…`;
   const remainder = body.slice(rawSentence.length).replace(/^\s+/, "").trim();
-  // If removing the headline sentence leaves nothing, keep the original body
-  // for the teaser/explanation rather than showing an empty card.
-  return { headline, remainder: remainder || body };
+  // Some legacy single-paragraph records are short enough overall that
+  // removing the headline's sentence leaves too little for a readable
+  // teaser (a couple of these short-blurb news items measured under 30
+  // chars remaining). Keep the full original body in that case — a little
+  // semantic overlap with the (often truncated, "…"-suffixed) headline reads
+  // better than a near-empty card.
+  const MIN_REMAINDER_CHARS = 40;
+  return { headline, remainder: remainder.length >= MIN_REMAINDER_CHARS ? remainder : body };
 }
 
 // Even when a proper "headline\n\nbody" split exists, the body's own first
@@ -123,7 +128,10 @@ function bodyForTeaser(headline: string | null, body: string): string {
   const firstSentence = firstSentenceMatch ? firstSentenceMatch[0] : null;
   if (firstSentence && firstSentence.trim().startsWith(strippedHeadline)) {
     const rest = body.slice(firstSentence.length).replace(/^\s+/, "").trim();
-    return rest || body;
+    // As in splitBodyForFallbackHeadline: don't strip down to a near-empty
+    // teaser just to avoid overlap with the headline — a short, slightly
+    // redundant card beats an almost-blank one.
+    return rest.length >= 40 ? rest : body;
   }
   return body;
 }
