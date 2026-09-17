@@ -107,6 +107,27 @@ function splitBodyForFallbackHeadline(body: string): { headline: string | null; 
   return { headline, remainder: remainder || body };
 }
 
+// Even when a proper "headline\n\nbody" split exists, the body's own first
+// sentence often restarts with the exact same noun phrase as the headline
+// (e.g. headline "老化を遅らせる薬剤" followed by body "老化を遅らせる薬剤が脳に…") —
+// natural for a standalone paragraph, but reads as a flat-out repeat when the
+// headline is already sitting right above it as the card's bold title. Skip
+// that opening sentence for the card teaser specifically (not for the full
+// easyExplanation, which never shows the headline alongside it — see
+// ArticleDetailSheet.tsx).
+function bodyForTeaser(headline: string | null, body: string): string {
+  if (!headline || !body) return body;
+  const strippedHeadline = headline.replace(/…$/, "").trim();
+  if (!strippedHeadline) return body;
+  const firstSentenceMatch = body.match(/^[^。！？\n]*[。！？]/);
+  const firstSentence = firstSentenceMatch ? firstSentenceMatch[0] : null;
+  if (firstSentence && firstSentence.trim().startsWith(strippedHeadline)) {
+    const rest = body.slice(firstSentence.length).replace(/^\s+/, "").trim();
+    return rest || body;
+  }
+  return body;
+}
+
 export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const rawGeneral = item.summary_general || item.summary || "";
   const parsed = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "" };
@@ -137,7 +158,8 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   // used to leave some cards looking noticeably thinner than others). Still
   // shorter than the full easyExplanation shown in the detail sheet, so
   // tapping "詳しく" reveals more than the card already showed.
-  const leadText = firstSentences(easyExplanation, 3, 100) || easyExplanation.slice(0, 100);
+  const teaserSource = bodyForTeaser(headline, easyExplanation);
+  const leadText = firstSentences(teaserSource, 3, 100) || teaserSource.slice(0, 100);
 
   return {
     id: `${item.type}-${item.id}`,
