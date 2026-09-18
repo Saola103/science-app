@@ -115,7 +115,7 @@ function formatAuthors(authors: string[] | null | undefined, source: string | nu
 // end up showing the exact same sentence twice (a real bug this same fix
 // once introduced: deriving the headline without trimming it back out of the
 // body first).
-const HEADLINE_MAX_CHARS = 44; // keeps the card title within 3 lines (~15 chars/line)
+const HEADLINE_MAX_CHARS = 40; // keeps the card title within its box (see lib/llm/summarize.ts's prompt rule 1)
 function splitBodyForFallbackHeadline(body: string): { headline: string | null; remainder: string } {
   if (!body) return { headline: null, remainder: body };
   const match = body.match(/^[^。！？\n]*[。！？]/);
