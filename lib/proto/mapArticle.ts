@@ -53,7 +53,7 @@ function formatPublishedAt(iso?: string | null): string {
 // chars. Below MIN_CHARS_BEFORE_TRUNCATE, take a truncated slice of the
 // overflowing sentence instead of giving up, so every card reaches a
 // consistent minimum length.
-const MIN_CHARS_BEFORE_TRUNCATE = 64;
+const MIN_CHARS_BEFORE_TRUNCATE = 77;
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
@@ -189,7 +189,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   // shorter than the full easyExplanation shown in the detail sheet, so
   // tapping "詳しく" reveals more than the card already showed.
   const teaserSource = bodyForTeaser(headline, easyExplanation);
-  const leadText = hardTruncate(firstSentences(teaserSource, 3, 91) || teaserSource.slice(0, 91), 91);
+  const leadText = hardTruncate(firstSentences(teaserSource, 3, 110) || teaserSource.slice(0, 110), 110);
 
   return {
     id: `${item.type}-${item.id}`,
