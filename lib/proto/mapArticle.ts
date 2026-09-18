@@ -40,43 +40,46 @@ function formatPublishedAt(iso?: string | null): string {
   return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日`;
 }
 
-// A short teaser for the card front — several sentences up to a char budget
-// (not just "the first sentence") so a short opening sentence doesn't leave
-// the card looking thinner than its neighbors; still shorter than the full
-// easyExplanation shown in the detail sheet, so tapping "詳しく" reveals more
-// than the card already showed instead of repeating it verbatim.
-//
-// A short first sentence followed by one long second sentence used to make
-// this bail out after just the first sentence (the old "stop as soon as the
-// next whole sentence would overflow" rule) — measured on live feed data as
-// several cards with a ~25-char teaser next to neighbors around 80-100
-// chars. Below MIN_CHARS_BEFORE_TRUNCATE, take a truncated slice of the
-// overflowing sentence instead of giving up, so every card reaches a
-// consistent minimum length.
-const MIN_CHARS_BEFORE_TRUNCATE = 77;
+// A short teaser for the card front — as many WHOLE sentences as fit under
+// the char budget, never a mid-sentence cut. No "…" truncation: a card that
+// ends on a complete thought (even a little short of the budget) reads far
+// better than one chopped off with an ellipsis, which is what this used to
+// do when a sentence would overflow the budget (reverted after explicit
+// feedback that "…"-truncation reads as broken, not as intentionally
+// concise).
 function firstSentences(text: string, maxSentences: number, maxChars: number): string {
   if (!text) return "";
   const sentences = text.split(/(?<=[。！？])/).filter((s) => s.trim().length > 0);
   let out = "";
   for (let i = 0; i < Math.min(maxSentences, sentences.length); i++) {
     const next = out + sentences[i];
-    if (next.length > maxChars) {
-      if (out.length >= MIN_CHARS_BEFORE_TRUNCATE) break;
-      out = `${next.slice(0, maxChars).trim()}…`;
-      break;
-    }
+    if (next.length > maxChars) break;
     out = next;
   }
-  if (!out) out = text.slice(0, maxChars);
+  // First sentence alone already exceeds the budget — fall back to a clean
+  // clause-boundary cut (see truncateToCompleteClause) rather than an empty
+  // teaser or a mid-word slice.
+  if (!out) out = truncateToCompleteClause(sentences[0] || text, maxChars);
   return out.trim();
 }
 
-// Last-resort hard cap: `headline` may still come from the raw (unbounded)
-// item.title when there's no summary_general/summary at all — this is the
-// only thing that guarantees the card title never overflows its 3-line box
-// regardless of which path produced it.
-function hardTruncate(text: string, maxChars: number): string {
-  return text.length <= maxChars ? text : `${text.slice(0, maxChars - 1).trim()}…`;
+// Cuts at the last complete 、-delimited clause that still fits, so an
+// over-budget sentence ends on a natural pause instead of mid-word — used
+// only as a last resort when no combination of whole sentences fits the
+// budget. Never appends "…": per explicit feedback, ending mid-thought with
+// an ellipsis reads as broken, so a clean (if slightly incomplete-sounding)
+// clause break is preferred, and a hard character cut is the final fallback
+// only when the text has no comma to break on at all.
+function truncateToCompleteClause(text: string, maxChars: number): string {
+  if (text.length <= maxChars) return text;
+  const clauses = text.split(/(?<=[、,])/);
+  let out = "";
+  for (const clause of clauses) {
+    if ((out + clause).length > maxChars) break;
+    out += clause;
+  }
+  out = out.trim().replace(/[、,]$/, "");
+  return out || text.slice(0, maxChars).trim();
 }
 
 function formatAuthors(authors: string[] | null | undefined, source: string | null | undefined, type: "paper" | "news"): string {
@@ -122,7 +125,7 @@ function splitBodyForFallbackHeadline(body: string): { headline: string | null; 
   const rawSentence = match ? match[0] : body;
   const trimmed = rawSentence.trim();
   if (!trimmed) return { headline: null, remainder: body };
-  const headline = trimmed.length <= HEADLINE_MAX_CHARS ? trimmed : `${trimmed.slice(0, HEADLINE_MAX_CHARS)}…`;
+  const headline = trimmed.length <= HEADLINE_MAX_CHARS ? trimmed : truncateToCompleteClause(trimmed, HEADLINE_MAX_CHARS);
   const remainder = body.slice(rawSentence.length).replace(/^\s+/, "").trim();
   // Some legacy single-paragraph records are short enough overall that
   // removing the headline's sentence leaves too little for a readable
@@ -144,7 +147,7 @@ function splitBodyForFallbackHeadline(body: string): { headline: string | null; 
 // ArticleDetailSheet.tsx).
 function bodyForTeaser(headline: string | null, body: string): string {
   if (!headline || !body) return body;
-  const strippedHeadline = headline.replace(/…$/, "").trim();
+  const strippedHeadline = headline.trim();
   if (!strippedHeadline) return body;
   const firstSentenceMatch = body.match(/^[^。！？\n]*[。！？]/);
   const firstSentence = firstSentenceMatch ? firstSentenceMatch[0] : null;
@@ -189,13 +192,19 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   // shorter than the full easyExplanation shown in the detail sheet, so
   // tapping "詳しく" reveals more than the card already showed.
   const teaserSource = bodyForTeaser(headline, easyExplanation);
-  const leadText = hardTruncate(firstSentences(teaserSource, 3, 110) || teaserSource.slice(0, 110), 110);
+  // maxSentences raised to 5 (from 3) so a run of short sentences can fill
+  // more of the 110-char/5-line budget before firstSentences runs out of
+  // sentences to add — fewer cases fall back to the clause-cut fallback.
+  const leadText = firstSentences(teaserSource, 5, 110) || truncateToCompleteClause(teaserSource, 110);
+
+  const rawHeadline = headline || item.title;
+  const summary = rawHeadline.length <= HEADLINE_MAX_CHARS ? rawHeadline : truncateToCompleteClause(rawHeadline, HEADLINE_MAX_CHARS);
 
   return {
     id: `${item.type}-${item.id}`,
     category,
     contentType: item.type,
-    summary: hardTruncate(headline || item.title, HEADLINE_MAX_CHARS),
+    summary,
     leadText,
     illustration: pickIllustration(item.id),
     divePoints: [
