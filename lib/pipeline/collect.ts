@@ -11,6 +11,8 @@
  * Designed to be called by a Vercel Cron job (GET /api/cron/collect).
  */
 
+import fs from "fs";
+import path from "path";
 import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
 import { fetchBiorxivPapers, BIORXIV_CATEGORY_QUERIES } from "../sources/biorxiv";
 import { fetchScienceNewsFromRSS } from "../sources/rss";
@@ -18,6 +20,28 @@ import { summarize } from "../llm/summarize";
 import { generateText, embedText } from "../llm/index";
 import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
+
+// News summary instructions live in lib/llm/prompts/news-summary.md (same
+// approach as lib/llm/summarize.ts's loadPromptTemplate) so the prompt can
+// be read/edited on its own. This loader is kept local to this file rather
+// than imported from summarize.ts to avoid coupling to that module's
+// internals; content and behavior are unchanged from the previous inline
+// template literal.
+let newsPromptCache: string | null = null;
+function loadNewsPromptTemplate(): string {
+  if (newsPromptCache !== null) return newsPromptCache;
+  const filePath = path.join(process.cwd(), "lib/llm/prompts", "news-summary.md");
+  newsPromptCache = fs.readFileSync(filePath, "utf-8");
+  return newsPromptCache;
+}
+
+function buildNewsPrompt(article: { title: string; description: string; category?: string }): string {
+  const catTag = article.category || "other";
+  return loadNewsPromptTemplate()
+    .replace("{{CATEGORY}}", catTag)
+    .replace("{{TITLE}}", article.title)
+    .replace("{{DESCRIPTION}}", article.description);
+}
 
 // arXiv category codes — broad science coverage
 export const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
@@ -271,20 +295,7 @@ export async function collectNews(): Promise<{ collected: number; errors: number
     for (const article of articles) {
       try {
         // Generate a Japanese summary using Groq (same title-first format as paper summaries)
-        const catTag = article.category || "other";
-        const prompt = `あなたは人気サイエンスライターです。以下の科学ニュース記事を、好奇心旺盛な高校生が「もっと知りたい！」と感じる日本語コラムに変えてください。
-
-【出力フォーマット（厳守）】
-1行目: 10〜20文字の日本語タイトル（体言止めか短文。疑問形は絶対禁止。例:「AIが創薬を100倍加速」「ブラックホールの新発見」）
-（空行1つ）
-本文: 100〜150文字の連続した文章。箇条書き禁止。ですます調。
-（空行1つ）
-[${catTag}]
-
-=== ニュース記事 ===
-タイトル: ${article.title}
-
-内容: ${article.description}`;
+        const prompt = buildNewsPrompt(article);
 
         let summaryJa: string | null = null;
         try {

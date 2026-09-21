@@ -1,3 +1,5 @@
+import fs from "fs";
+import path from "path";
 import { generateText } from "./index";
 
 type SummarizeOptions = {
@@ -88,28 +90,23 @@ function cleanAbstract(text: string): string {
  *
  * FeedCardはこの構造を前提にしてタイトルと本文を分離する。
  */
+// The actual instructions for both tones live in lib/llm/prompts/*.md —
+// plain markdown files, not TypeScript — specifically so each prompt can be
+// read and edited on its own, without wading through code. Edit those files
+// to change how summaries are written; this just loads and fills them in.
+const promptCache = new Map<string, string>();
+function loadPromptTemplate(filename: string): string {
+  const cached = promptCache.get(filename);
+  if (cached) return cached;
+  const filePath = path.join(process.cwd(), "lib/llm/prompts", filename);
+  const template = fs.readFileSync(filePath, "utf-8");
+  promptCache.set(filename, template);
+  return template;
+}
+
 function buildCasualPrompt(content: string): string {
   const cleaned = cleanAbstract(content);
-  return `あなたは人気サイエンスライターです。以下の科学論文を、好奇心旺盛な高校生が「もっと知りたい！」と感じる日本語コラムに書き直してください。
-
-【出力ルール（フィードカードの表示崩れ・文字数バラつき防止のため必ず守る）】
-1. 最初の行に10〜20文字の見出しを書く（体言止めか短い断言。疑問形NG）。カード表示の上限は40文字なので、20文字を超えることは絶対に禁止（40文字は絶対に超えてはいけない最終ライン、20文字が目標）
-2. 見出しは本文の要約であって、本文冒頭の文をそのまま繰り返してはいけない（見出しと本文1文目が同じ表現にならないこと）
-3. 空行を1行入れる
-4. 本文は必ず150〜200文字で書く。150文字を下回ってはいけない（短すぎる本文は禁止）。箇条書きNG・ですます調・身近な例えを使う。フィードカードには本文の先頭110文字（5行以内）だけが抜粋表示されるため、110文字以内にちょうど文が終わる一文（または複数文）を先頭に置き、文の途中で不自然に切れないように書くこと
-5. 空行を1行入れる
-6. 最後に [カテゴリ] を書く（[physics][biology][it_ai][medicine][astronomy][chemistry][environment][mathematics][other] から1つ）
-7. 見出し・本文どちらにも「…」「...」などの省略記号は一切使わない。すべての文を最後まで書ききること（尻切れの文を書かない）
-
-【出力例】
-タコの腕が独立して"考える"仕組み
-
-実はタコの腕には、中央の脳とは別に小さな神経回路が1本ずつ備わっています。まるで8人の選手が監督なしで動くサッカーチームのよう。脳の命令を待たずに動ける仕組みを解明したことで、ロボットアームの制御技術が大きく変わるかもしれません。
-
-[biology]
-
-=== 論文 ===
-${cleaned}`;
+  return loadPromptTemplate("casual-summary.md").replace("{{PAPER_CONTENT}}", cleaned);
 }
 
 /**
@@ -126,21 +123,7 @@ ${cleaned}`;
  */
 function buildExpertPrompt(content: string): string {
   const cleaned = cleanAbstract(content);
-  return `以下の科学論文を、大学院生・研究者向けに技術的に正確な日本語で要約してください。
-
-【出力フォーマット（必ず守る）】
-目的: 〈この研究が解決しようとした問題・目標を1〜2文で〉
-手法: 〈使用した実験手法・モデル・アルゴリズム・データセットを具体的に〉
-結果: 〈得られた定量的成果・ベースラインとの比較を含めて〉
-意義: 〈この研究が分野に与えるインパクト・今後の展望を1〜2文で〉
-
-【ルール】
-・専門用語はそのまま使用（初出時のみ英語を括弧で併記: 例「注意機構（Attention）」）
-・「〜である・〜した・〜された・〜される」の簡潔な体言止め調
-・各項目1〜2文、全体200〜280文字
-
-=== 論文テキスト ===
-${cleaned}`;
+  return loadPromptTemplate("expert-summary.md").replace("{{PAPER_CONTENT}}", cleaned);
 }
 
 function buildPrompt(content: string, options: SummarizeOptions = {}): string {
