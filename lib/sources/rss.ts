@@ -35,25 +35,36 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
   },
 
   // ── 追加：海外プレスリリース・ニュース（著作権フリー or 公開情報）────────
-  // EurekAlert! 生物・生化学（大学・研究機関が配信するプレスリリース）
+  // EurekAlert!の3フィード(biology_biochemistry/technology_engineering/medical)は
+  // 2026-09-22時点でURL自体が404(RSS配信を廃止した可能性、ホームページにも
+  // RSSの案内が見当たらない)。同じ「大学・研究機関のプレスリリースを配信する」
+  // 趣旨に近い、Science X Network系列の姉妹サイトに差し替えた(実際にfetchして
+  // item取得を確認済み)。
+  // Phys.org 生物学ニュース（旧EurekAlert biology_biochemistry の代替）
   {
-    url: "https://www.eurekalert.org/rss/biology_biochemistry.xml",
-    source: "EurekAlert",
+    url: "https://phys.org/rss-feed/biology-news/",
+    source: "Phys.org",
     category: "biology",
   },
-  // EurekAlert! AI・テクノロジー
+  // TechXplore（Phys.org姉妹サイト、旧EurekAlert technology_engineering の代替）
   {
-    url: "https://www.eurekalert.org/rss/technology_engineering.xml",
-    source: "EurekAlert",
+    url: "https://techxplore.com/rss-feed/",
+    source: "TechXplore",
     category: "it_ai",
   },
-  // EurekAlert! 医学・健康
+  // Medical Xpress（Phys.org姉妹サイト、旧EurekAlert medical の代替）
   {
-    url: "https://www.eurekalert.org/rss/medical.xml",
-    source: "EurekAlert",
+    url: "https://medicalxpress.com/rss-feed/",
+    source: "Medical Xpress",
     category: "medicine",
   },
   // Space.com 宇宙ニュース
+  // 2026-09-22時点: URL自体はspace.com公式サイトの<link rel="alternate">タグが
+  // 今も案内している正しいフィードだが、フィード自体が空(<title>Latest from
+  // null</title>、item 0件)を返す状態を確認。Space.com側のサイト不具合と
+  // 思われ、他の代替パス(/feeds/all/news 等)も同様に空だったため、URLは
+  // そのまま維持し、復旧を待つ形で残す(★要継続監視、他に生きている
+  // 同等の宇宙ニュース専門フィードが見つからなかったため除外はしていない)。
   {
     url: "https://www.space.com/feeds/all",
     source: "Space.com",
@@ -73,18 +84,19 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
   },
 
   // ── 追加：日本の科学機関（研究成果プレスリリース）────────────────────────
-  // 理化学研究所 (RIKEN)
-  {
-    url: "https://www.riken.jp/medialibrary/riken/pr/news/rss.xml",
-    source: "RIKEN",
-    category: "biology",
-  },
-  // 国立天文台 (NAOJ)
-  {
-    url: "https://www.nao.ac.jp/rss-news.xml",
-    source: "国立天文台",
-    category: "astronomy",
-  },
+  // 理化学研究所 (RIKEN) — 2026-09-22時点でURL自体が404。サイト内・ホームページ
+  // いずれにもRSS配信の案内(<link rel="alternate" type=".../+xml">)が見当たらず、
+  // 代替の公式RSS URLも見つからなかったため、一旦リストから除外した(★申し送り:
+  // RIKENは日本語の研究プレスリリースを配信する唯一のソースだったため、復旧時は
+  // 再度公式サイトを確認のこと。RSS自体を廃止した可能性が高い)。
+  //
+  // 国立天文台 (NAOJ) — 2026-09-22時点で旧URL(rss-news.xml)は404。公式サイトは
+  // 現在Atom形式(https://www.nao.ac.jp/atom.xml、20件確認)のみ配信しており、
+  // このファイルのparseFeed()は<item>タグ(RSS 2.0)のみを解釈するため、Atom形式の
+  // <entry>タグには対応していない。URLを差し替えるだけではitem 0件のままになる
+  // ため、今回は除外した(★申し送り: Atom形式のパース対応(<entry>/<summary>/
+  // <link href="...">等の解釈追加)を行えば復旧可能。日本語の天文ニュースソースが
+  // 手薄になるため、対応の優先度は高めに検討する価値がある)。
 
   // ── 追加：高品質英語メディア（無料・APIキー不要）────────────────────────
   // Quanta Magazine（数学・物理・生物を最高品質で解説）
@@ -106,21 +118,29 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
     category: "it_ai",
   },
   // NSF News（米国国立科学財団、政府機関・完全無料）
+  // 旧URL(new.nsf.gov/feeds/news)は2026-09-22時点で404(NSFがドメイン・パス構成を
+  // 変更したため)。公式サイトの<link rel="alternate">が案内する新URLに差し替え済み
+  // (実際にfetchして15件取得できることを確認)。
   {
-    url: "https://new.nsf.gov/feeds/news",
+    url: "https://www.nsf.gov/rss/rss_www_news.xml",
     source: "NSF",
     category: "general",
   },
   // CERN News（素粒子物理学・加速器実験）
+  // 旧URL(home.cern/news/rss.xml)は2026-09-22時点で404。公式サイトの
+  // <link rel="alternate">が案内する新URL(WordPress標準のfeed URL)に差し替え済み
+  // (実際にfetchして10件取得できることを確認)。
   {
-    url: "https://home.cern/news/rss.xml",
+    url: "https://home.cern/feed/",
     source: "CERN",
     category: "physics",
   },
-  // ScienceAlert（人気科学ニュース、平易な解説）
+  // ScienceAlert は2026-09-22時点でUser-Agentによらず常時403(Bot対策によるブロック
+  // と思われ、URL変更では復旧不可)。同じく「平易な解説の人気科学ニュース」という
+  // 趣旨が近く、実際にfetchしてitem取得を確認できたPopular Scienceに差し替えた。
   {
-    url: "https://www.sciencealert.com/feed",
-    source: "ScienceAlert",
+    url: "https://www.popsci.com/feed/",
+    source: "Popular Science",
     category: "general",
   },
   // Smithsonian Magazine Science & Nature
