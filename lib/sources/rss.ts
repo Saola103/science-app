@@ -161,6 +161,40 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
     source: "New Atlas",
     category: "it_ai",
   },
+
+  // ── 追加：手薄な分野を埋める新規収集元（Col調査 2026-09-22、Devが再fetchして
+  // 動作を二重確認済み。Mongabay Newsはライセンス上の懸念(CC BY-ND=改変不可が
+  // AI日本語要約と抵触する可能性、Leg確認待ち)のため今回は含めていない）───────
+  // Phys.org Chemistry News（化学。既存フィードにはchemistry専門ソースが0件だった）
+  {
+    url: "https://phys.org/rss-feed/chemistry-news/",
+    source: "Phys.org",
+    category: "chemistry",
+  },
+  // Phys.org Earth Science News（地球科学・環境。既存フィードは天文寄りで手薄だった）
+  {
+    url: "https://phys.org/rss-feed/earth-news/",
+    source: "Phys.org",
+    category: "climate",
+  },
+  // Neuroscience News（神経科学。既存フィードには専門ソースが0件だった）
+  {
+    url: "https://neurosciencenews.com/feed/",
+    source: "Neuroscience News",
+    category: "neuroscience",
+  },
+  // PsyPost（心理学。既存フィードには専門ソースが0件だった）
+  {
+    url: "https://www.psypost.org/feed/",
+    source: "PsyPost",
+    category: "psychology",
+  },
+  // Universe Today（天文。既存4件と切り口が異なる学術寄りの天文ニュース）
+  {
+    url: "https://www.universetoday.com/feed/",
+    source: "Universe Today",
+    category: "astronomy",
+  },
 ];
 
 /** Deterministic ID from URL */
