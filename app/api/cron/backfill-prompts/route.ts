@@ -53,7 +53,14 @@ const DAILY_CAP = 200_000; // Groq tokens/day, confirmed live via 429 (see lib/l
 const SAFETY_BUFFER = 15_000; // headroom below the hard cap for estimation error
 const STATIC_RESERVE_FALLBACK = 150_000; // assumed collection usage when the live counter is unavailable
 const TOKENS_PER_PAPER_ESTIMATE = 3_200; // measured avg casual+expert combined, rounded up slightly
-const MAX_PAPERS_PER_RUN = 30; // hard cap independent of budget, to stay well within maxDuration=300s
+// Hard cap independent of budget, to stay well within maxDuration=300s.
+// A live production run (2026-09-22) measured ~16s/paper end-to-end
+// (2 sequential Groq calls + delays + Supabase writes); 30 was too
+// optimistic and hit FUNCTION_INVOCATION_TIMEOUT after ~20 papers
+// (partial progress was still saved — Supabase writes happen per-paper
+// inside the loop — but the run never got to return a response). 12 papers
+// x ~16-20s leaves a comfortable margin under 300s.
+const MAX_PAPERS_PER_RUN = 12;
 
 // Papers with summary_updated_at before this are pre-prompt-rewrite
 // stragglers (existing rows were backdated to 'epoch' by the migration;
