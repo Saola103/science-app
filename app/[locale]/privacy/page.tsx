@@ -20,7 +20,7 @@ export default function PrivacyPage() {
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">2. {t("個人情報の収集", "Data Collection")}</h2>
-                    <p>{t("本サービスはアカウント登録・ログイン機能を提供していません。保存記事・閲覧履歴・連続記録などはお使いのブラウザのローカルストレージ内にのみ保存され、サーバー側で個人を識別できる情報として保持することはありません。お問い合わせフォーム（/contact）をご利用いただいた場合に限り、返信のためにメールアドレス・お問い合わせ内容を取得します。", "This service has no account registration or login. Saved articles, view history, and streaks are stored only in your browser's local storage and are not retained server-side in a form that identifies you. If you use the contact form (/contact), we collect your email address and message only to reply to your inquiry.")}</p>
+                    <p>{t("本サービスはアカウント登録・ログイン機能を提供していません。保存記事・閲覧履歴・連続記録などはお使いのブラウザのローカルストレージ内にのみ保存され、サーバー側で個人を識別できる情報として保持することはありません。お問い合わせフォームは設けておらず、フォーム経由での個人情報の取得も行っていません。", "This service has no account registration or login. Saved articles, view history, and streaks are stored only in your browser's local storage and are not retained server-side in a form that identifies you. We do not operate a contact form and do not collect personal information through one.")}</p>
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">3. {t("クッキー・ローカルストレージ", "Cookies and local storage")}</h2>

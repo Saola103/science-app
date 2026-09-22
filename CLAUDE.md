@@ -10,7 +10,7 @@ TikTok スタイルの縦スクロールで最新科学論文・ニュースを�
 - `lib/sources/` — 各データソース（arxiv, biorxiv, news/rss, pubmed）のフェッチャー。PubMed は著作権リスクのため収集パイプラインからは除外済み（コメント参照）。
 - `lib/llm/` — Groq / Gemini 呼び出しのラッパーと要約プロンプト。
 - `lib/supabase/` — クライアント（anon key）とサーバー用クライアント（service role key）。RLS ポリシーは `supabase/migrations/`。
-- `components/FeedCard.tsx` ほか — フィードUI。`stripMarkdown` 系関数は LLM 出力から Markdown 記法を除去してカードに表示するための処理。
+- `app/[locale]/feedapp/` + `components/proto/` — 現行のフィードUI（旧 `components/FeedCard.tsx` ベースの `/feed` ルートは削除済み）。`lib/format/summaryText.ts` 等の `stripMarkdown` 系関数は LLM 出力から Markdown 記法を除去してカードに表示するための処理。
 
 ## 開発コマンド
 
@@ -30,7 +30,7 @@ npm run lint
 
 ## 運用上の制約
 
-- Groq 無料枠は 1日 100k トークン。`lib/pipeline/collect.ts` の `PAPERS_PER_CATEGORY` はこの上限内に収まるよう調整してあるので、収集件数を増やす変更をするときは冒頭のコメントの計算式を更新しながら判断する。
+- Groq 無料枠は分あたり8,000トークン（TPM）・1日あたり200,000トークン（TPD）の両方が上限（`lib/llm/index.ts`のコメント参照、429レスポンスで実測確認済み。旧「1日100kトークン」という記載は誤りだったため訂正）。`lib/pipeline/collect.ts` の `PAPERS_PER_CATEGORY` はこの上限内に収まるよう調整してあるので、収集件数を増やす変更をするときは冒頭のコメントの計算式を更新しながら判断する。
 - `next.config.ts` で `typescript.ignoreBuildErrors: true` になっている（Vercel デプロイ都合の暫定対応）。型エラーを握りつぶす設定なので、新規実装では型チェックを別途 `tsc --noEmit` 等で確認するのが安全。
 - `.claude/settings.local.json` はローカル専用（gitignore 済み）。共有したい設定は `.claude/settings.json` を新設する。
 

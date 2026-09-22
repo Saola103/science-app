@@ -38,10 +38,6 @@ export default function TermsPage() {
                     <h2 className="text-xl font-bold text-foreground">6. {t("サービスの変更・中断・終了", "Changes, suspension, or termination of the service")}</h2>
                     <p>{t("本サービスは個人開発・非営利で運営されているため、予告なく内容を変更、または提供を中断・終了する場合があります。", "As this service is run individually and non-profit, its content may be changed, suspended, or discontinued without prior notice.")}</p>
                 </section>
-                <section>
-                    <h2 className="text-xl font-bold text-foreground">7. {t("お問い合わせ", "Contact")}</h2>
-                    <p>{t("本規約に関するお問い合わせは、お問い合わせページ（/contact）よりご連絡ください。", "For questions about these terms, please contact us via the contact page (/contact).")}</p>
-                </section>
             </div>
         </div>
     );

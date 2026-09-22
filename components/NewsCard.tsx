@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { useLanguage } from "./LanguageProvider";
-import Image from "next/image";
+// A plain <img>, not next/image: image_url comes from whichever of the ~20+
+// RSS feeds in lib/sources/rss.ts an article was collected from, so the
+// domain is arbitrary and unpredictable ahead of time. next/image's remote
+// optimization requires every source domain to be allowlisted in
+// next.config.ts's images.remotePatterns, which doesn't scale to "any RSS
+// feed we might add"; a plain <img> just renders whatever URL it's given.
 
 export type NewsCardData = {
     id: string;
@@ -42,11 +47,12 @@ export function NewsCard({ news }: { news: NewsCardData }) {
                 onClick={() => setIsExpanded(!isExpanded)}
             >
                 {news.image_url ? (
-                    <Image
+                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary external RSS domain, see import comment above
+                    <img
                         src={news.image_url}
                         alt={news.title}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-700"
+                        loading="lazy"
+                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                     />
                 ) : (
                     <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">

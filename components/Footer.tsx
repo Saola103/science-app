@@ -56,22 +56,8 @@ export function Footer() {
                         <li><Link href="/feedapp/feed" className="text-slate-400 hover:text-sky-600 transition-colors">{t("feed")}</Link></li>
                         <li><Link href="/search" className="text-slate-400 hover:text-sky-600 transition-colors">{t("search")}</Link></li>
                         <li><Link href="/about" className="text-slate-400 hover:text-sky-600 transition-colors">{t("about")}</Link></li>
-                        <li><Link href="/contact" className="text-slate-400 hover:text-sky-600 transition-colors">{t("contact")}</Link></li>
                         <li><Link href="/newsletter" className="text-slate-400 hover:text-sky-600 transition-colors">{t("newsletter")}</Link></li>
                     </ul>
-                </div>
-
-                {/* Contact Box */}
-                <div className="space-y-6">
-                    <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">{t("contact")}</h3>
-                    <div className="space-y-4 font-bold text-sm text-slate-500">
-                        <Link href="/contact" className="block hover:text-sky-600 transition-colors">
-                            contact@pocket-dive.app
-                        </Link>
-                        <p className="text-xs leading-relaxed text-slate-400 italic">
-                            {t("footerContactDesc")}
-                        </p>
-                    </div>
                 </div>
             </div>
 

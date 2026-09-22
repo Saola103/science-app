@@ -22,7 +22,6 @@ export function Header() {
         { name: t("feed"), href: "/feedapp/feed" },
         { name: t("search"), href: "/search" },
         { name: t("about"), href: "/about" },
-        { name: t("contact"), href: "/contact" },
     ];
 
     const languages = [

@@ -7,9 +7,8 @@ import { Loader2, Lock, Calendar } from "lucide-react";
 // Note: the "Inquiries" tab that used to live here (backed by
 // app/api/admin/inquiries) has been removed — it read from an `inquiries`
 // table that was never created by a migration, so the feature was broken
-// from the start. The public-facing /contact form still exists but its
-// submissions currently have nowhere to land server-side; that's a
-// separate, pre-existing issue out of scope for this cleanup.
+// from the start. The public-facing /contact form (which wrote to the same
+// nonexistent table) has since been removed entirely rather than fixed.
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
