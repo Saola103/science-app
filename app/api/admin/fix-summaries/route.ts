@@ -107,6 +107,7 @@ export async function GET(req: NextRequest) {
             summary_general: generalSummary,
             summary_expert: expertSummary,
             summary: generalSummary,
+            summary_updated_at: new Date().toISOString(),
           })
           .eq("id", paper.id);
 

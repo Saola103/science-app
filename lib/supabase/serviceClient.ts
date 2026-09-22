@@ -83,6 +83,11 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
     summary_embedding: (input.summaryEmbedding && input.summaryEmbedding.length > 0) ? input.summaryEmbedding : null,
     image_url: input.imageUrl ?? null,
     category: input.category ?? null,
+    // Stamps every insert/update with "now" so newly-collected papers (which
+    // already use the current prompt) aren't mistaken for pre-2026-09-22
+    // stragglers by cron/backfill-prompts. See
+    // supabase/migrations/007_papers_summary_updated_at.sql.
+    summary_updated_at: new Date().toISOString(),
   };
 
   const { error } = await supabase

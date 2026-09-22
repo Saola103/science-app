@@ -1,4 +1,5 @@
 import Groq from "groq-sdk";
+import { recordGroqUsage } from "./dailyUsage";
 
 // llama-3.3-70b-versatile was decommissioned by Groq (Aug 2026). gpt-oss-120b is
 // the closest replacement in quality. Groq enforces BOTH an 8000 tokens/min
@@ -61,6 +62,10 @@ export async function generateText(prompt: string, temperature = 0.7): Promise<s
         max_tokens: maxTokens,
         reasoning_effort: "low",
       });
+      // Fire-and-forget: record actual usage (falls back to the completion
+      // cap if Groq didn't return a usage block) so cron/backfill-prompts
+      // can see today's real cross-invocation total. See lib/llm/dailyUsage.ts.
+      recordGroqUsage(result.usage?.total_tokens ?? maxTokens);
       return result.choices[0]?.message?.content || "";
     } catch (err) {
       const isRateLimit = err instanceof Groq.APIError && err.status === 429;

@@ -84,7 +84,12 @@ export async function GET(req: NextRequest) {
 
           const { error: updateError } = await supabase
             .from("papers")
-            .update({ summary_general: generalSummary, summary_expert: expertSummary, summary: generalSummary })
+            .update({
+              summary_general: generalSummary,
+              summary_expert: expertSummary,
+              summary: generalSummary,
+              summary_updated_at: new Date().toISOString(),
+            })
             .eq("id", paper.id);
 
           if (updateError) {
