@@ -39,6 +39,19 @@
  * failure — NOT the same as "0 used today", see dailyUsage.ts), this
  * falls back to STATIC_RESERVE_FALLBACK, a deliberately conservative
  * assumption that collection already used most of the day's budget.
+ *
+ * FREQUENCY (owner-approved, 2026-09-22): cron/collect is temporarily
+ * paused (see app/api/cron/collect/route.ts) until 2026-09-25 JST to let
+ * this backfill burn through the backlog faster — vercel.json now calls
+ * this route every 30 minutes instead of once/day. The per-run budget
+ * math above/below still applies each time (Groq's real 8,000 TPM limit
+ * is the actual bottleneck, not how often this route is invoked — a
+ * 30-minute cadence just means less budget sits idle between runs).
+ * AUTO_THROTTLE_AFTER below reverts this route to its original ~once/day
+ * behavior automatically once collection resumes, without needing a
+ * second vercel.json edit: whether the schedule should *stay* frequent
+ * after that point hasn't been decided yet, so this errs toward the
+ * previously-agreed cadence rather than assuming.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -67,6 +80,14 @@ const MAX_PAPERS_PER_RUN = 12;
 // this cutoff is a belt-and-suspenders check in case that ever changes).
 const PROMPT_REWRITE_CUTOFF = "2026-09-22T00:00:00Z";
 
+// Matches cron/collect's COLLECTION_PAUSED_UNTIL: 2026-09-25 00:00 JST.
+const COLLECTION_RESUMES_AT = new Date("2026-09-24T15:00:00Z");
+// The hour (UTC) this route used to run at when it was once/day — reused
+// as the "still allowed to do real work" slot once AUTO_THROTTLE kicks in,
+// so behavior after collection resumes matches the original schedule even
+// though Vercel keeps calling this route every 30 minutes.
+const ORIGINAL_DAILY_HOUR_UTC = 23;
+
 function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -74,6 +95,20 @@ function delay(ms: number) {
 export async function GET(req: NextRequest) {
   if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  // Once collection has resumed, only do real work in the hour slot this
+  // route originally ran in — the other ~47 invocations/day (every 30 min)
+  // become cheap no-ops rather than needing a second vercel.json change to
+  // revert the schedule. See the FREQUENCY note in the file header.
+  const now = new Date();
+  const isOriginalDailySlot = now.getUTCHours() === ORIGINAL_DAILY_HOUR_UTC && now.getUTCMinutes() < 30;
+  if (now >= COLLECTION_RESUMES_AT && !isOriginalDailySlot) {
+    return NextResponse.json({
+      success: true,
+      skipped: `throttled back to once/day now that collection has resumed (only runs in the ${ORIGINAL_DAILY_HOUR_UTC}:00 UTC slot)`,
+      timestamp: now.toISOString(),
+    });
   }
 
   const supabase = getSupabaseServerClient();
