@@ -42,16 +42,26 @@
  *
  * FREQUENCY (owner-approved, 2026-09-22): cron/collect is temporarily
  * paused (see app/api/cron/collect/route.ts) until 2026-09-25 JST to let
- * this backfill burn through the backlog faster — vercel.json now calls
- * this route every 30 minutes instead of once/day. The per-run budget
- * math above/below still applies each time (Groq's real 8,000 TPM limit
- * is the actual bottleneck, not how often this route is invoked — a
- * 30-minute cadence just means less budget sits idle between runs).
- * AUTO_THROTTLE_AFTER below reverts this route to its original ~once/day
- * behavior automatically once collection resumes, without needing a
- * second vercel.json edit: whether the schedule should *stay* frequent
- * after that point hasn't been decided yet, so this errs toward the
- * previously-agreed cadence rather than assuming.
+ * this backfill burn through the backlog faster. The plan was to call this
+ * route every 30 minutes via vercel.json — that deployment (commit
+ * 2322fa2) actually FAILED: this project is on Vercel's Hobby plan, which
+ * only supports daily-or-less-frequent native Cron Job schedules (Vercel's
+ * own failure link pointed straight at
+ * https://vercel.com/docs/cron-jobs/usage-and-pricing). vercel.json is back
+ * to the original "0 23 * * *" (once/day) entry, and the actual
+ * every-30-minutes trigger now comes from
+ * .github/workflows/backfill-prompts-frequent.yml — a GitHub Actions
+ * schedule calling this route's URL directly, which doesn't touch Vercel's
+ * cron config or its plan limits at all. The per-run budget math
+ * above/below still applies each time regardless of which scheduler is
+ * calling it (Groq's real 8,000 TPM limit is the actual bottleneck, not how
+ * often this route is invoked — a 30-minute cadence just means less budget
+ * sits idle between calls). The ORIGINAL_DAILY_HOUR_UTC throttle below
+ * reverts this route to ~once/day behavior automatically once collection
+ * resumes, regardless of how often something is still calling it —
+ * whether to keep the GitHub Actions workflow running after that point
+ * hasn't been decided yet, so this errs toward the previously-agreed
+ * cadence rather than assuming.
  */
 
 import { NextRequest, NextResponse } from "next/server";

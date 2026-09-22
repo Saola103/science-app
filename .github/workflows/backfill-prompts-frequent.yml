@@ -1,0 +1,51 @@
+name: Frequent backfill-prompts trigger
+
+# Vercel's native `crons` in vercel.json can't run more often than once/day
+# on the Hobby plan this project is on — confirmed by an actual failed
+# deployment (2026-09-22, commit 2322fa2: the schedule "*/30 * * * *" made
+# the whole Vercel deployment fail, with the failure link pointing to
+# https://vercel.com/docs/cron-jobs/usage-and-pricing). This workflow is the
+# workaround: GitHub Actions' own scheduler calls the already-deployed
+# endpoint every 30 minutes instead. It doesn't touch vercel.json or Vercel's
+# cron config at all — just an authenticated HTTP request from CI.
+#
+# The route itself (app/api/cron/backfill-prompts/route.ts) already knows
+# how to behave safely at this frequency: it reads the shared
+# groq_daily_usage counter on every call and stops doing real work once the
+# day's budget is used up, and self-throttles back down to ~once/day once
+# collection resumes (see COLLECTION_RESUMES_AT / ORIGINAL_DAILY_HOUR_UTC in
+# that file) — so this workflow can be left running indefinitely without
+# needing a second change here later, even though whether to *keep* the
+# higher frequency after that point is still an open decision (see that
+# file's FREQUENCY comment).
+#
+# SETUP REQUIRED before this actually does anything useful: add a
+# repository secret named CRON_SECRET with the same value as the Vercel
+# project's CRON_SECRET env var (Settings > Secrets and variables > Actions
+# on GitHub). Without it, every run below gets a 401 from the endpoint —
+# harmless (no data is touched), but also does nothing.
+#
+# Known caveat: GitHub disables scheduled workflows automatically after 60
+# days with no repository activity (commits/pushes) — a `workflow_dispatch`
+# push re-enables it. Not a concern for an actively-developed repo, but
+# worth knowing if this ever goes quiet for a couple of months.
+# GitHub also doesn't guarantee schedules run exactly on time under load
+# ("at most every 5 minutes" is the stated floor); this is fine here since
+# the route itself is idempotent-safe to call more or less often than
+# planned.
+
+on:
+  schedule:
+    - cron: "*/30 * * * *"
+  workflow_dispatch: # manual trigger for testing
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call backfill-prompts
+        run: |
+          curl -sS -f -w "\nHTTP %{http_code}\n" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            --max-time 280 \
+            https://pocketdive.vercel.app/api/cron/backfill-prompts
