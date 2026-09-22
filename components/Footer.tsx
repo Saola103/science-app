@@ -2,6 +2,9 @@ import { useTranslations } from 'next-intl';
 import { Link } from '../i18n/routing';
 import Image from "next/image";
 
+// Note: currently unused (no route imports this component). Kept around and
+// its dead-route links cleaned up in case it's revived later, rather than
+// left to silently rot with links to pages that no longer exist.
 export function Footer() {
     const t = useTranslations('Common');
 
@@ -50,8 +53,7 @@ export function Footer() {
                     <h3 className="text-xs font-black tracking-[0.2em] text-slate-900 uppercase italic border-b border-slate-100 pb-2">{t("footerMenu")}</h3>
                     <ul className="space-y-4 text-[11px] font-black tracking-widest uppercase">
                         <li><Link href="/" className="text-slate-400 hover:text-sky-600 transition-colors">{t("home")}</Link></li>
-                        <li><Link href="/news" className="text-slate-400 hover:text-sky-600 transition-colors">{t("news")}</Link></li>
-                        <li><Link href="/papers" className="text-slate-400 hover:text-sky-600 transition-colors">{t("papers")}</Link></li>
+                        <li><Link href="/feedapp/feed" className="text-slate-400 hover:text-sky-600 transition-colors">{t("feed")}</Link></li>
                         <li><Link href="/search" className="text-slate-400 hover:text-sky-600 transition-colors">{t("search")}</Link></li>
                         <li><Link href="/about" className="text-slate-400 hover:text-sky-600 transition-colors">{t("about")}</Link></li>
                         <li><Link href="/contact" className="text-slate-400 hover:text-sky-600 transition-colors">{t("contact")}</Link></li>

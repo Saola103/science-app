@@ -114,7 +114,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
           </h1>
         </div>
         <button
-          onClick={() => router.push(`/${locale}/profile`)}
+          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
           className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -128,7 +128,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
       {(streak > 0 || todayCount > 0) && (
         <div
           className="mx-5 mb-5 bg-gradient-to-r from-orange-900/50 to-amber-900/40 border border-orange-500/20 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-orange-500/40 transition-colors"
-          onClick={() => router.push(`/${locale}/profile`)}
+          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
         >
           <span className="text-2xl">🔥</span>
           <div className="flex-1">
@@ -154,7 +154,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
       {/* ── MAIN CTA ── */}
       <div className="px-5 mb-6">
         <button
-          onClick={() => router.push(`/${locale}/feed`)}
+          onClick={() => router.push(`/${locale}/feedapp/feed`)}
           className="w-full rounded-3xl bg-gradient-to-br from-sky-500 via-indigo-600 to-violet-700 p-6 flex flex-col gap-3 relative overflow-hidden active:scale-[0.98] transition-transform shadow-2xl shadow-sky-900/50 group"
         >
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -translate-y-10 translate-x-10 pointer-events-none" />
@@ -190,7 +190,10 @@ export function HomeContent({ papers, news }: HomeContentProps) {
           {CATEGORY_TILES.map((cat) => (
             <button
               key={cat.key}
-              onClick={() => router.push(`/${locale}/feed?category=${cat.key}`)}
+              // feedapp/feed doesn't read a ?category= query param (filtering is
+              // done client-side via followed categories / local state), so this
+              // just opens the feed rather than pretending to pre-filter it.
+              onClick={() => router.push(`/${locale}/feedapp/feed`)}
               className={`rounded-2xl bg-gradient-to-b ${cat.gradient} p-3 flex flex-col items-center gap-1.5 active:scale-95 transition-transform hover:opacity-90 border border-white/5`}
             >
               <span className="text-2xl">{cat.emoji}</span>
@@ -209,7 +212,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
               <h2 className="text-[11px] font-black tracking-widest text-white/50 uppercase">新着論文</h2>
             </div>
             <button
-              onClick={() => router.push(`/${locale}/feed`)}
+              onClick={() => router.push(`/${locale}/feedapp/feed`)}
               className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1 hover:text-sky-300 transition-colors"
             >
               もっと見る <ArrowRight className="w-3 h-3" />
@@ -243,7 +246,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
         </button>
 
         <button
-          onClick={() => router.push(`/${locale}/profile`)}
+          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
           className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col gap-3 text-left active:bg-white/10 transition-colors hover:border-white/20"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

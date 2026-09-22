@@ -54,9 +54,11 @@ export async function GET(req: NextRequest) {
     const cursor = searchParams.get("cursor"); // ISO timestamp for pagination
     // 20 -> 60: app/[locale]/feedapp fetches larger batches (for client-side
     // personalization weighting and to keep infinite scroll from re-hitting
-    // the API too often) than the original 10-20/page /feed route did.
-    // Existing callers (app/[locale]/feed, /search, /profile) all pass
-    // limit<=20 explicitly, so this is additive — their behavior is unchanged.
+    // the API too often) than the original 10-20/page /feed route did (that
+    // route, along with /papers, /news, /login, /profile, /proto, has since
+    // been removed — /feedapp is now the only shipped feed UI). Remaining
+    // callers (app/[locale]/page.tsx's HomeContent, /search) pass limit<=20
+    // explicitly, so this is additive — their behavior is unchanged.
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 60);
     const preferencesStr = searchParams.get("preferences");
     const categoryFilter = searchParams.get("category"); // optional category filter

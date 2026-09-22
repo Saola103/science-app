@@ -20,15 +20,15 @@ export default function LegalPage() {
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">{t("販売価格", "Price")}</td>
-                            <td className="py-4">{t("基本無料（将来的に有料プランの可能性あり）", "Free (Potential paid plans in the future)")}</td>
+                            <td className="py-4">{t("無料（非営利の教育目的サービスとして運営しており、基本無料を継続する方針です）", "Free (operated as a non-profit, educational service; we intend to keep it free)")}</td>
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">{t("引き渡し時期", "Delivery")}</td>
-                            <td className="py-4">{t("登録完了後、即時利用可能", "Immediate after registration")}</td>
+                            <td className="py-4">{t("アカウント登録・ログイン機能はなく、サイトにアクセス後すぐにご利用いただけます。", "There is no account registration or login — the service is available immediately upon accessing the site.")}</td>
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">{t("キャンセル・返品", "Cancellation")}</td>
-                            <td className="py-4">{t("デジタルコンテンツの特性上、返品は不可。退会は随時可能。", "No returns due to digital nature. Cancellation anytime.")}</td>
+                            <td className="py-4">{t("デジタルコンテンツの特性上、返品は不可。アカウント登録自体がないため退会の手続きは不要で、ブラウザでの利用をやめることでいつでも利用を終了できます。", "No returns due to the nature of digital content. As there is no account registration, no cancellation procedure is required — you may simply stop using the service in your browser at any time.")}</td>
                         </tr>
                     </tbody>
                 </table>

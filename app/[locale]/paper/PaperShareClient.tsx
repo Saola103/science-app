@@ -81,7 +81,7 @@ export default function PaperShareClient({ paper, locale }: { paper: Paper; loca
     ? new Date(paper.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })
     : "";
 
-  const appUrl = `/${locale}/feed`;
+  const appUrl = `/${locale}/feedapp/feed`;
 
   return (
     <div className={`min-h-screen bg-gradient-to-b ${gradient} flex flex-col`}>

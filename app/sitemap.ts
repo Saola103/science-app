@@ -23,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 1.0,
     },
     {
-      url: `${BASE_URL}/ja/feed`,
+      url: `${BASE_URL}/ja/feedapp/feed`,
       lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.9,

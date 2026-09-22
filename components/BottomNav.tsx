@@ -59,11 +59,15 @@ export function BottomNav() {
   // /proto/* and /feedapp/* ship their own header + bottom nav (UI prototypes, separate from the shipped app chrome).
   if (pathname?.includes('/proto') || pathname?.includes('/feedapp')) return null;
 
+  // "フィード"・"マイページ" now point into /feedapp (the current version); that
+  // route ships its own header/bottom nav and is excluded above, so these two
+  // items only ever act as entry points from the pages this nav still renders
+  // on (home, /paper, /search, /about, /contact, /privacy, /terms, /legal).
   const items = [
-    { label: 'ホーム',    href: `/${locale}`,          icon: HomeIcon,    match: (p: string) => p === `/${locale}` || p === '/' },
-    { label: 'フィード',  href: `/${locale}/feed`,      icon: FeedIcon,    match: (p: string) => p.includes('/feed') },
-    { label: '検索',      href: `/${locale}/search`,    icon: SearchIcon,  match: (p: string) => p.includes('/search') },
-    { label: 'マイページ',href: `/${locale}/profile`,   icon: ProfileIcon, match: (p: string) => p.includes('/profile') || p.includes('/login') },
+    { label: 'ホーム',    href: `/${locale}`,               icon: HomeIcon,    match: (p: string) => p === `/${locale}` || p === '/' },
+    { label: 'フィード',  href: `/${locale}/feedapp/feed`,   icon: FeedIcon,    match: (p: string) => p.includes('/feedapp') },
+    { label: '検索',      href: `/${locale}/search`,         icon: SearchIcon,  match: (p: string) => p.includes('/search') },
+    { label: 'マイページ',href: `/${locale}/feedapp/mypage`, icon: ProfileIcon, match: (p: string) => p.includes('/feedapp/mypage') },
   ];
 
   return (

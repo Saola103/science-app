@@ -1,12 +1,14 @@
 'use client';
 import { useTranslations, useLocale } from 'next-intl';
 import { Link, usePathname, useRouter } from '../i18n/routing';
-import { useState, useEffect } from "react";
-import { getSupabaseClient } from "../lib/supabase/client";
-import { User } from "@supabase/supabase-js";
+import { useState } from "react";
 import Image from "next/image";
 import { Globe, ChevronDown } from "lucide-react";
 
+// Note: currently unused (no route imports this component — the shipped app
+// chrome is BottomNav.tsx + /feedapp's own ProtoHeader). Kept around and its
+// dead-route links cleaned up in case it's revived later, rather than left to
+// silently rot with links to pages that no longer exist.
 export function Header() {
     const t = useTranslations('Common');
     const pathname = usePathname();
@@ -14,26 +16,10 @@ export function Header() {
     const locale = useLocale();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [isLangOpen, setIsLangOpen] = useState(false);
-    const [user, setUser] = useState<User | null>(null);
-
-    useEffect(() => {
-        const supabase = getSupabaseClient();
-        supabase.auth.getUser().then(({ data: { user } }) => {
-            setUser(user);
-        });
-
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-            setUser(session?.user ?? null);
-        });
-
-        return () => subscription.unsubscribe();
-    }, []);
 
     const navItems = [
         { name: t("home"), href: "/" },
-        { name: t("feed"), href: "/feed" },
-        { name: t("news"), href: "/news" },
-        { name: t("papers"), href: "/papers" },
+        { name: t("feed"), href: "/feedapp/feed" },
         { name: t("search"), href: "/search" },
         { name: t("about"), href: "/about" },
         { name: t("contact"), href: "/contact" },
@@ -106,17 +92,12 @@ export function Header() {
                 {/* Right: Actions */}
                 <div className="flex-1 flex justify-end items-center gap-4 md:gap-6">
 
-                    {user ? (
-                        <Link href="/profile" className="flex items-center gap-2 px-2 md:px-3 py-1 md:py-1.5 border border-slate-100 rounded-lg text-slate-600 hover:bg-slate-50 transition-all">
-                            <div className="w-4 h-4 md:w-5 md:h-5 rounded-full bg-sky-500 flex items-center justify-center text-[7px] md:text-[8px] font-bold text-white uppercase italic">
-                                {user.email?.[0]}
-                            </div>
-                        </Link>
-                    ) : (
-                        <Link href="/login" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10 whitespace-nowrap">
-                            {t("login")}
-                        </Link>
-                    )}
+                    {/* Login was removed — the app is accountless (localStorage-only
+                        saves/streak), so this links straight into the feed instead
+                        of an auth flow. */}
+                    <Link href="/feedapp/feed" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10 whitespace-nowrap">
+                        {t("feed")}
+                    </Link>
 
                     {/* Language Selector Dropdown */}
                     <div className="relative">
