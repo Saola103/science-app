@@ -14,7 +14,7 @@
     },
     {
       "path": "/api/cron/backfill-prompts",
-      "schedule": "*/30 * * * *"
+      "schedule": "0 23 * * *"
     }
   ]
 }
