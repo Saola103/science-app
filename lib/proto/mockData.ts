@@ -2,20 +2,34 @@ import { Article, Topic } from "./types";
 
 // The original prototype shipped with 5 categories, all present in the fixed
 // mock ARTICLES set below. app/[locale]/feedapp now runs on real collected
-// data (lib/pipeline/collect.ts), whose category field only ever takes one of
-// a handful of English values (see extractCategory() in collect.ts and
-// RSS_FEEDS in lib/sources/rss.ts: physics, biology, it_ai, medicine,
-// astronomy, chemistry, environment, mathematics, other, general — no
-// "neuroscience" value exists in the pipeline's own category vocabulary).
-// The 5 extra categories below (医学/情報学/環境科学/数学/その他) exist so
-// real items land in an honest, specific bucket instead of an "other" catch-all.
-// 神経科学 stays populated via mapDbCategoryToTaxonomy()'s keyword heuristic
-// below rather than being permanently empty. Purely additive — the original 5
-// keys are unchanged, so app/[locale]/proto (mock-data prototype, out of
-// scope) still renders exactly as before.
+// data (lib/pipeline/collect.ts / lib/sources/rss.ts), whose category field
+// only ever takes one of a handful of English values — see
+// extractCategory() in collect.ts (papers: physics, biology, it_ai,
+// medicine, astronomy, chemistry, environment, mathematics, other) and
+// RSS_FEEDS in lib/sources/rss.ts (news: the same set plus general,
+// climate, neuroscience, psychology — RSS news items are saved with their
+// RSS_FEEDS category as-is, not run through extractCategory(), so this is a
+// genuinely separate vocabulary; see DB_CATEGORY_TO_TAXONOMY below, which
+// must cover the union of both).
+// The extra categories below (医学/情報学/環境科学/数学/心理学/その他) exist
+// so real items land in an honest, specific bucket instead of an "other"
+// catch-all. 神経科学 is populated both directly (RSS "neuroscience") and via
+// mapDbCategoryToTaxonomy()'s keyword heuristic below (for biology/medicine
+// papers that are neuroscience in substance but not in the pipeline's own
+// category vocabulary). Purely additive — the original 5 keys are unchanged,
+// so app/[locale]/proto (mock-data prototype, out of scope) still renders
+// exactly as before.
+// 心理学 added 2026-09-23: lib/sources/rss.ts's RSS_FEEDS assigns
+// category: "psychology" to some feeds (e.g. Psychology-related outlets),
+// which was previously falling through mapDbCategoryToTaxonomy()'s "other"
+// fallback below because no 心理学 taxonomy entry existed at all — see the
+// bug writeup in 30_組織/memory/kno_briefing.md "2026-09-23 POCKET DIVE
+// バグ修正3件". Distinct from 神経科学 in the underlying RSS/DB vocabulary,
+// so it gets its own taxonomy slot rather than being folded into either
+// 神経科学 or 医学.
 export const CATEGORIES = [
   "神経科学", "物理学", "生物学", "化学", "天文学",
-  "医学", "情報学", "環境科学", "数学", "その他",
+  "医学", "情報学", "環境科学", "数学", "心理学", "その他",
 ] as const;
 
 // Category names are taxonomy/chrome (unlike the mock article body text, which
@@ -31,6 +45,7 @@ const CATEGORY_LABEL_EN: Record<string, string> = {
   情報学: "Information Science",
   環境科学: "Environmental Science",
   数学: "Mathematics",
+  心理学: "Psychology",
   その他: "Other",
 };
 
@@ -51,12 +66,28 @@ export const CATEGORY_STYLE: Record<string, { bg: string; text: string }> = {
   情報学: { bg: "#CCFBF1", text: "#0D9488" },
   環境科学: { bg: "#ECFCCB", text: "#65A30D" },
   数学: { bg: "#E2E8F0", text: "#475569" },
+  心理学: { bg: "#FCE7F3", text: "#DB2777" },
   その他: { bg: "#F1F5F9", text: "#64748B" },
 };
 
 // DB category (lib/pipeline/collect.ts's extractCategory() output, or
 // lib/sources/rss.ts's RSS_FEEDS category) → feedapp's Japanese taxonomy.
-// This is the full set of values the pipeline can actually produce today.
+//
+// IMPORTANT: this must cover BOTH vocabularies the pipeline can actually
+// write into news.category / papers.category:
+//   - extractCategory() in lib/pipeline/collect.ts (papers): physics,
+//     biology, it_ai, medicine, astronomy, chemistry, environment,
+//     mathematics, other
+//   - RSS_FEEDS in lib/sources/rss.ts (news, assigned directly per-feed,
+//     not run through extractCategory()): general, physics, astronomy,
+//     biology, chemistry, it_ai, medicine, climate, neuroscience,
+//     psychology
+// climate/neuroscience/psychology only ever appear via the RSS path. Until
+// 2026-09-23 these 3 were missing here entirely, so mapDbCategoryToTaxonomy()
+// silently dumped every RSS neuroscience/climate/psychology article into
+// "その他" regardless of actual content — see 30_組織/memory/kno_briefing.md
+// "2026-09-23 POCKET DIVE バグ修正3件" for the investigation. Keep this in
+// sync if either source file's category vocabulary changes.
 const DB_CATEGORY_TO_TAXONOMY: Record<string, string> = {
   physics: "物理学",
   biology: "生物学",
@@ -66,6 +97,9 @@ const DB_CATEGORY_TO_TAXONOMY: Record<string, string> = {
   chemistry: "化学",
   environment: "環境科学",
   mathematics: "数学",
+  climate: "環境科学",
+  neuroscience: "神経科学",
+  psychology: "心理学",
   other: "その他",
   general: "その他",
 };

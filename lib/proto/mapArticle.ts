@@ -89,15 +89,81 @@ function formatAuthors(authors: string[] | null | undefined, source: string | nu
   return authors.length > 2 ? `${shown} 他` : shown;
 }
 
+// --- 「やさしく」「くわしく」重複判定 -----------------------------------
+//
+// 確定ケース: lib/pipeline/collect.ts の processPaper() は「くわしく」要約
+// (summarize(tone:"expert")) の生成に失敗すると summary_expert を null の
+// まま保存する。この場合 expertBody は null になり、下の
+// mapFeedItemToArticle() では detailedExplanation が easyExplanation と
+// バイト単位で完全一致する（229行目付近の `expertBody || easyExplanation`
+// フォールバック）。このケースは閾値判定を経由せず、下の
+// isDuplicateSummaryPair() 呼び出し側で expertBody === null を直接見て
+// 100%確定で重複扱いにする。
+//
+// 曖昧なケース: 「やさしく」「くわしく」はどちらも生成されたが、内容が
+// 実質同じ文になってしまった場合。日本語は単語間にスペースがなく形態素解析
+// ライブラリなしでは単語単位の比較がしづらいため、依存ゼロで言語非依存に
+// 動く「文字2-gramのJaccard係数」を使う。やさしく（平易な連続文）とくわしく
+// （目的/手法/結果/意義のラベル付き構造）は本来フォーマットが大きく異なる
+// ため、内容が別物であれば表面的な文字レベル類似度は自然と低くなる。誤って
+// 正常な記事を非表示にしないよう、閾値は保守的に高め（0.8）に設定している
+// — 実データでの閾値調整が必要になった場合はこの値をチューニングする。
+const DUPLICATE_SUMMARY_JACCARD_THRESHOLD = 0.8;
+const NGRAM_SIZE = 2;
+
+function normalizeForSimilarity(text: string): string {
+  // 句読点・空白・改行を除去し、比較を文字内容そのものに絞る。
+  return text.replace(/[\s、。,.!?！？「」『』()（）・…\-—]/g, "");
+}
+
+function toNgramSet(text: string, n: number): Set<string> {
+  const grams = new Set<string>();
+  if (text.length < n) {
+    if (text.length > 0) grams.add(text);
+    return grams;
+  }
+  for (let i = 0; i <= text.length - n; i++) {
+    grams.add(text.slice(i, i + n));
+  }
+  return grams;
+}
+
+function jaccardSimilarity(a: string, b: string): number {
+  const setA = toNgramSet(normalizeForSimilarity(a), NGRAM_SIZE);
+  const setB = toNgramSet(normalizeForSimilarity(b), NGRAM_SIZE);
+  if (setA.size === 0 && setB.size === 0) return 1;
+  if (setA.size === 0 || setB.size === 0) return 0;
+  let intersection = 0;
+  for (const gram of setA) {
+    if (setB.has(gram)) intersection++;
+  }
+  const union = setA.size + setB.size - intersection;
+  return union === 0 ? 0 : intersection / union;
+}
+
+/**
+ * True when `easy`/`detailed` should be treated as duplicate summaries.
+ * `expertBody === null` (expert summary generation failed, see collect.ts)
+ * is a 100%-certain duplicate and short-circuits the similarity check;
+ * otherwise falls back to the conservative n-gram Jaccard threshold above.
+ */
+function isDuplicateSummaryPair(easy: string, detailed: string, expertBody: string | null): boolean {
+  if (expertBody === null) return true;
+  if (!easy || !detailed) return false;
+  return jaccardSimilarity(easy, detailed) >= DUPLICATE_SUMMARY_JACCARD_THRESHOLD;
+}
+
 /**
  * Maps a raw /api/feed item (DB shape) into the `Article` shape feedapp's
  * components expect (lib/proto/types.ts).
  *
  * - `summary` (headline) / `leadText` (teaser) / `easyExplanation` all derive
- *   from `summary_general`, whose format is "headline\n\nbody" (see
- *   lib/llm/summarize.ts's prompt) — the same parsing components/FeedCard.tsx
- *   already relies on for the production /feed route, factored out to
- *   lib/format/summaryText.ts so both stay in sync.
+ *   from `summary_general`, whose format is "headline\n\nfeed body\n\neasy
+ *   explanation" (see lib/llm/prompts/casual-summary.md) — parsed by
+ *   lib/format/summaryText.ts's parseGeneralSummary. Records generated
+ *   before that 3-block prompt shape only have "headline\n\nbody" (or one
+ *   undifferentiated paragraph); see the easyExplanationBlock branch below
+ *   for the fallback that still handles those.
  * - `detailedExplanation` uses `summary_expert`, falling back to the general
  *   summary/body/title if expert summary generation failed for this item
  *   (see lib/pipeline/collect.ts's try/catch around summarize(tone:"expert")).
@@ -163,9 +229,10 @@ function bodyForTeaser(headline: string | null, body: string): string {
 
 export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const rawGeneral = item.summary_general || item.summary || "";
-  const parsed = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "" };
+  const parsed = rawGeneral ? parseGeneralSummary(rawGeneral) : { headline: null, body: "", easyExplanation: null };
   let headline = parsed.headline;
   let generalBody = parsed.body || (item.summary ? stripMarkdown(item.summary) : "");
+  const easyExplanationBlock = parsed.easyExplanation;
 
   // No real headline line was found (see splitBodyForFallbackHeadline above) —
   // derive one from the body's first sentence, and use the rest of the body
@@ -185,20 +252,30 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const sourceLabel = item.source || (item.type === "paper" ? "arXiv" : "ニュース");
   const publishedAt = formatPublishedAt(item.published_at);
 
-  const easyExplanation = generalBody || item.title;
-  // Several sentences up to a char budget — sized to fill roughly 3-4 lines
-  // of the card's teaser text consistently (a single short first sentence
-  // used to leave some cards looking noticeably thinner than others). Still
-  // shorter than the full easyExplanation shown in the detail sheet, so
-  // tapping "詳しく" reveals more than the card already showed.
-  const teaserSource = bodyForTeaser(headline, easyExplanation);
-  // maxSentences raised to 5 (from 3) so a run of short sentences can fill
-  // more of the 110-char/5-line budget before firstSentences runs out of
-  // sentences to add — fewer cases fall back to the clause-cut fallback.
-  const leadText = firstSentences(teaserSource, 5, 110) || truncateToCompleteClause(teaserSource, 110);
+  const easyExplanation = easyExplanationBlock || generalBody || item.title;
+
+  let rawLeadText: string;
+  if (easyExplanationBlock) {
+    // New 3-block prompt shape: `generalBody` IS the feed-card teaser,
+    // already written to its own 70-110 char budget — used as-is instead of
+    // truncating the (separate, longer) easy explanation down to size.
+    rawLeadText = generalBody || easyExplanation;
+  } else {
+    // Legacy 2-block shape (no distinct easy-explanation block): only one
+    // body exists, shared by the card teaser and the detail view — derive a
+    // short teaser from it, as before this prompt split.
+    const teaserSource = bodyForTeaser(headline, easyExplanation);
+    rawLeadText = firstSentences(teaserSource, 5, 110) || truncateToCompleteClause(teaserSource, 110);
+  }
+  // Safety net for both paths: the LLM doesn't always hit its own budget
+  // exactly, so re-cap here rather than trusting the prompt alone.
+  const leadText = rawLeadText.length <= 110 ? rawLeadText : firstSentences(rawLeadText, 10, 110) || truncateToCompleteClause(rawLeadText, 110);
 
   const rawHeadline = headline || item.title;
   const summary = rawHeadline.length <= HEADLINE_MAX_CHARS ? rawHeadline : truncateToCompleteClause(rawHeadline, HEADLINE_MAX_CHARS);
+
+  const detailedExplanation = expertBody || easyExplanation;
+  const isDuplicateSummary = isDuplicateSummaryPair(easyExplanation, detailedExplanation, expertBody);
 
   return {
     id: `${item.type}-${item.id}`,
@@ -216,7 +293,8 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
     author: formatAuthors(item.authors, item.source, item.type),
     publishedAt,
     easyExplanation,
-    detailedExplanation: expertBody || easyExplanation,
+    detailedExplanation,
+    isDuplicateSummary,
     url: item.url || undefined,
   };
 }

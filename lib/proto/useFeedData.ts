@@ -68,11 +68,16 @@ export function useArticles({ q, pageSize = 24, filter, maxAutoChain = 4, enable
       const apiHasMore = !!data.hasMore && !!data.nextCursor;
       setHasMore(apiHasMore);
 
-      const mapped = data.items.map(mapFeedItemToArticle).filter((a) => {
-        if (seenIdsRef.current.has(a.id)) return false;
-        seenIdsRef.current.add(a.id);
-        return true;
-      });
+      const mapped = data.items
+        .map(mapFeedItemToArticle)
+        // 「やさしく」「くわしく」が実質同じ内容の記事は非表示（依頼2、
+        // 判定ロジックは lib/proto/mapArticle.ts の isDuplicateSummaryPair()）。
+        .filter((a) => !a.isDuplicateSummary)
+        .filter((a) => {
+          if (seenIdsRef.current.has(a.id)) return false;
+          seenIdsRef.current.add(a.id);
+          return true;
+        });
       const finalItems = filter ? mapped.filter(filter) : mapped;
 
       if (finalItems.length > 0 || !apiHasMore || chain >= maxAutoChain) {

@@ -23,6 +23,15 @@ export type Article = {
   // Mock ARTICLES in lib/proto/mockData.ts leave this undefined — components
   // fall back to a Google search link built from source+summary in that case.
   url?: string;
+  // True when detailedExplanation ("くわしく") is effectively the same text
+  // as easyExplanation ("やさしく") — either because expert summary
+  // generation failed for this item (detailedExplanation fell back to
+  // easyExplanation verbatim, see mapArticle.ts) or because the two texts
+  // are near-duplicates by n-gram similarity. Consumers that don't want to
+  // show a "detailed" view that reads identically to the "easy" one should
+  // filter these out (see lib/proto/useFeedData.ts). Undefined/false for
+  // mock ARTICLES in lib/proto/mockData.ts, which never hits this path.
+  isDuplicateSummary?: boolean;
 };
 
 export type Topic = {
