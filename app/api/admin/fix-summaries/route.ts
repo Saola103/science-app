@@ -16,6 +16,7 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient"
 import { summarize } from "../../../../lib/llm/summarize";
 import { generateText } from "../../../../lib/llm/index";
 import { isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
 
@@ -23,11 +24,11 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-/** Returns true if summary does NOT start with a short Japanese headline */
+/** Returns true if summary does NOT start with a short Japanese headline
+ * (kept as a wrapper around hasValidHeadline() so this file's existing
+ * callsites don't need to change — see lib/format/summaryText.ts) */
 function isOldFormatSummary(summary: string): boolean {
-  const firstLine = summary.trim().split("\n")[0].trim();
-  const hasJapanese = /[぀-ヿ一-鿿]/.test(firstLine);
-  return !hasJapanese || firstLine.length > 40;
+  return !hasValidHeadline(summary);
 }
 
 export async function GET(req: NextRequest) {
@@ -108,6 +109,7 @@ export async function GET(req: NextRequest) {
             summary_expert: expertSummary,
             summary: generalSummary,
             summary_updated_at: new Date().toISOString(),
+            has_valid_headline: hasValidHeadline(generalSummary),
           })
           .eq("id", paper.id);
 
@@ -181,7 +183,7 @@ export async function GET(req: NextRequest) {
 
           const { error: updateError } = await supabase
             .from("news")
-            .update({ summary_general: newSummary })
+            .update({ summary_general: newSummary, has_valid_headline: hasValidHeadline(newSummary) })
             .eq("id", item.id);
 
           if (updateError) {

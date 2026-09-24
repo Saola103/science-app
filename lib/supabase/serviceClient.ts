@@ -1,4 +1,5 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
+import { hasValidHeadline } from "../format/summaryText";
 
 type PaperUpsertInput = {
   id: string;
@@ -83,6 +84,10 @@ export async function upsertPaperToSupabase(input: PaperUpsertInput): Promise<vo
     summary_embedding: (input.summaryEmbedding && input.summaryEmbedding.length > 0) ? input.summaryEmbedding : null,
     image_url: input.imageUrl ?? null,
     category: input.category ?? null,
+    // See lib/format/summaryText.ts's hasValidHeadline() doc comment — kept
+    // in sync with the app/api/feed/route.ts filter and the one-off SQL
+    // backfill (supabase/migrations/009_has_valid_headline.sql).
+    has_valid_headline: hasValidHeadline(input.summaryGeneral ?? null),
     // Stamps every insert/update with "now" so newly-collected papers (which
     // already use the current prompt) aren't mistaken for pre-2026-09-22
     // stragglers by cron/backfill-prompts. See
@@ -136,6 +141,7 @@ export async function upsertNewsToSupabase(input: NewsUpsertInput): Promise<void
         source_name: input.source_name,
         category: input.category ?? "general",
         summary_general: input.summary_general ?? null,
+        has_valid_headline: hasValidHeadline(input.summary_general ?? null),
       },
       { onConflict: "id" }
     );

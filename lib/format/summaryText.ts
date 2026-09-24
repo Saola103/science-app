@@ -91,6 +91,29 @@ export function stripMarkdownExpert(text: string): string {
     .trim();
 }
 
+/**
+ * Mirrors the DB column `has_valid_headline` (papers/news, see
+ * supabase/migrations/009_has_valid_headline.sql) — true only when
+ * `summary_general` exists and its first line reads as a short Japanese
+ * headline (<=40 chars, contains Japanese characters) rather than the
+ * pre-3-block-prompt "one long undifferentiated paragraph" format that
+ * `lib/proto/mapArticle.ts` falls back to showing the raw (often English)
+ * DB title for. Every write path that sets `summary_general` (collect.ts
+ * via serviceClient.ts, cron/fix-summaries, admin/fix-summaries,
+ * cron/backfill-prompts, scripts/backfill.ts) computes this with the same
+ * function so the JS judgement and the one-off SQL backfill never drift
+ * apart. app/api/feed/route.ts filters on the DB column directly (it
+ * can't call this function against SQL), so if this logic ever changes,
+ * the migration's WHERE/UPDATE clause needs to be re-run to match.
+ */
+export function hasValidHeadline(summaryGeneral: string | null | undefined): boolean {
+  if (!summaryGeneral) return false;
+  const trimmed = summaryGeneral.trim();
+  if (!trimmed) return false;
+  const firstLine = trimmed.split("\n")[0].trim();
+  return firstLine.length > 0 && firstLine.length <= 40 && /[぀-ヿ一-鿿]/.test(firstLine);
+}
+
 function isGoodHeadline(t: string): boolean {
   return (
     t.length >= 6 &&

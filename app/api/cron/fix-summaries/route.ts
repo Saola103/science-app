@@ -14,6 +14,7 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient"
 import { summarize } from "../../../../lib/llm/summarize";
 import { generateText, embedText } from "../../../../lib/llm/index";
 import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
 
@@ -21,10 +22,12 @@ function delay(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// Kept as a thin wrapper (rather than inlining !hasValidHeadline everywhere
+// below) so this file's existing "old format" naming/callsites don't need to
+// change — see lib/format/summaryText.ts's hasValidHeadline() doc comment
+// for what "old format" actually means and where else this judgement is used.
 function isOldFormatSummary(summary: string): boolean {
-  const firstLine = summary.trim().split("\n")[0].trim();
-  const hasJapanese = /[぀-ヿ一-鿿]/.test(firstLine);
-  return !hasJapanese || firstLine.length > 40;
+  return !hasValidHeadline(summary);
 }
 
 export async function GET(req: NextRequest) {
@@ -47,23 +50,35 @@ export async function GET(req: NextRequest) {
   const allResults: { id: string; table: string; status: string }[] = [];
 
   // ── 1. Fix papers with missing/broken summaries ────────────────────────────
+  // Previously this only ordered by published_at desc and looked at the most
+  // recent `limit*4` rows, so old-format stragglers further back in the
+  // published_at ordering than that window were never reached (2026-09-24
+  // manual run confirmed fixed:0 against a recent-only window that was
+  // already all valid). Filtering server-side on has_valid_headline (see
+  // supabase/migrations/009_has_valid_headline.sql) instead of eyeballing a
+  // fixed recency window reaches the whole backlog regardless of how deep it
+  // sits in published_at order — .is(...null) is included alongside
+  // .eq(...false) as a safety net for any row this column hasn't been
+  // (re)computed for yet.
   {
     const { data: papers, error } = await supabase
       .from("papers")
-      .select("id, title, abstract, summary_general, summary_expert, source")
+      .select("id, title, abstract, summary_general, summary_expert, source, has_valid_headline")
+      .or("summary_general.is.null,summary_expert.is.null,has_valid_headline.eq.false,has_valid_headline.is.null")
       .order("published_at", { ascending: false })
       .limit(limit * 4);
 
     if (!error && papers && papers.length > 0) {
       const noSummary = papers.filter((p) => !p.summary_general);
       const noExpert = papers.filter((p) => p.summary_general && !p.summary_expert);
+      const oldHeadlineFormat = papers.filter((p) => p.summary_general && !hasValidHeadline(p.summary_general));
       const identical = papers.filter((p) => {
         if (!p.summary_general || !p.summary_expert) return false;
         return p.summary_general.trim().slice(0, 80) === p.summary_expert.trim().slice(0, 80);
       });
 
       const seen = new Set<string>();
-      const papersToFix = [...noSummary, ...noExpert, ...identical]
+      const papersToFix = [...noSummary, ...noExpert, ...oldHeadlineFormat, ...identical]
         .filter((p) => {
           if (seen.has(p.id)) return false;
           seen.add(p.id);
@@ -89,6 +104,7 @@ export async function GET(req: NextRequest) {
               summary_expert: expertSummary,
               summary: generalSummary,
               summary_updated_at: new Date().toISOString(),
+              has_valid_headline: hasValidHeadline(generalSummary),
             })
             .eq("id", paper.id);
 
@@ -111,12 +127,17 @@ export async function GET(req: NextRequest) {
   }
 
   // ── 2. Fix news with old-format summaries ──────────────────────────────────
+  // Same fix as the papers query above: filter server-side on
+  // has_valid_headline instead of a recent-published_at window, so this
+  // actually works through the ~4,900-record news backlog over successive
+  // daily runs instead of only ever seeing (already-fine) recent items.
   {
     const newsLimit = Math.max(limit - totalFixed, 3);
 
     const { data: newsItems, error: newsError } = await supabase
       .from("news")
-      .select("id, title, description, summary_general, source_name, category")
+      .select("id, title, description, summary_general, source_name, category, has_valid_headline")
+      .or("summary_general.is.null,has_valid_headline.eq.false,has_valid_headline.is.null")
       .order("published_at", { ascending: false })
       .limit(newsLimit * 4);
 
@@ -152,7 +173,7 @@ export async function GET(req: NextRequest) {
 
           const { error: updateError } = await supabase
             .from("news")
-            .update({ summary_general: newSummary })
+            .update({ summary_general: newSummary, has_valid_headline: hasValidHeadline(newSummary) })
             .eq("id", item.id);
 
           if (updateError) {

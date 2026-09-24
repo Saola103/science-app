@@ -69,6 +69,7 @@ import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient"
 import { summarize } from "../../../../lib/llm/summarize";
 import { getTodayGroqUsage } from "../../../../lib/llm/dailyUsage";
 import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
 
@@ -196,6 +197,7 @@ export async function GET(req: NextRequest) {
           summary_expert: expertSummary,
           summary: generalSummary,
           summary_updated_at: new Date().toISOString(),
+          has_valid_headline: hasValidHeadline(generalSummary),
         })
         .eq("id", paper.id);
 

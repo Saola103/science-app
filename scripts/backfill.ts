@@ -24,6 +24,7 @@ dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
 import { summarize } from "../lib/llm/summarize";
 import { generateText, embedText } from "../lib/llm/index";
+import { hasValidHeadline } from "../lib/format/summaryText";
 
 function arg(name: string, fallback: number): number {
   const i = process.argv.indexOf(`--${name}`);
@@ -45,9 +46,7 @@ function getSupabase() {
 }
 
 function isOldFormatSummary(summary: string): boolean {
-  const firstLine = summary.trim().split("\n")[0].trim();
-  const hasJapanese = /[぀-ヿ一-鿿]/.test(firstLine);
-  return !hasJapanese || firstLine.length > 40;
+  return !hasValidHeadline(summary);
 }
 
 /** True if general/expert are missing, or so similar they read as duplicates
@@ -91,6 +90,7 @@ async function backfillPapers(supabase: ReturnType<typeof getSupabase>, limit: n
         summary_general: generalSummary,
         summary_expert: expertSummary,
         summary: generalSummary,
+        has_valid_headline: hasValidHeadline(generalSummary),
       };
       if (embedding && embedding.length > 0) update.summary_embedding = embedding;
 
@@ -149,7 +149,7 @@ async function backfillNews(supabase: ReturnType<typeof getSupabase>, limit: num
       const newSummary = await generateText(prompt, 0.72);
       const { error: updateError } = await supabase
         .from("news")
-        .update({ summary_general: newSummary })
+        .update({ summary_general: newSummary, has_valid_headline: hasValidHeadline(newSummary) })
         .eq("id", item.id);
       if (updateError) throw updateError;
 
