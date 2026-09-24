@@ -5,13 +5,13 @@
  * Googleに最新論文ページをインデックスさせるための重要なSEOファイル。
  *
  * Google Search Console でこのサイトマップを登録してください:
- *   https://scienceapp-alpha.vercel.app/sitemap.xml
+ *   https://pocketdive.vercel.app/sitemap.xml
  */
 
 import { MetadataRoute } from "next";
 import { getSupabaseServerClient } from "../lib/supabase/serviceClient";
 
-const BASE_URL = "https://scienceapp-alpha.vercel.app";
+const BASE_URL = "https://pocketdive.vercel.app";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages

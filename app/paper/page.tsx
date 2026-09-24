@@ -53,7 +53,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     const summary = data.summary_general ? stripMd(data.summary_general).slice(0, 140) : "最新の科学論文をやさしく解説";
     const title = `${data.title} | POCKET DIVE`;
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://scienceapp-alpha.vercel.app";
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pocketdive.vercel.app";
     const ogImage = data.image_url || `${appUrl}/og-default.png`;
 
     return {

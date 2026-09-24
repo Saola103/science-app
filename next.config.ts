@@ -78,6 +78,36 @@ const nextConfig: NextConfig = {
   // (loading a script/frame/connect target from an origin we didn't list —
   // e.g. if RSS/LLM-derived content ever ended up somewhere it could inject
   // a tag), just not inline-script-based XSS specifically.
+  // 2026-09-24: next-intl による多言語対応(/ja/..., /en/...)を撤去した際、
+  // 旧URLをそのまま404にすると検索エンジンに残った古いインデックス
+  // (例: pocketdive.vercel.app/ja)がいつまでも生き続けてしまう。301で
+  // 新URLへ畳み込み、再クロール時にインデックスが新URLへ統合・旧URLが
+  // 自然に消えるようにする。
+  async redirects() {
+    return [
+      {
+        source: "/ja",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/ja/:path*",
+        destination: "/:path*",
+        permanent: true,
+      },
+      {
+        source: "/en",
+        destination: "/",
+        permanent: true,
+      },
+      {
+        source: "/en/:path*",
+        destination: "/:path*",
+        permanent: true,
+      },
+    ];
+  },
+
   async headers() {
     const csp = [
       "default-src 'self'",

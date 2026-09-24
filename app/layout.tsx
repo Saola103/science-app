@@ -25,7 +25,7 @@ const zenMaru = Zen_Maru_Gothic({
   weight: ["700", "900"],
 });
 
-const APP_URL = "https://scienceapp-alpha.vercel.app";
+const APP_URL = "https://pocketdive.vercel.app";
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID; // G-XXXXXXXXXX を Vercel env に設定
 
 export const metadata = {
