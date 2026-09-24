@@ -228,8 +228,19 @@ function FeedSlide({
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share(shareData);
-      } catch {
-        // User cancelled the native share sheet — not an error, no toast.
+      } catch (err) {
+        // AbortError = user dismissed the native share sheet — not an
+        // error, no toast. Anything else (permission denied, no share
+        // target registered, automation contexts without a real share
+        // sheet, etc.) silently did nothing before, which read as a dead
+        // button — fall back to clipboard copy so there's always feedback.
+        if (err instanceof Error && err.name === "AbortError") return;
+        try {
+          await navigator.clipboard.writeText(shareUrl);
+          showToast(t("shareCopiedToast"));
+        } catch {
+          showToast(t("shareFailedToast"));
+        }
       }
       return;
     }
