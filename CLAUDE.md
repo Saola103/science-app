@@ -4,13 +4,13 @@ TikTok スタイルの縦スクロールで最新科学論文・ニュースを�
 
 ## アーキテクチャ
 
-- `app/[locale]/` — next-intl によるページ（ホーム・フィード・検索・論文詳細・管理画面など）。対応言語は `messages/*.json` と `middleware.ts` の matcher を参照。
+- `app/`（旧 `app/[locale]/`）— アプリ本体のページ（ホーム・フィード・検索・論文詳細・管理画面など）。2026-09-24 に next-intl による多言語対応（英語含む）を完全撤去し、日本語のみのアプリになった。ロケールプレフィックス（`/ja/...`）は廃止し、`/feedapp/feed` のようにルート直下から始まる。UI文言は `messages/*.json` から呼び出す代わりに、コンポーネント側でハードコードするか `lib/i18n/ja.ts`（next-intl の `useTranslations`/`useLocale` と同じ呼び出し形を持つ、日本語固定の軽量シム。言語切り替えは存在しない）経由で参照する。
 - `app/api/` — API Routes。`cron/collect`・`cron/fix-summaries` は Vercel Cron から叩かれる自動パイプライン、`admin/*` は手動トリガー用（`CRON_SECRET` または `ADMIN_PASSWORD` で認証）。
-- `lib/pipeline/collect.ts` — 収集パイプライン本体。arXiv / bioRxiv / RSS ニュースを取得し、Groq (LLaMA-3.3-70B) で「やさしく／くわしく」の2種類の日本語要約を生成、embedding を作って Supabase に upsert する。
+- `lib/pipeline/collect.ts` — 収集パイプライン本体。arXiv / bioRxiv / RSS ニュースを取得し、Groq (LLaMA-3.3-70B) で「やさしく／くわしく」の2種類の日本語要約を生成、embedding を作って Supabase に upsert する。ニュースは仕様上「やさしく」1種類のみ生成し `summary_expert` を持たない（`lib/proto/mapArticle.ts`の`isDuplicateSummaryPair()`はこれを重複ではなく正常な単一パネル記事として扱う — 2026-09-23 の重複判定修正がここを誤判定してニュースを全画面から消していたリグレッションを2026-09-24 に修正済み）。
 - `lib/sources/` — 各データソース（arxiv, biorxiv, news/rss, pubmed）のフェッチャー。PubMed は著作権リスクのため収集パイプラインからは除外済み（コメント参照）。
-- `lib/llm/` — Groq / Gemini 呼び出しのラッパーと要約プロンプト。
+- `lib/llm/` — Groq / Gemini 呼び出しのラッパーと要約プロンプト。プロンプトはLaTeX記法を使わないよう明示的に指示している（2026-09-24 追加）。
 - `lib/supabase/` — クライアント（anon key）とサーバー用クライアント（service role key）。RLS ポリシーは `supabase/migrations/`。
-- `app/[locale]/feedapp/` + `components/proto/` — 現行のフィードUI（旧 `components/FeedCard.tsx` ベースの `/feed` ルートは削除済み）。`lib/format/summaryText.ts` 等の `stripMarkdown` 系関数は LLM 出力から Markdown 記法を除去してカードに表示するための処理。
+- `app/feedapp/` + `components/proto/` — 現行のフィードUI（旧 `components/FeedCard.tsx` ベースの `/feed` ルートは削除済み）。`lib/format/summaryText.ts` 等の `stripMarkdown` 系関数は LLM 出力から Markdown 記法・LaTeX記法を除去してカードに表示するための処理。
 
 ## 開発コマンド
 
@@ -33,13 +33,3 @@ npm run lint
 - Groq 無料枠は分あたり8,000トークン（TPM）・1日あたり200,000トークン（TPD）の両方が上限（`lib/llm/index.ts`のコメント参照、429レスポンスで実測確認済み。旧「1日100kトークン」という記載は誤りだったため訂正）。`lib/pipeline/collect.ts` の `PAPERS_PER_CATEGORY` はこの上限内に収まるよう調整してあるので、収集件数を増やす変更をするときは冒頭のコメントの計算式を更新しながら判断する。
 - `next.config.ts` で `typescript.ignoreBuildErrors: true` になっている（Vercel デプロイ都合の暫定対応）。型エラーを握りつぶす設定なので、新規実装では型チェックを別途 `tsc --noEmit` 等で確認するのが安全。
 - `.claude/settings.local.json` はローカル専用（gitignore 済み）。共有したい設定は `.claude/settings.json` を新設する。
-
-<!-- BEGIN:nextjs-agent-rules -->
-
-# This is NOT the Next.js you know
-
-This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
-
-This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
-
-<!-- END:nextjs-agent-rules -->

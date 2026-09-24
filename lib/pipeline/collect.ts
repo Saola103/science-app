@@ -79,7 +79,7 @@ export const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
  * case that essentially never happens: most bioRxiv/medRxiv category queries
  * (7-day window) and several arXiv categories return well under N candidates
  * per run, so real call volume stays much lower in practice. Bumped 3 -> 4
- * (a ~33% increase, per app/[locale]/feedapp needing more real volume to
+ * (a ~33% increase, per app/feedapp needing more real volume to
  * paginate/personalize against) rather than further, to stay clear of
  * maxDuration on this live cron; if items start timing out or app/api/cron's
  * logs show truncated runs, drop this back to 3.

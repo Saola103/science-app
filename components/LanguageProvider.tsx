@@ -2,22 +2,16 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 
-type Language = "ja" | "en";
 type Theme = "dark" | "light";
 
 interface AppContextType {
-    language: Language;
-    setLanguage: (lang: Language) => void;
     theme: Theme;
     toggleTheme: () => void;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    t: (ja: any, en: any) => any;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-    const [language, setLanguage] = useState<Language>("ja");
     const [theme, setTheme] = useState<Theme>("dark");
 
     useEffect(() => {
@@ -29,15 +23,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
             // Default to dark as per user's earlier preference
             document.documentElement.classList.add("dark");
         }
-
-        const savedLang = localStorage.getItem("language") as Language;
-        if (savedLang) setLanguage(savedLang);
     }, []);
-
-    const handleSetLanguage = (lang: Language) => {
-        setLanguage(lang);
-        localStorage.setItem("language", lang);
-    };
 
     const toggleTheme = () => {
         const newTheme = theme === "dark" ? "light" : "dark";
@@ -46,11 +32,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         document.documentElement.classList.toggle("dark", newTheme === "dark");
     };
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const t = (ja: any, en: any) => (language === "ja" ? ja : en);
-
     return (
-        <AppContext.Provider value={{ language, setLanguage: handleSetLanguage, theme, toggleTheme, t }}>
+        <AppContext.Provider value={{ theme, toggleTheme }}>
             {children}
         </AppContext.Provider>
     );
@@ -63,8 +46,3 @@ export function useApp() {
     }
     return context;
 }
-
-// Mirroring the old exports for backward compatibility if needed, 
-// though I'll update the rest of the app to use useApp.
-export { AppProvider as LanguageProvider };
-export { useApp as useLanguage };

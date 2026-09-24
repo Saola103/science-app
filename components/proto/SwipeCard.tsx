@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { motion, useAnimation, useMotionValue, useTransform } from "framer-motion";
-import { useLocale, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
 import { CATEGORY_STYLE, getCategoryLabel } from "../../lib/proto/mockData";
 import { ArticleDetailSheet } from "./ArticleDetailSheet";

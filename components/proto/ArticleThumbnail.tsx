@@ -1,6 +1,6 @@
 "use client";
 
-import { useLocale } from "next-intl";
+import { useLocale } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
 import { CATEGORY_STYLE, getCategoryLabel } from "../../lib/proto/mockData";
 import { ArticleIllustration } from "./illustrations";

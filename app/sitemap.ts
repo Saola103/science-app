@@ -17,37 +17,37 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // Static pages
   const staticRoutes: MetadataRoute.Sitemap = [
     {
-      url: `${BASE_URL}/ja`,
+      url: `${BASE_URL}`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 1.0,
     },
     {
-      url: `${BASE_URL}/ja/feedapp/feed`,
+      url: `${BASE_URL}/feedapp/feed`,
       lastModified: new Date(),
       changeFrequency: "hourly",
       priority: 0.9,
     },
     {
-      url: `${BASE_URL}/ja/search`,
+      url: `${BASE_URL}/search`,
       lastModified: new Date(),
       changeFrequency: "daily",
       priority: 0.7,
     },
     {
-      url: `${BASE_URL}/ja/about`,
+      url: `${BASE_URL}/about`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.5,
     },
     {
-      url: `${BASE_URL}/ja/privacy`,
+      url: `${BASE_URL}/privacy`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.3,
     },
     {
-      url: `${BASE_URL}/ja/terms`,
+      url: `${BASE_URL}/terms`,
       lastModified: new Date(),
       changeFrequency: "monthly",
       priority: 0.3,
@@ -66,7 +66,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
     if (papers) {
       paperRoutes = papers.map((p) => ({
-        url: `${BASE_URL}/ja/paper?id=${encodeURIComponent(p.id)}`,
+        url: `${BASE_URL}/paper?id=${encodeURIComponent(p.id)}`,
         lastModified: p.published_at ? new Date(p.published_at) : new Date(),
         changeFrequency: "monthly" as const,
         priority: 0.8,

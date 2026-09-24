@@ -1,38 +1,23 @@
 'use client';
-import { useTranslations, useLocale } from 'next-intl';
-import { Link, usePathname, useRouter } from '../i18n/routing';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { useState } from "react";
 import Image from "next/image";
-import { Globe, ChevronDown } from "lucide-react";
 
 // Note: currently unused (no route imports this component — the shipped app
 // chrome is BottomNav.tsx + /feedapp's own ProtoHeader). Kept around and its
 // dead-route links cleaned up in case it's revived later, rather than left to
 // silently rot with links to pages that no longer exist.
 export function Header() {
-    const t = useTranslations('Common');
     const pathname = usePathname();
-    const router = useRouter();
-    const locale = useLocale();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isLangOpen, setIsLangOpen] = useState(false);
 
     const navItems = [
-        { name: t("home"), href: "/" },
-        { name: t("feed"), href: "/feedapp/feed" },
-        { name: t("search"), href: "/search" },
-        { name: t("about"), href: "/about" },
+        { name: "ホーム", href: "/" },
+        { name: "フィード", href: "/feedapp/feed" },
+        { name: "検索", href: "/search" },
+        { name: "このアプリについて", href: "/about" },
     ];
-
-    const languages = [
-        { code: 'ja', name: '日本語' },
-        { code: 'en', name: 'English' },
-    ];
-
-    const handleLanguageChange = (newLocale: string) => {
-        router.replace(pathname, { locale: newLocale });
-        setIsLangOpen(false);
-    };
 
     return (
         <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/90 backdrop-blur-md">
@@ -43,7 +28,7 @@ export function Header() {
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
-                            href={item.href as any}
+                            href={item.href}
                             className={`text-[10px] font-bold tracking-wide uppercase whitespace-nowrap transition-all ${pathname === item.href
                                 ? "text-sky-600 border-b-2 border-sky-600 pb-1"
                                 : "text-slate-400 hover:text-slate-900"
@@ -95,37 +80,8 @@ export function Header() {
                         saves/streak), so this links straight into the feed instead
                         of an auth flow. */}
                     <Link href="/feedapp/feed" className="px-3 md:px-4 py-1.5 md:py-2 bg-slate-900 text-white font-bold tracking-widest text-[9px] md:text-[11px] uppercase rounded-lg hover:bg-sky-600 transition-all shadow-md shadow-slate-900/10 whitespace-nowrap">
-                        {t("feed")}
+                        フィード
                     </Link>
-
-                    {/* Language Selector Dropdown */}
-                    <div className="relative">
-                        <button
-                            onClick={() => setIsLangOpen(!isLangOpen)}
-                            className="flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-transparent hover:border-slate-100 hover:bg-slate-50 transition-all"
-                        >
-                            <Globe size={14} className="text-slate-400" />
-                            <span className="text-[10px] font-black uppercase text-slate-900 hidden md:inline">{locale}</span>
-                            <ChevronDown size={12} className={`text-slate-400 transition-transform ${isLangOpen ? 'rotate-180' : ''}`} />
-                        </button>
-
-                        {isLangOpen && (
-                            <div className="absolute right-0 mt-2 w-40 bg-white border border-slate-100 rounded-xl shadow-2xl py-2 animate-in fade-in zoom-in duration-200 origin-top-right">
-                                <div className="grid grid-cols-1 max-h-[300px] overflow-y-auto">
-                                    {languages.map((lang) => (
-                                        <button
-                                            key={lang.code}
-                                            onClick={() => handleLanguageChange(lang.code)}
-                                            className={`flex items-center justify-between px-4 py-2 text-[10px] font-bold transition-colors ${locale === lang.code ? 'text-sky-600 bg-sky-50' : 'text-slate-600 hover:bg-slate-50'}`}
-                                        >
-                                            {lang.name}
-                                            {locale === lang.code && <div className="w-1 h-1 rounded-full bg-sky-600"></div>}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-                    </div>
                 </div>
             </nav>
 
@@ -135,7 +91,7 @@ export function Header() {
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
-                            href={item.href as any}
+                            href={item.href}
                             onClick={() => setIsMenuOpen(false)}
                             className="text-2xl font-bold text-slate-900 uppercase tracking-tighter hover:text-sky-600 transition-colors"
                         >
@@ -144,9 +100,6 @@ export function Header() {
                     ))}
                 </div>
             </div>
-
-            {/* Backdrop for Language selector */}
-            {isLangOpen && <div className="fixed inset-0 z-40" onClick={() => setIsLangOpen(false)}></div>}
         </header>
     );
 }

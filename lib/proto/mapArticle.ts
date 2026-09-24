@@ -146,8 +146,21 @@ function jaccardSimilarity(a: string, b: string): number {
  * `expertBody === null` (expert summary generation failed, see collect.ts)
  * is a 100%-certain duplicate and short-circuits the similarity check;
  * otherwise falls back to the conservative n-gram Jaccard threshold above.
+ *
+ * News articles are a THIRD, non-duplicate case: `collectNews()`
+ * (lib/pipeline/collect.ts) only ever generates a `summary_general` pass for
+ * news, by design — `summary_expert` is never even attempted, so
+ * `expertBody === null` is the expected, permanent state for every news
+ * item, not a failure. Treating that the same as the paper failure case
+ * silently dropped every news article from feed/stack/search/trending (all
+ * of which filter on `isDuplicateSummary`) — see ArticleDetailSheet.tsx's
+ * `showModeToggle = contentType !== "news"`, which already encodes "news
+ * has one panel, not two" as the correct, non-duplicate UI. This check must
+ * agree with that: news is never a "duplicate pair", it just doesn't have a
+ * pair at all.
  */
-function isDuplicateSummaryPair(easy: string, detailed: string, expertBody: string | null): boolean {
+function isDuplicateSummaryPair(easy: string, detailed: string, expertBody: string | null, type: "paper" | "news"): boolean {
+  if (type === "news") return false;
   if (expertBody === null) return true;
   if (!easy || !detailed) return false;
   return jaccardSimilarity(easy, detailed) >= DUPLICATE_SUMMARY_JACCARD_THRESHOLD;
@@ -275,7 +288,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const summary = rawHeadline.length <= HEADLINE_MAX_CHARS ? rawHeadline : truncateToCompleteClause(rawHeadline, HEADLINE_MAX_CHARS);
 
   const detailedExplanation = expertBody || easyExplanation;
-  const isDuplicateSummary = isDuplicateSummaryPair(easyExplanation, detailedExplanation, expertBody);
+  const isDuplicateSummary = isDuplicateSummaryPair(easyExplanation, detailedExplanation, expertBody, item.type);
 
   return {
     id: `${item.type}-${item.id}`,

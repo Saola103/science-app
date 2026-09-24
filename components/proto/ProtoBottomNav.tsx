@@ -1,7 +1,14 @@
 "use client";
 
-import { useParams, usePathname, useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { usePathname, useRouter } from "next/navigation";
+
+const NAV_LABELS: Record<string, string> = {
+  discovery: "ディスカバリー",
+  trending: "話題",
+  search: "検索",
+  mypage: "マイページ",
+  feed: "フィード",
+};
 
 type Tab = {
   key: string;
@@ -70,9 +77,6 @@ export function ProtoBottomNav({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const params = useParams();
-  const locale = (params?.locale as string) || "ja";
-  const t = useTranslations("Proto.nav");
 
   const tabs: Tab[] = [{ key: homeTabKey, labelKey: homeTabLabelKey, icon: homeTabIcon }, ...REST_TABS];
 
@@ -87,7 +91,7 @@ export function ProtoBottomNav({
         return (
           <button
             key={tab.key}
-            onClick={() => router.push(`/${locale}/${basePath}/${tab.key}`)}
+            onClick={() => router.push(`/${basePath}/${tab.key}`)}
             className="flex-1 flex flex-col items-center justify-center gap-1"
             style={{ paddingTop: 8, paddingBottom: 8 }}
           >
@@ -96,7 +100,7 @@ export function ProtoBottomNav({
               className="text-[10px] font-medium"
               style={{ color: active ? "#2F6FED" : "#94A3B8" }}
             >
-              {t(tab.labelKey)}
+              {NAV_LABELS[tab.labelKey] || tab.labelKey}
             </span>
           </button>
         );

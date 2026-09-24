@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { useTranslations } from "next-intl";
+import { useTranslations } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
 import { SwipeCard, SwipeDirection } from "./SwipeCard";
 import { useProtoStore } from "../../lib/proto/store";

@@ -214,15 +214,15 @@ function FeedSlide({
   // so rail button clicks never reach it in the first place.
   const handleShare = async () => {
     const origin = typeof window !== "undefined" ? window.location.origin : "";
-    // Papers get the OG-tag-rich share landing page (app/[locale]/paper) so a
+    // Papers get the OG-tag-rich share landing page (app/paper) so a
     // recipient sees the real headline/summary as a link preview and lands
     // back in the app, not the raw source; news has no equivalent page yet,
     // so it shares the feed itself. Article.id is `${type}-${rawId}` (see
     // lib/proto/mapArticle.ts) — strip the known prefix to recover rawId.
     const shareUrl =
       article.contentType === "paper"
-        ? `${origin}/${locale}/paper?id=${encodeURIComponent(article.id.replace(/^paper-/, ""))}`
-        : `${origin}/${locale}/feedapp/feed`;
+        ? `${origin}/paper?id=${encodeURIComponent(article.id.replace(/^paper-/, ""))}`
+        : `${origin}/feedapp/feed`;
     const shareData = { title: article.summary, text: article.leadText, url: shareUrl };
 
     if (typeof navigator !== "undefined" && navigator.share) {

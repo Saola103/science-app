@@ -16,7 +16,7 @@ npm run lint    # ESLint
 
 ## 技術スタック
 
-- フロントエンド: Next.js (App Router) / TypeScript / Tailwind CSS / next-intl（多言語対応）
+- フロントエンド: Next.js (App Router) / TypeScript / Tailwind CSS（日本語のみ、多言語対応なし）
 - バックエンド: Vercel Serverless / Vercel Cron Jobs
 - DB: Supabase (PostgreSQL, pgvector)
 - AI: Groq API (LLaMA-3.3-70B) / Gemini（要約生成）

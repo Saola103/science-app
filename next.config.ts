@@ -1,10 +1,7 @@
 import type { NextConfig } from "next";
-import createNextIntlPlugin from 'next-intl/plugin';
 
 import { execSync } from "child_process";
 import packageJson from "./package.json";
-
-const withNextIntl = createNextIntlPlugin();
 
 const version = packageJson.version;
 let gitHash = "no-git";
@@ -29,7 +26,7 @@ const nextConfig: NextConfig = {
   // image URLs are:
   //  - papers.image_url: always one of the fixed images.unsplash.com URLs
   //    in lib/llm/summarize.ts's CATEGORY_IMAGES, only used as an OG meta
-  //    tag (app/[locale]/paper/page.tsx) — that's a plain URL string in
+  //    tag (app/paper/page.tsx) — that's a plain URL string in
   //    HTML <meta>, not routed through next/image, so remotePatterns
   //    doesn't apply to it regardless.
   //  - news.image_url: extracted per-article from whichever of the ~20+
@@ -46,6 +43,16 @@ const nextConfig: NextConfig = {
   // Ensure we keep the build error ignores for now as requested for Vercel
   typescript: {
     ignoreBuildErrors: true,
+  },
+
+  // lib/llm/summarize.ts loads its LLM prompt from a .md file at runtime via
+  // fs.readFileSync (see lib/llm/prompts/casual-summary.md) so the prompt
+  // text can be reviewed/edited on its own without touching code. Next's
+  // static file tracing usually picks up literal fs.readFileSync paths, but
+  // this makes it explicit so the file is never silently dropped from the
+  // Vercel serverless bundle for the routes that call summarize().
+  outputFileTracingIncludes: {
+    "/*": ["lib/llm/prompts/**/*"],
   },
 
   // Baseline security headers, plus a CSP.
@@ -108,4 +115,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withNextIntl(nextConfig);
+export default nextConfig;

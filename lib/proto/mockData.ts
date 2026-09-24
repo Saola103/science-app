@@ -1,7 +1,7 @@
 import { Article, Topic } from "./types";
 
 // The original prototype shipped with 5 categories, all present in the fixed
-// mock ARTICLES set below. app/[locale]/feedapp now runs on real collected
+// mock ARTICLES set below. app/feedapp now runs on real collected
 // data (lib/pipeline/collect.ts / lib/sources/rss.ts), whose category field
 // only ever takes one of a handful of English values — see
 // extractCategory() in collect.ts (papers: physics, biology, it_ai,
@@ -17,7 +17,7 @@ import { Article, Topic } from "./types";
 // mapDbCategoryToTaxonomy()'s keyword heuristic below (for biology/medicine
 // papers that are neuroscience in substance but not in the pipeline's own
 // category vocabulary). Purely additive — the original 5 keys are unchanged,
-// so app/[locale]/proto (mock-data prototype, out of scope) still renders
+// so app/proto (mock-data prototype, out of scope) still renders
 // exactly as before.
 // 心理学 added 2026-09-23: lib/sources/rss.ts's RSS_FEEDS assigns
 // category: "psychology" to some feeds (e.g. Psychology-related outlets),
@@ -32,25 +32,14 @@ export const CATEGORIES = [
   "医学", "情報学", "環境科学", "数学", "心理学", "その他",
 ] as const;
 
-// Category names are taxonomy/chrome (unlike the mock article body text, which
-// stays Japanese-only by design) — they're a small fixed set repeated across
-// filters, badges and cards, so it's worth translating for the English locale.
-const CATEGORY_LABEL_EN: Record<string, string> = {
-  神経科学: "Neuroscience",
-  物理学: "Physics",
-  生物学: "Biology",
-  化学: "Chemistry",
-  天文学: "Astronomy",
-  医学: "Medicine",
-  情報学: "Information Science",
-  環境科学: "Environmental Science",
-  数学: "Mathematics",
-  心理学: "Psychology",
-  その他: "Other",
-};
-
-export function getCategoryLabel(category: string, locale: string): string {
-  if (locale === "en") return CATEGORY_LABEL_EN[category] ?? category;
+// App is Japanese-only (English UI/translation support removed — see
+// kno_briefing.md "2026-09-24 POCKET DIVE ... 英語翻訳機能の完全削除"), so the
+// taxonomy category names ARE the display labels; this used to branch on
+// locale to translate them for an English UI. `locale` is kept as a
+// parameter (rather than removed) purely to avoid touching every call site
+// across feedapp — see lib/i18n/ja.ts's useLocale(), which always returns
+// "ja".
+export function getCategoryLabel(category: string, _locale?: string): string {
   return category;
 }
 

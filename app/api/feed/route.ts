@@ -52,12 +52,12 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const cursor = searchParams.get("cursor"); // ISO timestamp for pagination
-    // 20 -> 60: app/[locale]/feedapp fetches larger batches (for client-side
+    // 20 -> 60: app/feedapp fetches larger batches (for client-side
     // personalization weighting and to keep infinite scroll from re-hitting
     // the API too often) than the original 10-20/page /feed route did (that
     // route, along with /papers, /news, /login, /profile, /proto, has since
     // been removed — /feedapp is now the only shipped feed UI). Remaining
-    // callers (app/[locale]/page.tsx's HomeContent, /search) pass limit<=20
+    // callers (app/page.tsx's HomeContent, /search) pass limit<=20
     // explicitly, so this is additive — their behavior is unchanged.
     const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 60);
     const preferencesStr = searchParams.get("preferences");
@@ -76,7 +76,7 @@ export async function GET(req: NextRequest) {
 
     const supabase = getSupabaseServerClient();
 
-    // ids lookup mode: used by app/[locale]/feedapp/mypage (saved articles),
+    // ids lookup mode: used by app/feedapp/mypage (saved articles),
     // which only has ids in localStorage, not full article data. Bypasses
     // cursor/category/q entirely — it's a direct fetch-by-id, not a feed page.
     if (idsParam) {

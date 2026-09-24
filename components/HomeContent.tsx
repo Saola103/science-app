@@ -1,7 +1,6 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useParams } from 'next/navigation';
 import { ArrowRight, FlaskConical, Play } from 'lucide-react';
 import { PaperCardData } from '../types';
 import { NewsCardData } from './NewsCard';
@@ -12,16 +11,22 @@ interface HomeContentProps {
   news?: NewsCardData[] | null;
 }
 
-// Category config — emoji + label + gradient + feed query key
+// Category config — emoji + label + gradient + taxonomy value. `taxonomy`
+// is the real category string used by lib/proto/mockData.ts's CATEGORIES /
+// getCategoryLabel and compared against Article.category in feedapp/stack
+// (see stack/page.tsx's categoryFilter) — it must be one of CATEGORIES'
+// Japanese values, NOT the English `key`/`label` used for this tile's own
+// display, or the stack page's category filter silently matches zero
+// articles (see kno_briefing.md "2026-09-24 ... 不具合1").
 const CATEGORY_TILES = [
-  { key: 'physics',          label: '物理学',   emoji: '⚛️',  gradient: 'from-blue-800 to-indigo-900' },
-  { key: 'biology',          label: '生物学',   emoji: '🧬',  gradient: 'from-emerald-800 to-teal-900' },
-  { key: 'ai',               label: 'AI',       emoji: '🤖',  gradient: 'from-violet-800 to-purple-900' },
-  { key: 'astronomy',        label: '天文学',   emoji: '🔭',  gradient: 'from-indigo-800 to-slate-900' },
-  { key: 'medicine',         label: '医学',     emoji: '🏥',  gradient: 'from-rose-800 to-pink-900' },
-  { key: 'chemistry',        label: '化学',     emoji: '🧪',  gradient: 'from-amber-800 to-orange-900' },
-  { key: 'math',             label: '数学',     emoji: '📐',  gradient: 'from-cyan-800 to-sky-900' },
-  { key: 'neuroscience',     label: '脳科学',   emoji: '🧠',  gradient: 'from-purple-800 to-violet-900' },
+  { key: 'physics',          label: '物理学',   emoji: '⚛️',  gradient: 'from-blue-800 to-indigo-900', taxonomy: '物理学' },
+  { key: 'biology',          label: '生物学',   emoji: '🧬',  gradient: 'from-emerald-800 to-teal-900', taxonomy: '生物学' },
+  { key: 'ai',               label: 'AI',       emoji: '🤖',  gradient: 'from-violet-800 to-purple-900', taxonomy: '情報学' },
+  { key: 'astronomy',        label: '天文学',   emoji: '🔭',  gradient: 'from-indigo-800 to-slate-900', taxonomy: '天文学' },
+  { key: 'medicine',         label: '医学',     emoji: '🏥',  gradient: 'from-rose-800 to-pink-900', taxonomy: '医学' },
+  { key: 'chemistry',        label: '化学',     emoji: '🧪',  gradient: 'from-amber-800 to-orange-900', taxonomy: '化学' },
+  { key: 'math',             label: '数学',     emoji: '📐',  gradient: 'from-cyan-800 to-sky-900', taxonomy: '数学' },
+  { key: 'neuroscience',     label: '脳科学',   emoji: '🧠',  gradient: 'from-purple-800 to-violet-900', taxonomy: '神経科学' },
 ];
 
 const CAT_LABELS: Record<string, string> = {
@@ -96,8 +101,6 @@ function MiniCard({ item }: { item: AnyItem }) {
 
 export function HomeContent({ papers, news }: HomeContentProps) {
   const router = useRouter();
-  const params = useParams();
-  const locale = (params?.locale as string) || 'ja';
   const { streak, todayCount, todayGoal } = useStreak();
 
   const recentItems: AnyItem[] = [...(papers || []).slice(0, 6)];
@@ -114,7 +117,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
           </h1>
         </div>
         <button
-          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
+          onClick={() => router.push(`/feedapp/mypage`)}
           className="w-9 h-9 rounded-full bg-white/10 flex items-center justify-center border border-white/10 hover:bg-white/20 transition-colors"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
@@ -128,7 +131,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
       {(streak > 0 || todayCount > 0) && (
         <div
           className="mx-5 mb-5 bg-gradient-to-r from-orange-900/50 to-amber-900/40 border border-orange-500/20 rounded-2xl px-4 py-3 flex items-center gap-3 cursor-pointer hover:border-orange-500/40 transition-colors"
-          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
+          onClick={() => router.push(`/feedapp/mypage`)}
         >
           <span className="text-2xl">🔥</span>
           <div className="flex-1">
@@ -154,7 +157,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
       {/* ── MAIN CTA ── */}
       <div className="px-5 mb-6">
         <button
-          onClick={() => router.push(`/${locale}/feedapp/feed`)}
+          onClick={() => router.push(`/feedapp/feed`)}
           className="w-full rounded-3xl bg-gradient-to-br from-sky-500 via-indigo-600 to-violet-700 p-6 flex flex-col gap-3 relative overflow-hidden active:scale-[0.98] transition-transform shadow-2xl shadow-sky-900/50 group"
         >
           <div className="absolute top-0 right-0 w-40 h-40 bg-white/5 rounded-full blur-3xl -translate-y-10 translate-x-10 pointer-events-none" />
@@ -190,10 +193,13 @@ export function HomeContent({ papers, news }: HomeContentProps) {
           {CATEGORY_TILES.map((cat) => (
             <button
               key={cat.key}
-              // feedapp/feed doesn't read a ?category= query param (filtering is
-              // done client-side via followed categories / local state), so this
-              // just opens the feed rather than pretending to pre-filter it.
-              onClick={() => router.push(`/${locale}/feedapp/feed`)}
+              // feedapp/feed doesn't read a ?category= query param (filtering
+              // there is client-side via followed categories / local state
+              // instead) — feedapp/stack DOES read one (see stack/page.tsx's
+              // categoryFilter), the same route the "話題"/検索 tabs already
+              // use, so route tiles there instead of pretending feed can
+              // pre-filter (see kno_briefing.md "2026-09-24 ... 不具合1").
+              onClick={() => router.push(`/feedapp/stack?category=${encodeURIComponent(cat.taxonomy)}`)}
               className={`rounded-2xl bg-gradient-to-b ${cat.gradient} p-3 flex flex-col items-center gap-1.5 active:scale-95 transition-transform hover:opacity-90 border border-white/5`}
             >
               <span className="text-2xl">{cat.emoji}</span>
@@ -212,7 +218,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
               <h2 className="text-[11px] font-black tracking-widest text-white/50 uppercase">新着論文</h2>
             </div>
             <button
-              onClick={() => router.push(`/${locale}/feedapp/feed`)}
+              onClick={() => router.push(`/feedapp/feed`)}
               className="text-[10px] font-black text-sky-400 uppercase tracking-widest flex items-center gap-1 hover:text-sky-300 transition-colors"
             >
               もっと見る <ArrowRight className="w-3 h-3" />
@@ -232,7 +238,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
       {/* ── QUICK LINKS ── */}
       <section className="px-5 grid grid-cols-2 gap-3 pb-28">
         <button
-          onClick={() => router.push(`/${locale}/search`)}
+          onClick={() => router.push(`/search`)}
           className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col gap-3 text-left active:bg-white/10 transition-colors hover:border-white/20"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -246,7 +252,7 @@ export function HomeContent({ papers, news }: HomeContentProps) {
         </button>
 
         <button
-          onClick={() => router.push(`/${locale}/feedapp/mypage`)}
+          onClick={() => router.push(`/feedapp/mypage`)}
           className="rounded-2xl bg-white/5 border border-white/10 p-5 flex flex-col gap-3 text-left active:bg-white/10 transition-colors hover:border-white/20"
         >
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none">

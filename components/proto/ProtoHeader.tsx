@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useProtoStore } from "../../lib/proto/store";
 
 function HeaderStreak({ count }: { count: number }) {
@@ -15,8 +15,6 @@ function HeaderStreak({ count }: { count: number }) {
 
 export function ProtoHeader({ homePath = "proto/discovery" }: { homePath?: string }) {
   const router = useRouter();
-  const params = useParams();
-  const locale = (params?.locale as string) || "ja";
   const { streak } = useProtoStore();
 
   return (
@@ -30,7 +28,7 @@ export function ProtoHeader({ homePath = "proto/discovery" }: { homePath?: strin
     >
       <div className="relative flex items-center justify-center w-full" style={{ maxWidth: 480 }}>
         <button
-          onClick={() => router.push(`/${locale}/${homePath}`)}
+          onClick={() => router.push(`/${homePath}`)}
           className="text-[17px] font-bold tracking-tight text-[#1A1D29]"
         >
           POCKET <span style={{ color: "#2F6FED" }}>DIVE</span>

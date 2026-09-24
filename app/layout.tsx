@@ -1,0 +1,133 @@
+import Script from 'next/script';
+import { Analytics } from '@vercel/analytics/next';
+
+import "./globals.css";
+import { AppProvider } from "../components/LanguageProvider";
+import { BottomNav } from "../components/BottomNav";
+import { MainShell } from "../components/MainShell";
+import { Geist, Geist_Mono, Zen_Maru_Gothic } from "next/font/google";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Feed-card headlines only (see components/FeedCard.tsx) — the rounded,
+// chunky weight is part of the "Duolingo of Science" visual direction.
+const zenMaru = Zen_Maru_Gothic({
+  variable: "--font-zen-maru",
+  subsets: ["latin"],
+  weight: ["700", "900"],
+});
+
+const APP_URL = "https://scienceapp-alpha.vercel.app";
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID; // G-XXXXXXXXXX を Vercel env に設定
+
+export const metadata = {
+  metadataBase: new URL(APP_URL),
+  title: {
+    default: "POCKET DIVE | 科学をスワイプ",
+    template: "%s | POCKET DIVE",
+  },
+  description:
+    "最新の科学論文・ニュースをTikTokスタイルで。AIが毎日日本語に要約して配信。物理・生物・AI・天文・医学など幅広い分野をカバー。",
+  keywords: ["科学論文", "論文要約", "サイエンス", "arXiv", "AI要約", "理系", "研究", "TikTok 科学"],
+  authors: [{ name: "POCKET DIVE" }],
+  creator: "POCKET DIVE",
+  icons: {
+    icon: [
+      { url: "/icon-16.png", sizes: "16x16", type: "image/png" },
+      { url: "/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/apple-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  openGraph: {
+    type: "website",
+    locale: "ja_JP",
+    url: APP_URL,
+    siteName: "POCKET DIVE",
+    title: "POCKET DIVE | 科学をスワイプ",
+    description: "最新の科学論文をAIが日本語に要約。スワイプするだけで毎日3分で科学の最前線へ。",
+    images: [
+      {
+        url: `${APP_URL}/og-default.png`,
+        width: 1200,
+        height: 630,
+        alt: "POCKET DIVE — 科学をスワイプ",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "POCKET DIVE | 科学をスワイプ",
+    description: "最新の科学論文をAIが日本語に要約。スワイプするだけで毎日3分で科学の最前線へ。",
+    images: [`${APP_URL}/og-default.png`],
+    creator: "@PocketDive_jp",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="ja">
+      <head>
+        {/* PWA manifest (will be added when manifest.json is created) */}
+        <link rel="manifest" href="/manifest.json" />
+        <meta name="theme-color" content="#000000" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="apple-mobile-web-app-title" content="POCKET DIVE" />
+      </head>
+      <body className={`${geistSans.variable} ${geistMono.variable} ${zenMaru.variable} antialiased bg-black text-white`}>
+
+        {/* Google Analytics 4 — NEXT_PUBLIC_GA_MEASUREMENT_ID を Vercel env に設定してください */}
+        {GA_ID && (
+          <>
+            <Script
+              src={`https://www.googletagmanager.com/gtag/js?id=${GA_ID}`}
+              strategy="afterInteractive"
+            />
+            <Script id="google-analytics" strategy="afterInteractive">
+              {`
+                window.dataLayer = window.dataLayer || [];
+                function gtag(){dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', '${GA_ID}', {
+                  page_path: window.location.pathname,
+                });
+              `}
+            </Script>
+          </>
+        )}
+
+        <AppProvider>
+          <MainShell>{children}</MainShell>
+          <BottomNav />
+        </AppProvider>
+        <Analytics />
+      </body>
+    </html>
+  );
+}

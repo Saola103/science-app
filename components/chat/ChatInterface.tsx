@@ -3,7 +3,7 @@
 import { useChat } from 'ai/react';
 import { Send, Sparkles, Loader2, User, Bot } from 'lucide-react';
 import { MarkdownText } from '../MarkdownText';
-import { useTranslations } from 'next-intl';
+import { useTranslations } from '../../lib/i18n/ja';
 import { useEffect, useRef, useState } from 'react';
 
 export function ChatInterface() {

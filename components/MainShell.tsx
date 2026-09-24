@@ -1,5 +1,5 @@
 'use client';
-import { usePathname } from '../i18n/routing';
+import { usePathname } from 'next/navigation';
 
 // /proto/* and /feedapp/* ship their own fixed-position header/nav chrome
 // (see components/BottomNav.tsx's matching guard) and manage their own

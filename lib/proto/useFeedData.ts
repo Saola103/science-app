@@ -37,7 +37,7 @@ export type UseArticlesResult = {
 
 /**
  * Cursor-paginated fetch of real feed data (papers + news) from /api/feed,
- * mapped into the `Article` shape app/[locale]/feedapp's components expect.
+ * mapped into the `Article` shape app/feedapp's components expect.
  * Used by feed/trending/search/stack pages instead of the old static
  * `ARTICLES` import from lib/proto/mockData.ts.
  */

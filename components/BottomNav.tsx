@@ -1,7 +1,6 @@
 'use client';
-import { usePathname } from '../i18n/routing';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
 
 const HomeIcon = ({ filled }: { filled: boolean }) => (
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
@@ -53,9 +52,6 @@ const ProfileIcon = ({ filled }: { filled: boolean }) => (
 
 export function BottomNav() {
   const pathname = usePathname();
-  const params = useParams();
-  const locale = (params?.locale as string) || 'ja';
-
   // /proto/* and /feedapp/* ship their own header + bottom nav (UI prototypes, separate from the shipped app chrome).
   if (pathname?.includes('/proto') || pathname?.includes('/feedapp')) return null;
 
@@ -64,10 +60,10 @@ export function BottomNav() {
   // items only ever act as entry points from the pages this nav still renders
   // on (home, /paper, /search, /about, /privacy, /terms, /legal).
   const items = [
-    { label: 'ホーム',    href: `/${locale}`,               icon: HomeIcon,    match: (p: string) => p === `/${locale}` || p === '/' },
-    { label: 'フィード',  href: `/${locale}/feedapp/feed`,   icon: FeedIcon,    match: (p: string) => p.includes('/feedapp') },
-    { label: '検索',      href: `/${locale}/search`,         icon: SearchIcon,  match: (p: string) => p.includes('/search') },
-    { label: 'マイページ',href: `/${locale}/feedapp/mypage`, icon: ProfileIcon, match: (p: string) => p.includes('/feedapp/mypage') },
+    { label: 'ホーム',    href: `/`,               icon: HomeIcon,    match: (p: string) => p === `/` },
+    { label: 'フィード',  href: `/feedapp/feed`,   icon: FeedIcon,    match: (p: string) => p.includes('/feedapp') },
+    { label: '検索',      href: `/search`,         icon: SearchIcon,  match: (p: string) => p.includes('/search') },
+    { label: 'マイページ',href: `/feedapp/mypage`, icon: ProfileIcon, match: (p: string) => p.includes('/feedapp/mypage') },
   ];
 
   return (

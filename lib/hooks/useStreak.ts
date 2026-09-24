@@ -71,10 +71,23 @@ function saveStreak(data: StreakData) {
   try { localStorage.setItem(STREAK_KEY, JSON.stringify(data)); } catch { /* ignore */ }
 }
 
-export function useStreak() {
-  const [data, setData] = useState<StreakData>(() => loadStreak());
+// Fixed, locale/localStorage-independent default — identical on the server
+// render and the client's first render, so hydration never has to reconcile
+// a DOM built from this against different text. `loadStreak()` itself reads
+// `localStorage` at call time, so calling it from the `useState` initializer
+// (as this used to do) returns a DIFFERENT value on the client's first paint
+// than on the server (which always sees `typeof window === "undefined"`) for
+// any returning user with a saved streak — a real value (mismatch) vs. this
+// fixed default, causing React hydration error #418. Same fix as
+// lib/proto/store.tsx's existing `hydrated` pattern: start from a fixed
+// value, then load the real one in a post-mount effect (below).
+const INITIAL_STREAK: StreakData = { lastDate: "", streak: 0, todayCount: 0, goalMet: false };
 
-  // Rehydrate after mount (SSR safe)
+export function useStreak() {
+  const [data, setData] = useState<StreakData>(INITIAL_STREAK);
+
+  // Rehydrate after mount (SSR safe) — the only place loadStreak() (which
+  // reads localStorage) is allowed to run before the initial render is done.
   useEffect(() => { setData(loadStreak()); }, []);
 
   /**

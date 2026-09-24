@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useLanguage } from "./LanguageProvider";
 // A plain <img>, not next/image: image_url comes from whichever of the ~20+
 // RSS feeds in lib/sources/rss.ts an article was collected from, so the
 // domain is arbitrary and unpredictable ahead of time. next/image's remote
@@ -31,13 +30,12 @@ function formatDate(value?: string | null): string | null {
 export function NewsCard({ news }: { news: NewsCardData }) {
     const [isExpanded, setIsExpanded] = useState(false);
     const [mode, setMode] = useState<"general" | "expert">("general");
-    const { t } = useLanguage();
     const published = formatDate(news.published_at);
 
     const summary = useMemo(() => {
-        if (mode === "general") return news.summary_general || t("要約がありません", "No summary available");
-        return news.summary_expert || news.summary_general || t("要約がありません", "No summary available");
-    }, [mode, news, t]);
+        if (mode === "general") return news.summary_general || "要約がありません";
+        return news.summary_expert || news.summary_general || "要約がありません";
+    }, [mode, news]);
 
     return (
         <article className="group flex flex-col bg-white overflow-hidden transition-all duration-500">
@@ -94,13 +92,13 @@ export function NewsCard({ news }: { news: NewsCardData }) {
                                 onClick={() => setMode("general")}
                                 className={`text-[10px] font-black tracking-widest uppercase ${mode === "general" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-300"}`}
                             >
-                                {t("一般", "GENERAL")}
+                                一般
                             </button>
                             <button
                                 onClick={() => setMode("expert")}
                                 className={`text-[10px] font-black tracking-widest uppercase ${mode === "expert" ? "text-cyan-600 border-b-2 border-cyan-600" : "text-slate-300"}`}
                             >
-                                {t("専門", "EXPERT")}
+                                専門
                             </button>
                         </div>
 
@@ -116,7 +114,7 @@ export function NewsCard({ news }: { news: NewsCardData }) {
                                     rel="noreferrer"
                                     className="inline-flex items-center gap-2 text-[10px] font-black tracking-widest text-slate-900 hover:text-cyan-600 transition-colors uppercase border-b border-black hover:border-cyan-600 pb-1"
                                 >
-                                    {t("ソース元を読む", "READ ORIGINAL SOURCE")} &rarr;
+                                    ソース元を読む &rarr;
                                 </a>
                             </div>
                         )}
@@ -129,7 +127,7 @@ export function NewsCard({ news }: { news: NewsCardData }) {
                         onClick={() => setIsExpanded(true)}
                         className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-cyan-600 transition-colors flex items-center gap-2 pt-2"
                     >
-                        {t("要約を読む", "READ SUMMARY")} <span className="text-lg leading-none">+</span>
+                        要約を読む <span className="text-lg leading-none">+</span>
                     </button>
                 )}
             </div>
