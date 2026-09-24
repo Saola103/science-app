@@ -24,7 +24,7 @@ function formatDate(value?: string | null): string | null {
     if (!value) return null;
     const d = new Date(value);
     if (Number.isNaN(d.getTime())) return value;
-    return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit" });
+    return d.toLocaleDateString("ja-JP", { year: "numeric", month: "2-digit", day: "2-digit", timeZone: "Asia/Tokyo" });
 }
 
 export function NewsCard({ news }: { news: NewsCardData }) {

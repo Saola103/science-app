@@ -77,8 +77,13 @@ export default function PaperShareClient({ paper }: { paper: Paper }) {
   const gradient = getCategoryGradient(paper.category);
   const authors = paper.authors?.slice(0, 3).join(", ") ?? "";
   const source = paper.source || "arXiv";
+  // paper is fetched server-side (app/paper/page.tsx) and rendered into this
+  // client component's SSR HTML, so — same as components/HomeContent.tsx's
+  // formatDate — this must pin timeZone: Asia/Tokyo or the server (Vercel,
+  // UTC) and client (JST browser) can disagree on the day and trigger a
+  // React hydration error #418.
   const date = paper.published_at
-    ? new Date(paper.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" })
+    ? new Date(paper.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Tokyo" })
     : "";
 
   const appUrl = `/feedapp/feed`;

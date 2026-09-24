@@ -31,7 +31,7 @@ function catLabel(c?: string | null) {
 
 function ResultCard({ item }: { item: ResultItem }) {
   const headline = item.summary_general?.split(/[。！？\n]/)?.[0]?.trim() || item.title;
-  const date = item.published_at ? new Date(item.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric" }) : "";
+  const date = item.published_at ? new Date(item.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Tokyo" }) : "";
 
   return (
     <a

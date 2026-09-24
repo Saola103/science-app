@@ -66,10 +66,21 @@ function cardGradient(category?: string | null) {
   return 'from-slate-800 to-zinc-900';
 }
 
+// Home ('/') is an async Server Component (see app/page.tsx) whose fetched
+// papers are rendered straight into this client component's HTML at SSR
+// time — so this runs once on the server and again on the client during
+// hydration. Vercel's serverless functions run in UTC, while users'
+// browsers run in their local zone (JST for this app's audience), so
+// without a fixed `timeZone` the server and client can compute a different
+// calendar day for the same `published_at` timestamp (any article whose
+// UTC and JST day differ — i.e. most days, for roughly a third of the
+// 24h cycle) and produce different date text, triggering React hydration
+// error #418 ("text" mismatch). Pin the same Asia/Tokyo zone this app
+// already uses everywhere else (see lib/proto/store.tsx, useStreak.ts).
 function formatDate(iso?: string | null) {
   if (!iso) return '';
   const d = new Date(iso);
-  return d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric' });
+  return d.toLocaleDateString('ja-JP', { month: 'numeric', day: 'numeric', timeZone: 'Asia/Tokyo' });
 }
 
 type AnyItem = (PaperCardData | NewsCardData) & { category?: string | null; image_url?: string | null; summary_general?: string | null };
