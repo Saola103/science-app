@@ -18,6 +18,7 @@ import { summarize, summarizeNews } from "../llm/summarize";
 import { embedText } from "../llm/index";
 import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
+import { mapDbCategoryToTaxonomy } from "../proto/mockData";
 
 // News summary instructions live in lib/llm/prompts/news-summary.md and are
 // loaded via lib/llm/summarize.ts's summarizeNews() (2026-09-26: this file
@@ -152,9 +153,16 @@ export async function processPaper(paper: {
     console.error(`Embedding failed for ${paper.id}:`, e);
   }
 
-  // Determine category from the general summary
-  const category = generalSummary ? extractCategory(generalSummary) : "other";
-  const imageUrl = pickCategoryImage(category);
+  // Determine category from the general summary. rawCategory stays in the
+  // pipeline's own English vocabulary (physics/biology/...) since
+  // CATEGORY_IMAGES below is keyed on that vocabulary; the DB `category`
+  // column instead gets the final Japanese taxonomy value (2026-09-26,
+  // see lib/proto/mockData.ts's mapDbCategoryToTaxonomy() doc comment) so
+  // readers (feed filter, category tiles, filter modal) no longer need to
+  // re-derive it from the raw value on every render.
+  const rawCategory = generalSummary ? extractCategory(generalSummary) : "other";
+  const imageUrl = pickCategoryImage(rawCategory);
+  const category = mapDbCategoryToTaxonomy(rawCategory, `${paper.title} ${textForSummary}`);
 
   await upsertPaperToSupabase({
     id: paper.id,
@@ -286,6 +294,12 @@ export async function collectNews(): Promise<{ collected: number; errors: number
           console.warn(`[Pipeline] News summary failed for "${article.title}":`, e);
         }
 
+        // article.category is RSS_FEEDS' raw per-feed value (see
+        // lib/sources/rss.ts) — finalize it into the same Japanese
+        // taxonomy papers use before writing, same reasoning as
+        // processPaper() above.
+        const finalCategory = mapDbCategoryToTaxonomy(article.category, `${article.title} ${article.description}`);
+
         await upsertNewsToSupabase({
           id: article.id,
           title: article.title,
@@ -294,7 +308,7 @@ export async function collectNews(): Promise<{ collected: number; errors: number
           image_url: article.image_url,
           published_at: article.published_at,
           source_name: article.source_name,
-          category: article.category,
+          category: finalCategory,
           summary_general: summaryJa,
         });
 

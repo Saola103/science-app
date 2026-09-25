@@ -27,6 +27,12 @@ function stripMd(text: string): string {
 }
 
 function getCategoryLabel(category?: string | null): string {
+  if (!category) return "サイエンス";
+  // Legacy English/RSS DB category vocabulary, kept for rows written before
+  // 2026-09-26. Since then news.category stores the final Japanese taxonomy
+  // tag directly (see lib/proto/mockData.ts's mapDbCategoryToTaxonomy() doc
+  // comment) — anything not in this lookup is shown as-is instead of
+  // collapsing to the "サイエンス" fallback.
   const labels: Record<string, string> = {
     neuroscience: "脳科学", biology: "生物学", physics: "物理学",
     chemistry: "化学", mathematics: "数学", astronomy: "天文学",
@@ -34,7 +40,7 @@ function getCategoryLabel(category?: string | null): string {
     genetics: "遺伝学", psychology: "心理学", climate: "環境科学",
     other: "サイエンス",
   };
-  return labels[category?.toLowerCase() ?? ""] ?? "サイエンス";
+  return labels[category.toLowerCase()] ?? category;
 }
 
 function getCategoryGradient(category?: string | null): string {

@@ -45,6 +45,11 @@ function catLabel(c?: string | null) {
   return c;
 }
 
+// Includes both the pipeline's legacy English category vocabulary (for rows
+// written before 2026-09-26) and the Japanese taxonomy values now written
+// directly into papers/news.category (see lib/proto/mockData.ts's
+// mapDbCategoryToTaxonomy() doc comment) — without the Japanese keys, every
+// migrated item's gradient would silently fall through to the default.
 const CAT_GRADIENTS: Record<string, string> = {
   physics: 'from-blue-800 to-indigo-900',
   biology: 'from-emerald-800 to-teal-900',
@@ -56,6 +61,16 @@ const CAT_GRADIENTS: Record<string, string> = {
   chemistry: 'from-amber-800 to-orange-900',
   math: 'from-cyan-800 to-sky-900',
   neuroscience: 'from-purple-800 to-violet-900',
+  '物理学': 'from-blue-800 to-indigo-900',
+  '生物学': 'from-emerald-800 to-teal-900',
+  '医学': 'from-rose-800 to-pink-900',
+  '情報学': 'from-violet-800 to-purple-900',
+  '天文学': 'from-indigo-800 to-slate-900',
+  '化学': 'from-amber-800 to-orange-900',
+  '数学': 'from-cyan-800 to-sky-900',
+  '神経科学': 'from-purple-800 to-violet-900',
+  '環境科学': 'from-teal-800 to-emerald-900',
+  '心理学': 'from-pink-800 to-rose-900',
 };
 function cardGradient(category?: string | null) {
   if (!category) return 'from-slate-800 to-zinc-900';

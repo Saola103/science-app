@@ -59,15 +59,21 @@ function ResultCard({ item }: { item: ResultItem }) {
   );
 }
 
+// key values must match lib/proto/mockData.ts's CATEGORIES (the final
+// taxonomy tag now written directly into papers/news.category at collection
+// time, see lib/pipeline/collect.ts) — this used to be the pipeline's raw
+// English vocabulary (physics/biology/...), which silently matched zero
+// rows once /api/feed's `?category=` ilike started comparing against the
+// Japanese taxonomy value instead (2026-09-26, see kno_briefing.md "依頼4").
 const CATEGORIES = [
   { key: "", label: "すべて" },
-  { key: "physics", label: "物理学" },
-  { key: "biology", label: "生物学" },
-  { key: "medicine", label: "医学" },
-  { key: "ai", label: "AI" },
-  { key: "chemistry", label: "化学" },
-  { key: "astronomy", label: "天文学" },
-  { key: "math", label: "数学" },
+  { key: "物理学", label: "物理学" },
+  { key: "生物学", label: "生物学" },
+  { key: "医学", label: "医学" },
+  { key: "情報学", label: "AI" },
+  { key: "化学", label: "化学" },
+  { key: "天文学", label: "天文学" },
+  { key: "数学", label: "数学" },
 ];
 
 function SearchContent() {

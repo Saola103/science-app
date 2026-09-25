@@ -109,11 +109,30 @@ const NEURO_KEYWORDS = [
 ];
 
 /**
- * Maps a raw DB category value (English, from collect.ts / rss.ts) to one of
- * feedapp's Japanese CATEGORIES. `text` (title + summary) is optional context
- * used only to reclassify biology/medicine items into 神経科学.
+ * Maps a raw DB category value to one of feedapp's Japanese CATEGORIES.
+ * `text` (title + summary) is optional context used only to reclassify
+ * biology/medicine items into 神経科学.
+ *
+ * 2026-09-26: `lib/pipeline/collect.ts` now calls this at WRITE time and
+ * saves the resulting Japanese taxonomy value directly into papers/news'
+ * `category` column, instead of the pipeline's raw English category
+ * (physics/biology/...) — see kno_briefing.md "依頼4" / dev_log.md
+ * 2026-09-26 for the rationale (avoid the old two-stage "raw DB value,
+ * re-mapped on every render" design). So this function is now idempotent
+ * for already-migrated rows (a value that's already one of CATEGORIES is
+ * returned unchanged, skipping the lookup table entirely) and only falls
+ * back to the old English->Japanese lookup + neuro-keyword heuristic for
+ * rows written before this change (or not yet covered by the one-off SQL
+ * backfill, see supabase/migrations/010_category_taxonomy_backfill.sql).
+ * Once that backfill has run and all writers are on the new code path,
+ * every call becomes the identity branch and this function is effectively
+ * a no-op pass-through — kept rather than removed so old/unmigrated rows
+ * don't silently fall into "その他".
  */
 export function mapDbCategoryToTaxonomy(dbCategory: string | null | undefined, text?: string): string {
+  if (dbCategory && (CATEGORIES as readonly string[]).includes(dbCategory)) {
+    return dbCategory;
+  }
   const key = (dbCategory ?? "").toLowerCase().trim();
   const base = DB_CATEGORY_TO_TAXONOMY[key] ?? "その他";
   if ((base === "生物学" || base === "医学") && text) {
