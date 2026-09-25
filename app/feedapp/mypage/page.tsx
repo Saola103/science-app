@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "../../../lib/i18n/ja";
 import { useProtoStore } from "../../../lib/proto/store";
 import { CATEGORIES, CATEGORY_STYLE, getCategoryLabel } from "../../../lib/proto/mockData";
@@ -92,42 +92,6 @@ function FollowedCategories({ followed, onToggle, heading, desc, emptyHint }: { 
   );
 }
 
-const BADGE_MILESTONES: { threshold: number; label: string }[] = [
-  { threshold: 10, label: "はじめの一歩" },
-  { threshold: 50, label: "好奇心の芽" },
-  { threshold: 100, label: "探究者" },
-  { threshold: 300, label: "深海ダイバー" },
-  { threshold: 500, label: "知識のマスター" },
-  { threshold: 1000, label: "伝説の探究者" },
-];
-
-function currentBadge(readCount: number) {
-  let current: { threshold: number; label: string } | null = null;
-  for (const m of BADGE_MILESTONES) {
-    if (readCount >= m.threshold) current = m;
-  }
-  return current;
-}
-
-function BadgeProgress({ readCount, label, toGoLabel, unearnedLabel }: { readCount: number; label: (name: string) => string; toGoLabel: (n: number) => string; unearnedLabel: string }) {
-  const next = BADGE_MILESTONES.find((m) => m.threshold > readCount) ?? BADGE_MILESTONES[BADGE_MILESTONES.length - 1];
-  const prevIndex = BADGE_MILESTONES.findIndex((m) => m.threshold === next.threshold) - 1;
-  const prevThreshold = prevIndex >= 0 ? BADGE_MILESTONES[prevIndex].threshold : 0;
-  const ratio = next.threshold === prevThreshold ? 1 : Math.min(1, (readCount - prevThreshold) / (next.threshold - prevThreshold));
-  const badge = currentBadge(readCount);
-
-  return (
-    <div className="rounded-2xl px-4 py-3.5 mb-5" style={{ background: "#F7F9FC" }}>
-      <div className="flex items-baseline justify-between mb-2">
-        <span className="text-[12px] font-bold text-[#4B5563]">{badge ? label(badge.label) : unearnedLabel}</span>
-        <span className="text-[11px] text-[#94A3B8]">{readCount < next.threshold ? toGoLabel(next.threshold - readCount) : ""}</span>
-      </div>
-      <div className="rounded-full overflow-hidden" style={{ height: 6, background: "#E7EAF0" }}>
-        <div className="h-full rounded-full" style={{ width: `${ratio * 100}%`, background: "#FF9640", transition: "width 0.4s ease" }} />
-      </div>
-    </div>
-  );
-}
 
 function FeedbackForm() {
   const t = useTranslations("Proto.mypage");
@@ -204,7 +168,7 @@ function SavedRow({ article, onOpen, onRemove, removeLabel }: { article: Article
         >
           {getCategoryLabel(article.category, locale)}
         </span>
-        <p className="text-[13px] font-bold text-[#1A1D29] leading-snug line-clamp-2">{article.summary}</p>
+        <p className="text-[13px] font-bold text-[#1A1D29] leading-snug">{article.summary}</p>
       </button>
       <button onClick={onRemove} className="shrink-0 p-2 text-[#CBD5E1]" aria-label={removeLabel}>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -216,23 +180,11 @@ function SavedRow({ article, onOpen, onRemove, removeLabel }: { article: Article
 }
 
 export default function MyPage() {
-  const { saved, seen, streak, totalPoints, readCount, followed, toggleFollow, removeSaved, hydrated, showToast } = useProtoStore();
+  const { saved, seen, streak, totalPoints, followed, toggleFollow, removeSaved, hydrated } = useProtoStore();
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
   const [items, setItems] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const t = useTranslations("Proto.mypage");
-
-  // Celebrate a newly-crossed badge threshold with a toast, once per crossing
-  // (not on every render) — mirrors the existing feed follow/unfollow toasts.
-  const lastBadgeRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!hydrated) return;
-    const badge = currentBadge(readCount);
-    if (badge && lastBadgeRef.current !== null && lastBadgeRef.current !== badge.label) {
-      showToast(t("badgeEarnedToast", { name: badge.label }));
-    }
-    lastBadgeRef.current = badge?.label ?? lastBadgeRef.current;
-  }, [readCount, hydrated, showToast, t]);
 
   // Saved ids in localStorage (lib/proto/store.tsx) reference real DB rows —
   // fetch their current data by id rather than looking them up in the old
@@ -292,13 +244,6 @@ export default function MyPage() {
         points={totalPoints}
         label={t("pointsLabel", { points: totalPoints })}
         toGoLabel={(n) => t("pointsToGo", { points: n })}
-      />
-
-      <BadgeProgress
-        readCount={readCount}
-        label={(name) => t("badgeLabel", { name })}
-        toGoLabel={(n) => t("badgeToGo", { count: n })}
-        unearnedLabel={t("badgeUnearned")}
       />
 
       <FollowedCategories

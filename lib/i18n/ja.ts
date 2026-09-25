@@ -238,10 +238,6 @@ const ja = {
       feedbackSending: "送信中…",
       feedbackSent: "送信しました。ありがとうございます！",
       feedbackError: "送信に失敗しました。時間をおいて試してください。",
-      badgeLabel: "称号:{name}",
-      badgeUnearned: "まだ称号がありません",
-      badgeToGo: "あと{count}枚で次の称号",
-      badgeEarnedToast: "称号「{name}」を獲得しました!",
       followHeading: "フォロー中の分野",
       followDesc: "タップで登録・解除できます。フォローした分野はフィードで優先的に表示されます。",
       followEmptyHint: "気になる分野をタップしてフォローしてみましょう",
@@ -260,7 +256,7 @@ const ja = {
     },
     trending: {
       heading: "急上昇中のトピック",
-      subheading: "みんなが興味を持っている話題",
+      subheading: "直近で論文・ニュースの件数が増えている分野です",
       interestBadge: "あなたの興味",
     },
     stack: {
