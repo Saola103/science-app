@@ -22,8 +22,8 @@ import path from "path";
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
-import { summarize } from "../lib/llm/summarize";
-import { generateText, embedText } from "../lib/llm/index";
+import { summarize, summarizeNews } from "../lib/llm/summarize";
+import { embedText } from "../lib/llm/index";
 import { hasValidHeadline } from "../lib/format/summaryText";
 
 function arg(name: string, fallback: number): number {
@@ -130,23 +130,13 @@ async function backfillNews(supabase: ReturnType<typeof getSupabase>, limit: num
   for (const item of toFix) {
     const text = item.description || item.title || "";
     if (!text.trim()) continue;
-    const catTag = item.category || "other";
-    const prompt = `あなたは人気サイエンスライターです。以下の科学ニュース記事を、好奇心旺盛な高校生が「もっと知りたい！」と感じる日本語コラムに変えてください。
-
-【出力フォーマット（厳守）】
-1行目: 10〜20文字の日本語タイトル（体言止めか短文。疑問形は絶対禁止。例:「AIが創薬を100倍加速」「ブラックホールの新発見」）
-（空行1つ）
-本文: 100〜150文字の連続した文章。箇条書き禁止。ですます調。
-（空行1つ）
-[${catTag}]
-
-=== ニュース記事 ===
-タイトル: ${item.title}
-
-内容: ${text}`;
 
     try {
-      const newSummary = await generateText(prompt, 0.72);
+      const newSummary = await summarizeNews({
+        title: item.title,
+        description: text,
+        category: item.category ?? undefined,
+      });
       const { error: updateError } = await supabase
         .from("news")
         .update({ summary_general: newSummary, has_valid_headline: hasValidHeadline(newSummary) })

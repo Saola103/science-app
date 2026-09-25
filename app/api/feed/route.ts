@@ -148,6 +148,24 @@ export async function GET(req: NextRequest) {
     // reflect that it now checks headline validity, not just non-nullness —
     // never serves either case into the feed at all, not just on the
     // randomized first page.
+    // How the three collection/repair/serving stages connect (2026-09-26):
+    //   1. 新規収集 (lib/pipeline/collect.ts, /api/cron/collect): 新しく取得した
+    //      記事は要約生成と同時に has_valid_headline を計算して書き込む
+    //      (lib/supabase/serviceClient.ts の upsertPaperToSupabase/
+    //      upsertNewsToSupabase)。つまり新規記事は基本的に最初から true になる。
+    //   2. バックグラウンド再生成 (/api/cron/fix-summaries, /api/admin/fix-summaries,
+    //      scripts/backfill.ts): has_valid_headline が false/null のレコード
+    //      (旧フォーマットの壊れた要約、または要約自体が欠けているもの)を
+    //      サーバー側のWHERE条件で直接拾い上げて再生成し、has_valid_headline を
+    //      更新し直す。これが壊れたバックログを徐々に true へ倒していくループ。
+    //   3. 表示 (このファイル): has_valid_headline = true のレコードだけを配信
+    //      する。1・2の結果として「trueのものしか存在しない」プールから配信する
+    //      構造なので、これ自体が「新フォーマットの記事を優先的に見せる」設計
+    //      になっている——false/nullなレコードはそもそも母集団に入らない。
+    // このため、trueの中でさらに「新フォーマットを上位に並べる」独自の優先度・
+    // ランキングロジックは追加していない(全件が既にtrueのプールなので、そのような
+    // ランキングは意味を持たない)。過剰な実装を避け、この3段の役割分担を明文化
+    // するに留めた。
     function withValidHeadline(query: any): any {
       return query.eq("has_valid_headline", true);
     }

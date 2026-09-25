@@ -141,3 +141,34 @@ export async function summarize(
   const temperature = options?.tone === "casual" ? 0.72 : 0.30;
   return generateText(prompt, temperature);
 }
+
+/**
+ * ── ニュース版プロンプト ──
+ *
+ * papers の casual/expert とは別に、news-summary.md 一本だけを使う。
+ * 依頼元(cron/admin fix-summaries, scripts/backfill.ts)がそれぞれ独自の
+ * インライン文字列を持っていて news-summary.md とルールがズレていたため、
+ * ここに一本化した(2026-09-26)。lib/pipeline/collect.ts の新規収集経路も
+ * このヘルパーを使う。
+ */
+export function buildNewsPrompt(article: {
+  title: string;
+  description: string;
+  category?: string;
+}): string {
+  const catTag = article.category || "other";
+  return loadPromptTemplate("news-summary.md")
+    .replace("{{CATEGORY}}", catTag)
+    .replace("{{TITLE}}", article.title)
+    .replace("{{DESCRIPTION}}", article.description);
+}
+
+export async function summarizeNews(article: {
+  title: string;
+  description: string;
+  category?: string;
+}): Promise<string> {
+  const prompt = buildNewsPrompt(article);
+  // collect.ts の既存ニュース生成と同じ temperature(0.72)を踏襲。
+  return generateText(prompt, 0.72);
+}

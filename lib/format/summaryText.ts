@@ -62,8 +62,11 @@ export function stripMarkdown(text: string): string {
     // Second pass to clean up any "xxx：" section headers left by 【】 conversion
     .replace(/^(?:3つのダイブポイント|3つの要点|研究の目的と背景|研究の目的|手法|主要な結果|科学的意義|専門的解説|魅力的な解説|核心的貢献)[：:][^\n]*/gm, "")
     .replace(/\nカテゴリ：\s*\S+\s*$/i, "")
-    // Bullet markers
-    .replace(/^\s*[-*+•]\s*/gm, "• ")
+    // Bullet markers — prompts explicitly forbid bullet-point output, so a
+    // leading -/*/+/• here is a stray formatting artifact, not an intentional
+    // list; strip the marker outright instead of normalizing it into "• "
+    // (which used to manufacture bullets the display side never asked for).
+    .replace(/^\s*[-*+•]\s*/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
 }

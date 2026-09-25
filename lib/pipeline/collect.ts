@@ -11,37 +11,20 @@
  * Designed to be called by a Vercel Cron job (GET /api/cron/collect).
  */
 
-import fs from "fs";
-import path from "path";
 import { fetchArxivOpenAccessPapers } from "../sources/arxiv";
 import { fetchBiorxivPapers, BIORXIV_CATEGORY_QUERIES } from "../sources/biorxiv";
 import { fetchScienceNewsFromRSS } from "../sources/rss";
-import { summarize } from "../llm/summarize";
-import { generateText, embedText } from "../llm/index";
+import { summarize, summarizeNews } from "../llm/summarize";
+import { embedText } from "../llm/index";
 import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
 
-// News summary instructions live in lib/llm/prompts/news-summary.md (same
-// approach as lib/llm/summarize.ts's loadPromptTemplate) so the prompt can
-// be read/edited on its own. This loader is kept local to this file rather
-// than imported from summarize.ts to avoid coupling to that module's
-// internals; content and behavior are unchanged from the previous inline
-// template literal.
-let newsPromptCache: string | null = null;
-function loadNewsPromptTemplate(): string {
-  if (newsPromptCache !== null) return newsPromptCache;
-  const filePath = path.join(process.cwd(), "lib/llm/prompts", "news-summary.md");
-  newsPromptCache = fs.readFileSync(filePath, "utf-8");
-  return newsPromptCache;
-}
-
-function buildNewsPrompt(article: { title: string; description: string; category?: string }): string {
-  const catTag = article.category || "other";
-  return loadNewsPromptTemplate()
-    .replace("{{CATEGORY}}", catTag)
-    .replace("{{TITLE}}", article.title)
-    .replace("{{DESCRIPTION}}", article.description);
-}
+// News summary instructions live in lib/llm/prompts/news-summary.md and are
+// loaded via lib/llm/summarize.ts's summarizeNews() (2026-09-26: this file
+// used to keep its own local copy of the loader/builder; consolidated so
+// there's exactly one place that reads news-summary.md, matching how the
+// cron/admin fix-summaries routes and scripts/backfill.ts now also call
+// summarizeNews() instead of hardcoding the prompt inline).
 
 // arXiv category codes — broad science coverage
 export const ARXIV_CATEGORY_QUERIES: Record<string, string> = {
@@ -295,11 +278,9 @@ export async function collectNews(): Promise<{ collected: number; errors: number
     for (const article of articles) {
       try {
         // Generate a Japanese summary using Groq (same title-first format as paper summaries)
-        const prompt = buildNewsPrompt(article);
-
         let summaryJa: string | null = null;
         try {
-          summaryJa = await generateText(prompt);
+          summaryJa = await summarizeNews(article);
           await delay(500); // Groq rate limit buffer
         } catch (e) {
           console.warn(`[Pipeline] News summary failed for "${article.title}":`, e);
