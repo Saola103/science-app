@@ -7,6 +7,14 @@ import { mapFeedItemToArticle, FeedApiItem } from "./mapArticle";
 export type UseArticlesOptions = {
   /** Optional free-text search — forwarded to /api/feed's `q` param. */
   q?: string;
+  /**
+   * Optional taxonomy category (e.g. "医学") — forwarded to /api/feed's
+   * `category` param, which the server applies as a DB-side `ilike` filter
+   * (see app/api/feed/route.ts). Unlike the client-side `filter` callback
+   * below, this is applied before pagination, so narrow categories don't
+   * depend on client-side auto-chaining to find matches.
+   */
+  category?: string;
   /** How many raw items to request per page from /api/feed (server clamps to 60). */
   pageSize?: number;
   /**
@@ -41,7 +49,7 @@ export type UseArticlesResult = {
  * Used by feed/trending/search/stack pages instead of the old static
  * `ARTICLES` import from lib/proto/mockData.ts.
  */
-export function useArticles({ q, pageSize = 24, filter, maxAutoChain = 4, enabled = true }: UseArticlesOptions = {}): UseArticlesResult {
+export function useArticles({ q, category, pageSize = 24, filter, maxAutoChain = 4, enabled = true }: UseArticlesOptions = {}): UseArticlesResult {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -58,6 +66,7 @@ export function useArticles({ q, pageSize = 24, filter, maxAutoChain = 4, enable
       const params = new URLSearchParams({ limit: String(pageSize) });
       if (!reset && cursorRef.current) params.set("cursor", cursorRef.current);
       if (q) params.set("q", q);
+      if (category) params.set("category", category);
 
       const res = await fetch(`/api/feed?${params.toString()}`);
       if (requestIdRef.current !== myRequestId) return; // superseded by a newer refresh/query change
@@ -88,7 +97,7 @@ export function useArticles({ q, pageSize = 24, filter, maxAutoChain = 4, enable
       // rather than surfacing a dead-looking "no results" for a narrow filter.
       await fetchOnePage(false, myRequestId, chain + 1);
     },
-    [pageSize, q, filter, maxAutoChain]
+    [pageSize, q, category, filter, maxAutoChain]
   );
 
   const runFetch = useCallback(
@@ -121,7 +130,7 @@ export function useArticles({ q, pageSize = 24, filter, maxAutoChain = 4, enable
     if (!enabled) return;
     runFetch(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q, filter, enabled]);
+  }, [q, category, filter, enabled]);
 
   const loadMore = useCallback(() => {
     if (!hasMore || inFlightRef.current) return;

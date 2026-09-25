@@ -23,15 +23,18 @@ function StackContent() {
   const [atTop, setAtTop] = useState(true);
   const { saved, toggleSaved, markSeen, followed, toggleFollow, addViewSeconds, showToast } = useProtoStore();
 
-  // A taxonomy category (lib/proto/mockData.ts) isn't a DB column, so it's
-  // applied as a client-side filter on top of /api/feed's results — same
-  // approach as feed/page.tsx. A free-text query, by contrast, IS forwarded
-  // to /api/feed's own `q` param (real ilike search — see app/api/feed/route.ts).
-  const categoryFilter = useCallback((a: Article) => (category ? a.category === category : true), [category]);
+  // As of 2026-09-26, papers.category/news.category hold the final Japanese
+  // taxonomy value directly (written at collection time — see
+  // lib/pipeline/collect.ts), so a category filter is forwarded to
+  // /api/feed's `category` param and applied server-side (DB-side ilike —
+  // see app/api/feed/route.ts), same as the free-text `q` param. This used to
+  // be a client-side filter applied on top of a randomly-paginated slice of
+  // /api/feed's results, which could come up empty for categories with a
+  // small population (e.g. 医学) even though the DB had matches further back.
   const { articles, hasMore, loadMore, loading } = useArticles({
     q: q || undefined,
+    category: category || undefined,
     pageSize: 30,
-    filter: category ? categoryFilter : undefined,
   });
 
   const label = q ? t("searchResultsFor", { query: q }) : category ? getCategoryLabel(category, locale) : "";

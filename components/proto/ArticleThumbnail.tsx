@@ -26,7 +26,9 @@ export function ArticleThumbnail({ article, onClick }: { article: Article; onCli
         >
           {getCategoryLabel(article.category, locale)}
         </span>
-        <p className="text-[12.5px] font-bold text-[#1A1D29] leading-snug line-clamp-2">
+        {/* 見出し(article.summary)は生成プロンプト側で40文字以内が保証されているため、
+            line-clampで途中省略はしない(全文表示)。 */}
+        <p className="text-[12.5px] font-bold text-[#1A1D29] leading-snug">
           {article.summary}
         </p>
       </div>

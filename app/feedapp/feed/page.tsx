@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "../../../lib/i18n/ja";
 import { useProtoStore } from "../../../lib/proto/store";
@@ -46,14 +46,14 @@ export default function FeedPage() {
   const tContentType = useTranslations("Proto.contentType");
   const locale = useLocale();
 
-  // Taxonomy categories (lib/proto/mockData.ts's mapDbCategoryToTaxonomy) live
-  // client-side, not as a DB column — so a category filter is applied here,
-  // not sent to /api/feed as a query param.
-  const categoryFilterFn = useMemo(
-    () => (filter === ALL ? undefined : (a: Article) => a.category === filter),
-    [filter]
-  );
-  const { articles, hasMore, loadMore, loading } = useArticles({ pageSize: 30, filter: categoryFilterFn });
+  // Category filtering is forwarded to /api/feed's `category` param (DB-side
+  // ilike filter — see app/api/feed/route.ts), not applied client-side. This
+  // matters for categories with a small population (e.g. 医学): a client-side
+  // filter over a randomly-paginated slice could come up with zero matches
+  // even though the DB has plenty, whereas the server-side filter always
+  // queries the full matching pool directly.
+  const category = filter === ALL ? undefined : filter;
+  const { articles, hasMore, loadMore, loading } = useArticles({ pageSize: 30, category });
 
   // Personalization weights are snapshotted once per filter session (on filter
   // change, or once on mount after localStorage hydrates) rather than
@@ -89,15 +89,29 @@ export default function FeedPage() {
     [filter, articles]
   );
 
-  // Reset the incremental slide list whenever the filter changes (useArticles
-  // resets `articles` on its own for the same dependency).
+  // Reset-then-sync in ONE effect (not two), guarded by whether `filter` just
+  // changed. This closes a race that used to exist between a separate reset
+  // effect and a separate sync effect: both ran in the same commit right
+  // after a filter change, but `articles` (from useArticles) hadn't caught up
+  // to the new filter yet in that commit — useArticles' own internal effect
+  // only *schedules* its reset (setArticles([])), it doesn't take effect
+  // until a subsequent render. So the old sync effect was reading `articles`
+  // that still held the PREVIOUS filter's results, re-adding them to the
+  // freshly-cleared knownIdsRef as if they were new. Guarding on
+  // prevFilterRef here means: the render right after a filter change only
+  // resets and bails out (without touching `articles`), and waits for the
+  // next effect run — triggered once `articles` itself actually changes
+  // reference (first to [], then to the new filter's real results) — before
+  // syncing anything into `slides`.
+  const prevFilterRef = useRef(filter);
   useEffect(() => {
-    setSlides([]);
-    knownIdsRef.current = new Set();
-    chunkRef.current = 0;
-  }, [filter]);
-
-  useEffect(() => {
+    if (prevFilterRef.current !== filter) {
+      prevFilterRef.current = filter;
+      setSlides([]);
+      knownIdsRef.current = new Set();
+      chunkRef.current = 0;
+      return;
+    }
     const newOnes = articles.filter((a) => !knownIdsRef.current.has(a.id));
     if (newOnes.length === 0) return;
     for (const a of newOnes) knownIdsRef.current.add(a.id);

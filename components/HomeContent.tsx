@@ -110,15 +110,18 @@ function MiniCard({ item }: { item: AnyItem }) {
       href={(item as any).url || '#'}
       target="_blank"
       rel="noopener noreferrer"
-      className={`flex-shrink-0 w-40 h-52 rounded-2xl bg-gradient-to-b ${gradient} p-4 flex flex-col justify-between hover:scale-[1.02] active:scale-[0.98] transition-transform`}
+      className={`flex-shrink-0 w-40 min-h-52 rounded-2xl bg-gradient-to-b ${gradient} p-4 flex flex-col justify-between hover:scale-[1.02] active:scale-[0.98] transition-transform`}
     >
       <div>
         <span className="text-[9px] font-black tracking-widest uppercase text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
           {catLabel((item as any).category)}
         </span>
       </div>
+      {/* 見出し(headline)は生成プロンプト側で40文字以内が保証されているため、
+          line-clampで途中省略はしない(全文表示)。カードは固定高さ(h-52)ではなく
+          最小高さ(min-h-52)にし、見出しが長い場合はカードが縦に伸びるようにした。 */}
       <div className="space-y-1.5">
-        <p className="text-xs font-bold text-white leading-tight line-clamp-4">{headline}</p>
+        <p className="text-xs font-bold text-white leading-tight">{headline}</p>
         <p className="text-[9px] text-white/30 font-bold">{formatDate((item as any).published_at)}</p>
       </div>
     </a>
