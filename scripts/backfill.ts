@@ -100,7 +100,19 @@ async function backfillPapers(supabase: ReturnType<typeof getSupabase>, limit: n
       done++;
       console.log(`[papers] ${done}/${papers.length} fixed: ${paper.title.slice(0, 50)}`);
     } catch (e) {
-      console.error(`[papers] failed for ${paper.id}:`, e instanceof Error ? e.message : e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`[papers] failed for ${paper.id}:`, msg);
+      // generateText() already retries transient 429s 3x internally (see
+      // lib/llm/index.ts) before throwing, so a 429 reaching here means the
+      // Groq daily cap (TPD) is exhausted, not a one-off rate blip — every
+      // remaining item would otherwise retry-then-fail the same way,
+      // burning ~15-20s each for nothing. Stop this batch instead (mirrors
+      // the same `if (msg.includes("429")) break;` guard already used in
+      // app/api/cron/fix-summaries and app/api/admin/fix-summaries).
+      if (msg.includes("429")) {
+        console.warn("[papers] Groq daily cap likely hit — stopping papers batch early.");
+        break;
+      }
     }
   }
   console.log(`Papers: ${done}/${papers.length} fixed.`);
@@ -146,7 +158,15 @@ async function backfillNews(supabase: ReturnType<typeof getSupabase>, limit: num
       done++;
       console.log(`[news] ${done}/${toFix.length} fixed: ${item.title.slice(0, 50)}`);
     } catch (e) {
-      console.error(`[news] failed for ${item.id}:`, e instanceof Error ? e.message : e);
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error(`[news] failed for ${item.id}:`, msg);
+      // See the matching comment in backfillPapers() above — a 429 here
+      // means the Groq daily cap is exhausted, so stop early instead of
+      // retrying every remaining item.
+      if (msg.includes("429")) {
+        console.warn("[news] Groq daily cap likely hit — stopping news batch early.");
+        break;
+      }
     }
   }
   console.log(`News: ${done}/${toFix.length} fixed.`);
