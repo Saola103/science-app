@@ -49,12 +49,22 @@ function isOldFormatSummary(summary: string): boolean {
   return !hasValidHeadline(summary);
 }
 
-/** True if general/expert are missing, or so similar they read as duplicates
- * in the UI (the identical-prefix heuristic /api/admin/fix-summaries already
- * uses — kept in sync here since this script covers the same backlog without
- * that route's 300s Vercel ceiling). */
-function needsFix(p: { summary_general: string | null; summary_expert: string | null }): boolean {
+/** True if general/expert are missing, in the pre-3-block-prompt old format
+ * (no valid headline — see has_valid_headline / hasValidHeadline()), or so
+ * similar they read as duplicates in the UI (the identical-prefix heuristic
+ * /api/admin/fix-summaries already uses — kept in sync here since this
+ * script covers the same backlog without that route's 300s Vercel ceiling).
+ *
+ * 2026-09-26: added the has_valid_headline check — this used to only catch
+ * null/identical summary pairs, silently missing the much larger backlog of
+ * rows that DO have non-null, non-identical general/expert summaries but
+ * predate the 3-block headline format (has_valid_headline=false/null). That
+ * backlog is exactly what app/api/cron/fix-summaries's `.or(...)` query
+ * targets server-side; this script now matches it instead of only
+ * discovering the narrower null/identical subset. */
+function needsFix(p: { summary_general: string | null; summary_expert: string | null; has_valid_headline?: boolean | null }): boolean {
   if (!p.summary_general || !p.summary_expert) return true;
+  if (!p.has_valid_headline) return true;
   return p.summary_general.trim().slice(0, 80) === p.summary_expert.trim().slice(0, 80);
 }
 
@@ -62,13 +72,19 @@ async function backfillPapers(supabase: ReturnType<typeof getSupabase>, limit: n
   if (limit <= 0) return;
   console.log(`\n=== Papers (target: ${limit}) ===`);
 
-  // Over-fetch then filter client-side: catches null AND identical
-  // general/expert pairs, not just null ones (see needsFix above).
+  // Filter server-side on the same has_valid_headline/null conditions
+  // app/api/cron/fix-summaries uses (see supabase/migrations/
+  // 009_has_valid_headline.sql), instead of only scanning a recent
+  // published_at window and filtering client-side — that window approach
+  // used to silently miss most of the backlog (see needsFix's doc comment
+  // above). needsFix() is still applied after fetching as a second pass for
+  // the identical-prefix case, which isn't expressible in the `.or(...)`.
   const { data: candidates, error } = await supabase
     .from("papers")
-    .select("id, title, abstract, summary_general, summary_expert, summary_embedding")
+    .select("id, title, abstract, summary_general, summary_expert, summary_embedding, has_valid_headline")
+    .or("summary_general.is.null,summary_expert.is.null,has_valid_headline.eq.false,has_valid_headline.is.null")
     .order("published_at", { ascending: false })
-    .limit(limit * 4);
+    .limit(limit * 2);
 
   if (error) throw error;
   const papers = (candidates || []).filter(needsFix).slice(0, limit);
@@ -122,11 +138,24 @@ async function backfillNews(supabase: ReturnType<typeof getSupabase>, limit: num
   if (limit <= 0) return;
   console.log(`\n=== News (target: ${limit}) ===`);
 
+  // 2026-09-26: this used to fetch only the `limit*3` MOST RECENT rows
+  // (ordered by published_at desc) and filter client-side — but recently
+  // collected news already gets a valid headline at write time (see
+  // lib/pipeline/collect.ts), so that recency window mostly contained
+  // already-fine rows and rarely reached the real backlog (older rows,
+  // further back in published_at order, predating the 3-block prompt).
+  // A manual run against the live backlog confirmed this: it reported
+  // "No news with missing/old-format summaries" despite ~4,900 backlogged
+  // rows existing. Filter server-side on has_valid_headline instead (same
+  // fix already applied to backfillPapers() above, and to
+  // app/api/cron/fix-summaries's query) so this reaches the whole backlog
+  // regardless of how deep it sits in published_at order.
   const { data: items, error } = await supabase
     .from("news")
-    .select("id, title, description, summary_general, category")
+    .select("id, title, description, summary_general, category, has_valid_headline")
+    .or("summary_general.is.null,has_valid_headline.eq.false,has_valid_headline.is.null")
     .order("published_at", { ascending: false })
-    .limit(limit * 3); // over-fetch, then filter client-side for null/old-format
+    .limit(limit * 2);
 
   if (error) throw error;
   const toFix = (items || [])
