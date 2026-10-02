@@ -9,5 +9,15 @@ import { usePathname } from 'next/navigation';
 export function MainShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isPrototype = pathname?.includes('/proto') || pathname?.includes('/feedapp');
-  return <main className={isPrototype ? undefined : 'min-h-screen pb-[60px]'}>{children}</main>;
+  return (
+    <main
+      className={isPrototype ? undefined : 'min-h-screen'}
+      // BottomNav is h-[60px] plus env(safe-area-inset-bottom) padding (see
+      // components/BottomNav.tsx) — this must reserve the same total height
+      // or content gets hidden behind the nav on notch/home-indicator devices.
+      style={isPrototype ? undefined : { paddingBottom: "calc(60px + env(safe-area-inset-bottom))" }}
+    >
+      {children}
+    </main>
+  );
 }

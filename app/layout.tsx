@@ -1,3 +1,4 @@
+import type { Viewport } from "next";
 import Script from 'next/script';
 import { Analytics } from '@vercel/analytics/next';
 
@@ -5,6 +6,8 @@ import "./globals.css";
 import { AppProvider } from "../components/LanguageProvider";
 import { BottomNav } from "../components/BottomNav";
 import { MainShell } from "../components/MainShell";
+import { InstallPrompt } from "../components/InstallPrompt";
+import { RegisterServiceWorker } from "../components/RegisterServiceWorker";
 import { Geist, Geist_Mono, Zen_Maru_Gothic } from "next/font/google";
 
 const geistSans = Geist({
@@ -27,6 +30,17 @@ const zenMaru = Zen_Maru_Gothic({
 
 const APP_URL = "https://pocketdive.vercel.app";
 const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID; // G-XXXXXXXXXX を Vercel env に設定
+
+// app/feedapp/layout.tsx と同じ記法。ただし maximumScale/userScalable によるズーム禁止は
+// /about, /privacy, /terms 等の読み物ページを含むルート層では付けない(アクセシビリティ上の
+// 理由。2026-10-02 Devブリーフィング参照)。viewportFit: "cover" がないと env(safe-area-inset-*)
+// が常に0pxに解決されるため、BottomNav/MainShellのセーフエリア対応の前提として必須。
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#000000",
+};
 
 export const metadata = {
   metadataBase: new URL(APP_URL),
@@ -94,7 +108,7 @@ export default function RootLayout({
       <head>
         {/* PWA manifest (will be added when manifest.json is created) */}
         <link rel="manifest" href="/manifest.json" />
-        <meta name="theme-color" content="#000000" />
+        {/* theme-color は export const viewport (themeColor) 側に一本化(Next.js推奨、重複定義を避ける) */}
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -125,6 +139,8 @@ export default function RootLayout({
         <AppProvider>
           <MainShell>{children}</MainShell>
           <BottomNav />
+          <InstallPrompt />
+          <RegisterServiceWorker />
         </AppProvider>
         <Analytics />
       </body>

@@ -33,3 +33,13 @@ npm run lint
 - Groq 無料枠は分あたり8,000トークン（TPM）・1日あたり200,000トークン（TPD）の両方が上限（`lib/llm/index.ts`のコメント参照、429レスポンスで実測確認済み。旧「1日100kトークン」という記載は誤りだったため訂正）。`lib/pipeline/collect.ts` の `PAPERS_PER_CATEGORY` はこの上限内に収まるよう調整してあるので、収集件数を増やす変更をするときは冒頭のコメントの計算式を更新しながら判断する。
 - `next.config.ts` で `typescript.ignoreBuildErrors: true` になっている（Vercel デプロイ都合の暫定対応）。型エラーを握りつぶす設定なので、新規実装では型チェックを別途 `tsc --noEmit` 等で確認するのが安全。
 - `.claude/settings.local.json` はローカル専用（gitignore 済み）。共有したい設定は `.claude/settings.json` を新設する。
+
+<!-- BEGIN:nextjs-agent-rules -->
+
+# This is NOT the Next.js you know
+
+This version has breaking changes — APIs, conventions, and file structure may all differ from your training data. Read the relevant guide in `node_modules/next/dist/docs/` (resolved from this file's directory; in monorepos the `next` package may not be visible from the repo root) before writing any code. Heed deprecation notices.
+
+This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
+
+<!-- END:nextjs-agent-rules -->
