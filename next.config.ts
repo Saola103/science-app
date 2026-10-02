@@ -45,6 +45,19 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
 
+  // Next.js 16.3+ auto-writes/re-writes a managed block into CLAUDE.md
+  // (and AGENTS.md) on `next dev` when it detects a coding agent, instructing
+  // the agent to read node_modules/next/dist/docs/ before writing code
+  // (official feature, see https://nextjs.org/docs/app/guides/ai-agents —
+  // confirmed 2026-10-02 by Sec: content matches
+  // node_modules/next/dist/server/lib/generate-agent-files.js exactly, and
+  // that file's integrity hash matches both package-lock.json and the public
+  // npm registry for next@16.3.4 — not a supply-chain compromise). We
+  // disable it: it kept getting committed by accident (see git history for
+  // science-app/CLAUDE.md), and this project's CLAUDE.md is meant to be
+  // project-specific documentation, not framework-managed content.
+  agentRules: false,
+
   // lib/llm/summarize.ts loads its LLM prompt from a .md file at runtime via
   // fs.readFileSync (see lib/llm/prompts/casual-summary.md) so the prompt
   // text can be reviewed/edited on its own without touching code. Next's
