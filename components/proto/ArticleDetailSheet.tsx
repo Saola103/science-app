@@ -1,20 +1,80 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslations } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
+import { parseGeneralSummary } from "../../lib/format/summaryText";
 
 type ExplanationMode = "easy" | "detailed";
 
+type RelatedPaper = {
+  id: string;
+  headline: string;
+};
+
 export function ArticleDetailSheet({ article, onClose }: { article: Article; onClose: () => void }) {
   const t = useTranslations("Proto.detail");
+  const router = useRouter();
   const [mode, setMode] = useState<ExplanationMode>("easy");
   // News summaries only ever get one (casual-tone) pass in the collection
   // pipeline — there's no distinct expert-tier text to switch to — so the
   // easy/detailed toggle is paper-only; news shows a single explanation.
   const showModeToggle = article.contentType !== "news";
   const text = showModeToggle && mode === "detailed" ? article.detailedExplanation : article.easyExplanation;
+
+  // Related papers: only for papers, fetched once when the sheet mounts
+  // (this component is only ever mounted while the sheet is open — see
+  // feed/stack/mypage/page.tsx and SwipeCard.tsx, all of which render it as
+  // `{openArticle && <ArticleDetailSheet .../>}` — so a plain useEffect here
+  // naturally satisfies "fetch only when opened, never prefetch across the
+  // feed" without touching those 4 call sites).
+  const [relatedPapers, setRelatedPapers] = useState<RelatedPaper[] | null>(null);
+  // Lazily initialized so the "loading" flag starts true only for papers —
+  // avoids a synchronous setState call at the top of the effect below
+  // (react-hooks/set-state-in-effect), since in practice this component is
+  // freshly mounted per opened article (see comment above) so there's no
+  // case where contentType/id change out from under an already-mounted sheet.
+  const [relatedLoading, setRelatedLoading] = useState(() => article.contentType === "paper");
+
+  useEffect(() => {
+    // Nothing to fetch for news; the render below already gates display on
+    // contentType === "paper", so any stale state from a previously-shown
+    // paper simply never renders — no need to reset it here.
+    if (article.contentType !== "paper") {
+      return;
+    }
+    const rawId = article.id.replace(/^paper-/, "");
+    let cancelled = false;
+    fetch("/api/papers/similar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paperId: rawId, limit: 5 }),
+    })
+      .then((res) => (res.ok ? res.json() : { papers: [] }))
+      .then((data: { papers?: Array<{ id: string; summary_general: string | null }> }) => {
+        if (cancelled) return;
+        const papers = (data.papers || [])
+          .map((p) => {
+            if (!p.summary_general) return null;
+            const { headline } = parseGeneralSummary(p.summary_general);
+            if (!headline) return null;
+            return { id: p.id, headline };
+          })
+          .filter((p): p is RelatedPaper => p !== null);
+        setRelatedPapers(papers);
+      })
+      .catch(() => {
+        if (!cancelled) setRelatedPapers([]);
+      })
+      .finally(() => {
+        if (!cancelled) setRelatedLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [article.id, article.contentType]);
 
   return (
     <div className="fixed inset-0 z-[60] flex items-end justify-center">
@@ -74,6 +134,30 @@ export function ArticleDetailSheet({ article, onClose }: { article: Article; onC
           <p className="text-[14px] text-[#374151] leading-[1.9]" style={{ whiteSpace: "pre-line" }}>
             {text}
           </p>
+
+          {article.contentType === "paper" && relatedLoading && (
+            <p className="text-[12px] text-[#94A3B8] mt-5 pt-4" style={{ borderTop: "1px solid #F1F3F6" }}>
+              {t("relatedLoading")}
+            </p>
+          )}
+
+          {article.contentType === "paper" && !relatedLoading && relatedPapers && relatedPapers.length > 0 && (
+            <div className="mt-5 pt-4" style={{ borderTop: "1px solid #F1F3F6" }}>
+              <p className="text-[12.5px] font-bold text-[#374151] mb-2">{t("relatedHeading")}</p>
+              <div className="flex flex-col gap-2">
+                {relatedPapers.map((p) => (
+                  <button
+                    key={p.id}
+                    onClick={() => router.push(`/paper?id=${encodeURIComponent(p.id)}`)}
+                    className="text-left text-[13px] text-[#374151] leading-[1.6] py-2 px-3 rounded-xl"
+                    style={{ background: "#F7F8FB" }}
+                  >
+                    {p.headline}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="px-5 pb-5 pt-2 shrink-0" style={{ borderTop: "1px solid #F1F3F6" }}>

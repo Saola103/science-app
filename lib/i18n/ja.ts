@@ -212,6 +212,8 @@ const ja = {
       readOriginal: "原文を見る",
       close: "閉じる",
       loading: "生成中…",
+      relatedHeading: "関連論文",
+      relatedLoading: "関連論文を探しています…",
     },
     swipe: {
       emptyTitle: "このカテゴリの記事はまだありません",
