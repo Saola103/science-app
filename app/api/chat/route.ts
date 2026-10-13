@@ -4,6 +4,8 @@ import { searchArxivPapers } from '../../../lib/agents/arxivSearch';
 import { fetchPubMedPapers } from '../../../lib/sources/pubmed';
 import { searchPapersByVector } from '../../../lib/supabase/vectorSearch';
 import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
+import { readJsonLimited } from '../../../lib/api/readJson';
+import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, recordApiUsage, runInPublicScope } from '../../../lib/llm/publicBudget';
 
 const groq = createGroq({
   apiKey: process.env.GROQ_API_KEY,
@@ -14,28 +16,60 @@ export const maxDuration = 60;
 const MAX_MESSAGE_LENGTH = 2000;
 const MAX_HISTORY = 20;
 
+const MAX_TOTAL_CHARS = 12_000;
+
+function jsonError(status: number, error: string) {
+  return new Response(JSON.stringify({ error }), { status, headers: { "Content-Type": "application/json" } });
+}
+
 export async function POST(req: Request) {
   const ip = getClientIp(req);
   if (!checkRateLimit(`chat:${ip}`, 10, 60_000)) {
-    return new Response(
-      JSON.stringify({ error: "リクエストが多すぎます。少し時間をおいてから再度お試しください。" }),
-      { status: 429, headers: { "Content-Type": "application/json" } }
-    );
+    return jsonError(429, "リクエストが多すぎます。少し時間をおいてから再度お試しください。");
   }
 
-  const { messages } = await req.json();
+  const parsed = await readJsonLimited(req);
+  if (parsed.status) return jsonError(parsed.status, parsed.status === 413 ? "Payload too large" : "Invalid JSON");
+  const messages = (parsed.body as { messages?: unknown } | null)?.messages;
   if (!Array.isArray(messages) || messages.length === 0) {
-    return new Response(JSON.stringify({ error: "messages is required" }), { status: 400 });
+    return jsonError(400, "messages is required");
   }
 
-  const lastMessage = messages[messages.length - 1];
-  const rawQuery = typeof lastMessage?.content === "string" ? lastMessage.content : "";
-  if (!rawQuery.trim()) {
-    return new Response(JSON.stringify({ error: "messages[].content is required" }), { status: 400 });
+  // Only the most recent MAX_HISTORY messages are used. Each must be a plain
+  // user/assistant text message (no system/tool roles -- those would let a
+  // caller inject instructions). Over-long content is truncated rather than
+  // rejected so a normal long conversation (assistant replies can exceed
+  // 2000 chars) keeps working.
+  let trimmedMessages: { role: "user" | "assistant"; content: string }[] = [];
+  for (const m of messages.slice(-MAX_HISTORY)) {
+    if (!m || (m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") {
+      return jsonError(400, "invalid message");
+    }
+    trimmedMessages.push({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_LENGTH) });
   }
-  const userQuery = rawQuery.slice(0, MAX_MESSAGE_LENGTH);
-  const trimmedMessages = messages.slice(-MAX_HISTORY);
+  // Total size cap: drop the oldest messages until it fits (the newest is always kept).
+  let total = trimmedMessages.reduce((n, m) => n + m.content.length, 0);
+  while (trimmedMessages.length > 1 && total > MAX_TOTAL_CHARS) {
+    total -= trimmedMessages[0].content.length;
+    trimmedMessages = trimmedMessages.slice(1);
+  }
 
+  const last = trimmedMessages[trimmedMessages.length - 1];
+  if (last.role !== "user" || !last.content.trim()) {
+    return jsonError(400, "last message must be a non-empty user message");
+  }
+  const userQuery = last.content;
+
+  // Daily budget guard: keep public chat from draining the shared free tier
+  // (see lib/llm/publicBudget.ts). Embedding over-budget only degrades
+  // vector search, so it is passed down as a scope flag instead of rejecting.
+  const budget = await checkPublicBudget({ chat: true });
+  if (budget.blocked) return jsonError(429, BUDGET_EXCEEDED_MESSAGE);
+
+  return runInPublicScope({ embedBlocked: budget.embedBlocked }, () => handleChat(userQuery, trimmedMessages));
+}
+
+async function handleChat(userQuery: string, trimmedMessages: { role: "user" | "assistant"; content: string }[]) {
   let searchKeywords = userQuery;
   try {
     // Use lighter model for intent extraction to conserve daily token quota
@@ -45,6 +79,7 @@ export async function POST(req: Request) {
       maxTokens: 60,
     });
     searchKeywords = intentResult.text.trim();
+    recordApiUsage('groq_chat_8b', intentResult.usage?.totalTokens || 200);
   } catch (error) {
     console.error("Intent extraction failed, using original query:", error);
   }
@@ -109,6 +144,7 @@ export async function POST(req: Request) {
 ${context || "関連論文が見つかりませんでした。一般的な知識をもとに回答します。"}`,
       messages: trimmedMessages,
       maxTokens: 1024,
+      onFinish: ({ usage }) => recordApiUsage('groq_chat_8b', usage?.totalTokens || 1500),
     });
 
     return result.toDataStreamResponse();

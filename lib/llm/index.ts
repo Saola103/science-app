@@ -1,5 +1,6 @@
 import Groq from "groq-sdk";
 import { recordGroqUsage } from "./dailyUsage";
+import { getPublicScope, recordApiUsage } from "./publicBudget";
 
 // llama-3.3-70b-versatile was decommissioned by Groq (Aug 2026). gpt-oss-120b is
 // the closest replacement in quality. Groq enforces BOTH an 8000 tokens/min
@@ -94,6 +95,11 @@ export async function embedText(text: string): Promise<number[]> {
     console.warn("[embedText] GEMINI_API_KEY is missing. Skipping embedding.");
     return [];
   }
+  // Public routes: skip (callers degrade to keyword search) once the public
+  // share of today's embedding quota is spent; otherwise count this request.
+  const publicScope = getPublicScope();
+  if (publicScope?.embedBlocked) return [];
+  if (publicScope) recordApiUsage("gemini_embed_public", 1);
   try {
     const res = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${EMBEDDING_MODEL}:embedContent?key=${apiKey}`,

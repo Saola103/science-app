@@ -83,6 +83,9 @@ function SearchContent() {
   const [results, setResults] = useState<ResultItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  // Set when /api/search answers 429 (rate limit / daily AI budget) so the
+  // empty state can say why instead of "no results".
+  const [limitMsg, setLimitMsg] = useState("");
 
   const handleSearch = async (e?: React.FormEvent, overrideQuery?: string, overrideCategory?: string) => {
     if (e) e.preventDefault();
@@ -92,6 +95,7 @@ function SearchContent() {
 
     setIsLoading(true);
     setSearched(true);
+    setLimitMsg("");
     setResults([]);
 
     try {
@@ -112,6 +116,11 @@ function SearchContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ query: q, category: cat, mode: "keyword" }),
       });
+      if (res.status === 429) {
+        const data = await res.json().catch(() => null);
+        setLimitMsg(typeof data?.error === "string" ? data.error : "現在アクセスが集中しています。少し時間をおいてお試しください。");
+        return;
+      }
       if (!res.ok) throw new Error();
       const data = await res.json();
       setResults(data.papers || []);
@@ -181,8 +190,14 @@ function SearchContent() {
         {!isLoading && searched && results.length === 0 && (
           <div className="text-center py-20 space-y-3">
             <div className="text-5xl opacity-20">🔬</div>
-            <p className="text-sm text-white/30 font-bold">結果が見つかりませんでした</p>
-            <p className="text-xs text-white/20">別のキーワードで試してみてください</p>
+            {limitMsg ? (
+              <p className="text-sm text-white/40 font-bold leading-relaxed">{limitMsg}</p>
+            ) : (
+              <>
+                <p className="text-sm text-white/30 font-bold">結果が見つかりませんでした</p>
+                <p className="text-xs text-white/20">別のキーワードで試してみてください</p>
+              </>
+            )}
           </div>
         )}
 

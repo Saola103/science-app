@@ -15,7 +15,18 @@ export function ChatInterface() {
     api: '/api/chat',
     onError: (error) => {
       const msg = error?.message || '';
-      if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate limit')) {
+      // /api/chat returns {"error": "<Japanese message>"} with 429 for the
+      // per-minute limit and for the daily budget guard; show that text as-is.
+      let serverMsg = '';
+      try {
+        const parsed = JSON.parse(msg);
+        if (typeof parsed?.error === 'string') serverMsg = parsed.error;
+      } catch {
+        // not JSON; fall through to the generic handling below
+      }
+      if (serverMsg) {
+        setErrorMsg(serverMsg);
+      } else if (msg.includes('429') || msg.includes('rate limit') || msg.includes('Rate limit')) {
         setErrorMsg('1日のAI利用制限に達しました。時間をおいて再度お試しください。');
       } else {
         setErrorMsg('エラーが発生しました。再度お試しください。');

@@ -6,6 +6,8 @@ import { summarize } from "../../../lib/llm/summarize";
 import { generateText } from "../../../lib/llm/index";
 import { searchPapersByVector, hybridSearch } from "../../../lib/supabase/vectorSearch";
 import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
+import { readJsonLimited } from "../../../lib/api/readJson";
+import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
 
 // タイムアウト設定（VercelのHobbyプランだと10秒制限があるが、Proなら長い。一応長めに）
 export const maxDuration = 60;
@@ -32,13 +34,73 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const body: SearchRequest = await req.json();
-    const { mode, timeRange, format, source = "all" } = body;
-    const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : body.query;
-    const history = Array.isArray(body.history)
-      ? body.history.slice(-MAX_HISTORY).map((h) => ({ ...h, content: (h.content || "").slice(0, MAX_QUERY_LENGTH) }))
-      : body.history;
+    const parsed = await readJsonLimited(req);
+    if (parsed.status) {
+      return NextResponse.json(
+        { error: parsed.status === 413 ? "Payload too large" : "Invalid JSON" },
+        { status: parsed.status }
+      );
+    }
+    const body = (parsed.body ?? {}) as Record<string, unknown>;
 
+    // Input validation: whitelist enums, require string query / well-formed history.
+    const mode = body.mode;
+    if (mode !== "keyword" && mode !== "deep" && mode !== "drill") {
+      return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
+    }
+    if (body.query !== undefined && typeof body.query !== "string") {
+      return NextResponse.json({ error: "query must be a string" }, { status: 400 });
+    }
+    if (body.history !== undefined && !Array.isArray(body.history)) {
+      return NextResponse.json({ error: "history must be an array" }, { status: 400 });
+    }
+    const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined =>
+      typeof v === "string" && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
+    const timeRange = pick(body.timeRange, ["all", "6mo", "1yr", "5yr", "10yr"] as const);
+    const format = pick(body.format, ["title", "summary", "abstract"] as const);
+    const source = pick(body.source, ["all", "arxiv", "pubmed"] as const) ?? "all";
+    const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : undefined;
+    let history: { role: "user" | "assistant"; content: string }[] | undefined;
+    if (Array.isArray(body.history)) {
+      history = [];
+      for (const h of body.history.slice(-MAX_HISTORY)) {
+        if (!h || (h.role !== "user" && h.role !== "assistant") || typeof h.content !== "string") {
+          return NextResponse.json({ error: "invalid history item" }, { status: 400 });
+        }
+        history.push({ role: h.role, content: h.content.slice(0, MAX_QUERY_LENGTH) });
+      }
+    }
+
+    // Daily budget guard (see lib/llm/publicBudget.ts). Only requests that will
+    // actually call Groq are blocked when the public Groq share is spent:
+    // deep mode, summary format, or a non-ASCII query (gets translated by Groq).
+    // Over-budget embeddings just degrade vector search to keyword search.
+    const needsGroq =
+      mode === "deep" ||
+      format === "summary" ||
+      (typeof query === "string" && /[^\x00-\x7F]/.test(query));
+    const budget = await checkPublicBudget({ groq: needsGroq });
+    if (budget.blocked) {
+      return NextResponse.json({ error: BUDGET_EXCEEDED_MESSAGE }, { status: 429 });
+    }
+    return await runInPublicScope({ embedBlocked: budget.embedBlocked }, () =>
+      handleSearch(mode, query, history, timeRange, format, source)
+    );
+  } catch (error) {
+    console.error("Search API Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
+}
+
+async function handleSearch(
+  mode: "keyword" | "deep" | "drill",
+  query: string | undefined,
+  history: { role: "user" | "assistant"; content: string }[] | undefined,
+  timeRange: SearchRequest["timeRange"],
+  format: SearchRequest["format"],
+  source: "all" | "arxiv" | "pubmed"
+): Promise<NextResponse> {
+  try {
     // --- Mode A: Keyword Search & Mode C: Drill-down ---
     if (mode === "keyword" || mode === "drill") {
       if (!query) {

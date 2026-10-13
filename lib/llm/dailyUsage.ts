@@ -14,6 +14,7 @@
  * Requires supabase/migrations/008_groq_daily_usage.sql to have been run.
  */
 import { getSupabaseServerClient } from "../supabase/serviceClient";
+import { getPublicScope, recordApiUsage } from "./publicBudget";
 
 function todayUTC(): string {
   return new Date().toISOString().slice(0, 10); // YYYY-MM-DD, UTC calendar day
@@ -27,6 +28,9 @@ function todayUTC(): string {
  */
 export function recordGroqUsage(tokens: number): void {
   if (!tokens || tokens <= 0) return;
+  // Calls made inside a public route (see lib/llm/publicBudget.ts) are also
+  // attributed to the capped public bucket. Cron calls run outside any scope.
+  if (getPublicScope()) recordApiUsage("groq_public", tokens);
   try {
     const supabase = getSupabaseServerClient();
     supabase
