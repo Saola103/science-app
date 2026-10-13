@@ -13,7 +13,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runCollectionPipeline } from "../../../../lib/pipeline/collect";
-import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 
 export const maxDuration = 300; // 5 minutes max for Vercel Pro
 
@@ -31,9 +31,8 @@ const COLLECTION_PAUSED_UNTIL = new Date("2026-09-24T15:00:00Z");
 export async function GET(req: NextRequest) {
   // Verify the request is from Vercel Cron (Bearer CRON_SECRET) or a manual
   // trigger (Bearer ADMIN_PASSWORD). Fails closed if neither secret is configured.
-  if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = rejectUnlessAdmin(req, bearerToken(req.headers.get("authorization")));
+  if (denied) return denied;
 
   if (new Date() < COLLECTION_PAUSED_UNTIL) {
     console.log(

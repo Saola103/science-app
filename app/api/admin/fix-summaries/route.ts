@@ -1,8 +1,9 @@
 /**
  * Admin API: Re-generate summaries for recent papers/news that have poor/missing summaries.
  *
- * GET /api/admin/fix-summaries?secret=CRON_SECRET&limit=20&source=bioRxiv
- * GET /api/admin/fix-summaries?secret=CRON_SECRET&limit=30&fixNews=true
+ * GET /api/admin/fix-summaries?limit=20&source=bioRxiv
+ * GET /api/admin/fix-summaries?limit=30&fixNews=true
+ * Auth: header `Authorization: Bearer <CRON_SECRET>` (the ?secret= query form was removed).
  *
  * Papers: Finds entries where summary_general is null, summary_expert is null,
  * or both summaries are identical. Re-generates both with the improved prompts.
@@ -14,7 +15,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize, summarizeNews } from "../../../../lib/llm/summarize";
-import { isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
@@ -32,9 +33,10 @@ function isOldFormatSummary(summary: string): boolean {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  if (!isAuthorizedAdmin(searchParams.get("secret"))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  // Header-only: a secret in the URL ends up in Vercel logs, browser history
+  // and Referer headers. The old ?secret= query form is no longer accepted.
+  const denied = rejectUnlessAdmin(req, bearerToken(req.headers.get("authorization")));
+  if (denied) return denied;
 
   const limit = Math.min(parseInt(searchParams.get("limit") || "20"), 50);
   const sourceFilter = searchParams.get("source"); // e.g. "bioRxiv" or "arXiv"

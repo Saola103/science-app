@@ -68,7 +68,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize } from "../../../../lib/llm/summarize";
 import { getTodayGroqUsage } from "../../../../lib/llm/dailyUsage";
-import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
@@ -104,9 +104,8 @@ function delay(ms: number) {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = rejectUnlessAdmin(req, bearerToken(req.headers.get("authorization")));
+  if (denied) return denied;
 
   // Once collection has resumed, only do real work in the hour slot this
   // route originally ran in — the other ~47 invocations/day (every 30 min)

@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize, summarizeNews } from "../../../../lib/llm/summarize";
 import { embedText } from "../../../../lib/llm/index";
-import { bearerToken, isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
 export const maxDuration = 300;
@@ -31,9 +31,8 @@ function isOldFormatSummary(summary: string): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  if (!isAuthorizedAdmin(bearerToken(req.headers.get("authorization")))) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const denied = rejectUnlessAdmin(req, bearerToken(req.headers.get("authorization")));
+  if (denied) return denied;
 
   // Groq is now throttled to its TPM budget inside generateText() itself
   // (see lib/llm/index.ts), so this limit is bounded by Vercel's maxDuration

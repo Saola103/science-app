@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
-import { isAuthorizedAdmin } from "../../../../lib/auth/adminAuth";
+import { rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 
 export async function POST(req: NextRequest) {
   try {
     const { password } = await req.json();
 
-    if (!isAuthorizedAdmin(typeof password === "string" ? password : null)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const denied = rejectUnlessAdmin(req, typeof password === "string" ? password : null);
+    if (denied) return denied;
 
     const supabase = getSupabaseServerClient();
 
