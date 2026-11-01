@@ -229,6 +229,7 @@ export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promi
         skipped = c.skipped;
         newCount = c.newCount;
         repaired = c.repairCount;
+        errors += c.errorCount;
       } catch (e) {
         // Fail-safe: never fall back to "process everything" (token runaway).
         console.error(`[Pipeline] existing-id check failed for arXiv ${category}; skipping batch:`, e);
@@ -285,6 +286,7 @@ export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Pro
         skipped = c.skipped;
         newCount = c.newCount;
         repaired = c.repairCount;
+        errors += c.errorCount;
       } catch (e) {
         console.error(`[Pipeline] existing-id check failed for ${server} ${category}; skipping batch:`, e);
         errors++;
@@ -344,6 +346,7 @@ export async function collectNews(): Promise<NewsResult> {
       skipped = c.skipped;
       newCount = c.newCount;
       repaired = c.repairCount;
+      errors += c.errorCount;
     } catch (e) {
       // Fail-safe: never fall back to "process everything" (token runaway).
       console.error("[Pipeline] existing-id check failed for news; skipping batch:", e);

@@ -25,6 +25,12 @@
 --   GRANT EXECUTE ON FUNCTION public.increment_groq_daily_usage(date, bigint) TO PUBLIC;
 --   ALTER FUNCTION public.increment_groq_daily_usage(date, bigint) RESET search_path;
 --   ALTER FUNCTION public.match_papers(vector, double precision, integer) RESET search_path;
+--   GRANT EXECUTE ON FUNCTION public.match_papers(vector, double precision, integer) TO PUBLIC, anon, authenticated;
+--
+-- Intentionally KEPT: policy "interactions_insert_authenticated" on
+-- feed_interactions (logged-in users may insert rows for themselves). It is
+-- an accepted residual: it requires a valid user JWT and is scoped to the
+-- user's own user_id, unlike the anonymous paths removed below.
 
 -- 1. Drop anon INSERT policies
 DROP POLICY IF EXISTS "interactions_insert_anon_session" ON public.feed_interactions;
@@ -37,13 +43,18 @@ GRANT EXECUTE ON FUNCTION public.increment_groq_daily_usage(date, bigint) TO ser
 
 -- 3. Pin search_path (function search-path hijack hardening).
 --    increment_groq_daily_usage only touches public.groq_daily_usage.
-ALTER FUNCTION public.increment_groq_daily_usage(date, bigint) SET search_path = public, extensions;
+ALTER FUNCTION public.increment_groq_daily_usage(date, bigint) SET search_path = public, extensions, pg_temp;
 --    match_papers uses the pgvector `<=>` operator and vector type. With
 --    "public, extensions" both locations resolve, so it works whether the
 --    extension lives in public (today) or extensions (Supabase default).
---    match_papers stays executable by anon/authenticated (read-only search,
---    used via service role today; revoking is a separate decision).
-ALTER FUNCTION public.match_papers(vector, double precision, integer) SET search_path = public, extensions;
+--    pg_temp is listed LAST so temp objects cannot shadow public ones.
+ALTER FUNCTION public.match_papers(vector, double precision, integer) SET search_path = public, extensions, pg_temp;
+
+-- 4. match_papers: service_role only. Its sole caller is lib/supabase/vectorSearch.ts
+--    (3 rpc call sites), all via getSupabaseServerClient() = service role.
+--    No client-side/anon-key caller exists.
+REVOKE EXECUTE ON FUNCTION public.match_papers(vector, double precision, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.match_papers(vector, double precision, integer) TO service_role;
 
 -- VERIFY after applying:
 --   SELECT proname, proconfig, proacl FROM pg_proc

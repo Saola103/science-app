@@ -33,7 +33,8 @@ export async function sendDiscord(content: string): Promise<void> {
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: content.slice(0, 1900) }),
+      body: JSON.stringify({ content: content.slice(0, 1900), allowed_mentions: { parse: [] } }),
+      redirect: "manual",
       signal: AbortSignal.timeout(5000),
     });
     if (!res.ok) console.warn(`[discord] webhook responded ${res.status}`);
