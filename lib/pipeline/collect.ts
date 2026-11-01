@@ -19,6 +19,7 @@ import { embedText } from "../llm/index";
 import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/serviceClient";
 import { CATEGORY_IMAGES } from "../llm/summarize";
 import { mapDbCategoryToTaxonomy } from "../proto/mockData";
+import { classifyAgainstDb } from "./existing";
 
 // News summary instructions live in lib/llm/prompts/news-summary.md and are
 // loaded via lib/llm/summarize.ts's summarizeNews() (2026-09-26: this file
@@ -104,8 +105,23 @@ function extractCategory(summary: string): string {
 type CollectResult = {
   source: string;
   category: string;
+  /** Papers actually sent through the LLM and saved (new + repaired). */
   collected: number;
   errors: number;
+  /** Already processed with a valid summary: LLM call skipped. */
+  skipped: number;
+  /** Subset of `collected` that did not exist in the DB before. */
+  newCount: number;
+  /** Subset of `collected` that existed with a missing/invalid summary. */
+  repaired: number;
+};
+
+export type NewsResult = {
+  collected: number;
+  errors: number;
+  skipped: number;
+  newCount: number;
+  repaired: number;
 };
 
 /**
@@ -198,10 +214,28 @@ export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promi
   for (const [category, query] of Object.entries(ARXIV_CATEGORY_QUERIES)) {
     let collected = 0;
     let errors = 0;
+    let skipped = 0;
+    let newCount = 0;
+    let repaired = 0;
 
     try {
-      const papers = await fetchArxivOpenAccessPapers(query, perCategory, "submittedDate");
+      const fetched = await fetchArxivOpenAccessPapers(query, perCategory, "submittedDate");
       await delay(3000); // arXiv rate limit
+
+      let papers = fetched;
+      try {
+        const c = await classifyAgainstDb("papers", fetched);
+        papers = c.toProcess;
+        skipped = c.skipped;
+        newCount = c.newCount;
+        repaired = c.repairCount;
+      } catch (e) {
+        // Fail-safe: never fall back to "process everything" (token runaway).
+        console.error(`[Pipeline] existing-id check failed for arXiv ${category}; skipping batch:`, e);
+        errors++;
+        papers = [];
+      }
+      console.log(`[Pipeline] arXiv ${category}: fetched=${fetched.length} skipped=${skipped} new=${newCount} repair=${repaired}`);
 
       for (const paper of papers) {
         try {
@@ -221,7 +255,7 @@ export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promi
       errors++;
     }
 
-    results.push({ source: "arXiv", category, collected, errors });
+    results.push({ source: "arXiv", category, collected, errors, skipped, newCount, repaired });
   }
 
   return results;
@@ -236,10 +270,27 @@ export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Pro
   for (const { server, category, internalCategory } of BIORXIV_CATEGORY_QUERIES) {
     let collected = 0;
     let errors = 0;
+    let skipped = 0;
+    let newCount = 0;
+    let repaired = 0;
 
     try {
-      const papers = await fetchBiorxivPapers(server, category, 7, perCategory); // 7日分に拡大（2日だと空になるカテゴリがある）
+      const fetched = await fetchBiorxivPapers(server, category, 7, perCategory); // 7日分に拡大（2日だと空になるカテゴリがある）
       await delay(1000); // polite delay
+
+      let papers = fetched;
+      try {
+        const c = await classifyAgainstDb("papers", fetched);
+        papers = c.toProcess;
+        skipped = c.skipped;
+        newCount = c.newCount;
+        repaired = c.repairCount;
+      } catch (e) {
+        console.error(`[Pipeline] existing-id check failed for ${server} ${category}; skipping batch:`, e);
+        errors++;
+        papers = [];
+      }
+      console.log(`[Pipeline] ${server} ${category}: fetched=${fetched.length} skipped=${skipped} new=${newCount} repair=${repaired}`);
 
       for (const paper of papers) {
         try {
@@ -265,7 +316,7 @@ export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Pro
       errors++;
     }
 
-    results.push({ source: server === "biorxiv" ? "bioRxiv" : "medRxiv", category, collected, errors });
+    results.push({ source: server === "biorxiv" ? "bioRxiv" : "medRxiv", category, collected, errors, skipped, newCount, repaired });
   }
 
   return results;
@@ -274,14 +325,32 @@ export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Pro
 /**
  * Collect science news from RSS feeds, generate Japanese summaries, and save to DB
  */
-export async function collectNews(): Promise<{ collected: number; errors: number }> {
+export async function collectNews(): Promise<NewsResult> {
   let collected = 0;
   let errors = 0;
+  let skipped = 0;
+  let newCount = 0;
+  let repaired = 0;
 
   try {
     console.log("[Pipeline] Fetching science news from RSS feeds...");
-    const articles = await fetchScienceNewsFromRSS();
-    console.log(`[Pipeline] Fetched ${articles.length} news articles from RSS`);
+    const fetched = await fetchScienceNewsFromRSS();
+    console.log(`[Pipeline] Fetched ${fetched.length} news articles from RSS`);
+
+    let articles = fetched;
+    try {
+      const c = await classifyAgainstDb("news", fetched);
+      articles = c.toProcess;
+      skipped = c.skipped;
+      newCount = c.newCount;
+      repaired = c.repairCount;
+    } catch (e) {
+      // Fail-safe: never fall back to "process everything" (token runaway).
+      console.error("[Pipeline] existing-id check failed for news; skipping batch:", e);
+      errors++;
+      articles = [];
+    }
+    console.log(`[Pipeline] news: fetched=${fetched.length} skipped=${skipped} new=${newCount} repair=${repaired}`);
 
     for (const article of articles) {
       try {
@@ -323,7 +392,7 @@ export async function collectNews(): Promise<{ collected: number; errors: number
     errors++;
   }
 
-  return { collected, errors };
+  return { collected, errors, skipped, newCount, repaired };
 }
 
 /**
@@ -332,9 +401,12 @@ export async function collectNews(): Promise<{ collected: number; errors: number
 export async function runCollectionPipeline(opts?: { perCategory?: number }): Promise<{
   arXiv: CollectResult[];
   bioRxiv: CollectResult[];
-  news: { collected: number; errors: number };
+  news: NewsResult;
   totalCollected: number;
   totalErrors: number;
+  totalSkipped: number;
+  totalNew: number;
+  totalRepaired: number;
 }> {
   console.log("[Pipeline] Starting full collection (arXiv + bioRxiv + news)...");
   const startTime = Date.now();
@@ -356,10 +428,16 @@ export async function runCollectionPipeline(opts?: { perCategory?: number }): Pr
     bioRxiv.reduce((s, r) => s + r.errors, 0) +
     news.errors;
 
+  const sum = (k: "skipped" | "newCount" | "repaired") =>
+    arXiv.reduce((s, r) => s + r[k], 0) + bioRxiv.reduce((s, r) => s + r[k], 0) + news[k];
+  const totalSkipped = sum("skipped");
+  const totalNew = sum("newCount");
+  const totalRepaired = sum("repaired");
+
   const duration = ((Date.now() - startTime) / 1000).toFixed(1);
   console.log(
-    `[Pipeline] Done in ${duration}s. Collected: ${totalCollected}, Errors: ${totalErrors}`
+    `[Pipeline] Done in ${duration}s. Processed: ${totalCollected} (new ${totalNew}, repaired ${totalRepaired}), Skipped: ${totalSkipped}, Errors: ${totalErrors}`
   );
 
-  return { arXiv, bioRxiv, news, totalCollected, totalErrors };
+  return { arXiv, bioRxiv, news, totalCollected, totalErrors, totalSkipped, totalNew, totalRepaired };
 }
