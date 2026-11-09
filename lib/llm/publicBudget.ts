@@ -1,5 +1,5 @@
 /**
- * Daily budget guard for the PUBLIC LLM routes (/api/chat, /api/search).
+ * Daily budget guard for the PUBLIC LLM routes (/api/search).
  *
  * Why: Groq (gpt-oss-120b: 200k tokens/day) and Gemini embeddings (~1000/day)
  * are free-tier quotas shared by the public routes AND the cron jobs
@@ -25,7 +25,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { getSupabaseServerClient } from "../supabase/serviceClient";
 
-export type Bucket = "groq_public" | "groq_chat_8b" | "gemini_embed_public";
+export type Bucket = "groq_public" | "gemini_embed_public";
 
 export const GROQ_DAILY_CAP = 200_000; // gpt-oss-120b tokens/day (see lib/llm/index.ts)
 export const GEMINI_EMBED_DAILY_CAP = 1_000; // embedContent requests/day (see cron/fix-summaries)
@@ -34,10 +34,6 @@ export const GEMINI_EMBED_DAILY_CAP = 1_000; // embedContent requests/day (see c
 export const PUBLIC_LIMITS: Record<Bucket, number> = {
   groq_public: Math.floor(GROQ_DAILY_CAP * 0.6), // 120k; cron keeps >= 80k
   gemini_embed_public: Math.floor(GEMINI_EMBED_DAILY_CAP * 0.6), // 600; cron keeps >= 400
-  // llama-3.1-8b-instant is a separate Groq model (own quota, not shared with
-  // cron's gpt-oss). Its real daily limit isn't verified here; this is a
-  // cost/abuse ceiling, not a protection of cron. Adjust if the real limit differs.
-  groq_chat_8b: 300_000,
 };
 
 export const BUDGET_EXCEEDED_MESSAGE =
@@ -90,21 +86,20 @@ async function readUsage(): Promise<Partial<Record<Bucket, number>> | null> {
 
 /**
  * Check today's public usage before doing LLM work.
- *  - needs.groq / needs.chat: this request will spend that bucket; `blocked`
- *    is true when it is already over its public cap.
+ *  - needs.groq: this request will spend that bucket; `blocked` is true when
+ *    it is already over its public cap.
  *  - embedBlocked: Gemini embeddings are over the public cap. This is not a
  *    reason to reject the request (vector search degrades to keyword search),
  *    so callers pass it to runInPublicScope instead.
  */
 export async function checkPublicBudget(needs: {
   groq?: boolean;
-  chat?: boolean;
 }): Promise<{ blocked: boolean; embedBlocked: boolean }> {
   const usage = await readUsage();
   if (!usage) return { blocked: false, embedBlocked: false };
   const over = (b: Bucket) => (usage[b] ?? 0) >= PUBLIC_LIMITS[b];
   return {
-    blocked: Boolean((needs.groq && over("groq_public")) || (needs.chat && over("groq_chat_8b"))),
+    blocked: Boolean(needs.groq && over("groq_public")),
     embedBlocked: over("gemini_embed_public"),
   };
 }

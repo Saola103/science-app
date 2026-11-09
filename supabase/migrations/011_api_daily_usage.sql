@@ -3,7 +3,7 @@
 -- ============================================================
 -- Run this in Supabase Dashboard > SQL Editor (owner applies manually).
 --
--- Purpose: the public LLM routes (/api/chat, /api/search) must not be able
+-- Purpose: the public LLM routes (/api/search; /api/chat was removed, bucket groq_chat_8b is no longer written) must not be able
 -- to exhaust the free-tier daily budget that the cron jobs (collect,
 -- fix-summaries, backfill) depend on. groq_daily_usage (008) only keeps ONE
 -- total per day across all callers, so it cannot say how much of that total
