@@ -9,7 +9,6 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@ai-sdk/google": "^0.0.40",
     "@ai-sdk/groq": "^0.0.3",
     "@google/generative-ai": "^0.24.1",
     "@supabase/supabase-js": "^2.98.0",
@@ -19,10 +18,9 @@
     "framer-motion": "^13.1.0",
     "groq-sdk": "^1.1.1",
     "lucide-react": "^0.577.0",
-    "next": "^16.3.4",
+    "next": "^16.4.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "resend": "^6.9.4",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {
