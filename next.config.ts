@@ -12,6 +12,7 @@ try {
 }
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false, // R1-10: X-Powered-By を出さない
   env: {
     NEXT_PUBLIC_APP_VERSION: version,
     NEXT_PUBLIC_GIT_HASH: gitHash,

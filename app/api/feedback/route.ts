@@ -19,6 +19,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
 import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
+import { readJsonLimited } from "../../../lib/api/readJson";
 
 const MAX_MESSAGE_LENGTH = 1000;
 const SHEET_WEBHOOK_TIMEOUT_MS = 8000;
@@ -68,7 +69,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "rate limited" }, { status: 429 });
     }
 
-    const { message } = await req.json();
+    // R1-05: ボディサイズ制限(32KB)。不正JSON・null は 400
+    const parsed = await readJsonLimited(req);
+    if (parsed.status) {
+      return NextResponse.json({ error: parsed.status === 413 ? "payload too large" : "invalid json" }, { status: parsed.status });
+    }
+    if (typeof parsed.body !== "object" || parsed.body === null || Array.isArray(parsed.body)) {
+      return NextResponse.json({ error: "invalid body" }, { status: 400 });
+    }
+    const { message } = parsed.body as { message?: unknown };
 
     if (typeof message !== "string" || message.trim().length === 0) {
       return NextResponse.json({ error: "message is required" }, { status: 400 });

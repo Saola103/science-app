@@ -11,6 +11,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { checkRateLimit, getClientIp } from "../../../../lib/rateLimit";
+import { readJsonLimited } from "../../../../lib/api/readJson";
+import { validateCategoryString, validateIdString } from "../../../../lib/api/params";
 
 const MAX_FIELD_LENGTH = 200;
 
@@ -21,17 +23,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, note: "rate limited" });
     }
 
-    const body = await req.json();
+    // R1-05: サイズ制限(32KB)・不正JSON/nullは400
+    const parsed = await readJsonLimited(req);
+    if (parsed.status) {
+      return NextResponse.json({ error: parsed.status === 413 ? "payload too large" : "invalid json" }, { status: parsed.status });
+    }
+    if (typeof parsed.body !== "object" || parsed.body === null || Array.isArray(parsed.body)) {
+      return NextResponse.json({ error: "invalid body" }, { status: 400 });
+    }
     // NOTE: user_id from body is intentionally NOT destructured here.
     // We derive it from the JWT on the server to prevent cross-user spoofing.
-    const { item_id, item_type, action, session_id, category } = body;
+    const { item_id: rawItemId, item_type, action, session_id: rawSessionId, category: rawCategory } = parsed.body as Record<string, unknown>;
 
-    if (
-      (item_id && String(item_id).length > MAX_FIELD_LENGTH) ||
-      (session_id && String(session_id).length > MAX_FIELD_LENGTH) ||
-      (category && String(category).length > MAX_FIELD_LENGTH)
-    ) {
-      return NextResponse.json({ error: "field too long" }, { status: 400 });
+    // R1-05: 型・長さ・文字種の検証(オブジェクト等が "[object Object]" で保存されるのを防ぐ)
+    const item_id = validateIdString(rawItemId);
+    const session_id = validateIdString(rawSessionId);
+    const category = rawCategory == null || rawCategory === "" ? null : validateCategoryString(rawCategory);
+    if (!item_id || !session_id || (rawCategory != null && rawCategory !== "" && !category)) {
+      return NextResponse.json({ error: "invalid item_id, session_id or category" }, { status: 400 });
+    }
+
+    if (typeof item_type !== "string" || typeof action !== "string") {
+      return NextResponse.json({ error: "item_type and action are required" }, { status: 400 });
+    }
+
+    if (!["paper", "news"].includes(item_type)) {
+      return NextResponse.json({ error: "item_type must be 'paper' or 'news'" }, { status: 400 });
+    }
+
+    if (!["like", "unlike", "save", "skip", "view"].includes(action)) {
+      return NextResponse.json({ error: "action must be like, unlike, save, skip, or view" }, { status: 400 });
     }
 
     // --- Auth: verify user from Authorization header ---
@@ -44,21 +65,6 @@ export async function POST(req: NextRequest) {
         const { data: { user } } = await supabase.auth.getUser(token);
         verifiedUserId = user?.id ?? null;
       } catch { /* invalid token — treat as anonymous */ }
-    }
-
-    if (!item_id || !item_type || !action || !session_id) {
-      return NextResponse.json(
-        { error: "item_id, item_type, action, and session_id are required" },
-        { status: 400 }
-      );
-    }
-
-    if (!["paper", "news"].includes(item_type)) {
-      return NextResponse.json({ error: "item_type must be 'paper' or 'news'" }, { status: 400 });
-    }
-
-    if (!["like", "unlike", "save", "skip", "view"].includes(action)) {
-      return NextResponse.json({ error: "action must be like, unlike, save, skip, or view" }, { status: 400 });
     }
 
     const schema = process.env.SUPABASE_SCHEMA ?? "public";
