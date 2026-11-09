@@ -97,8 +97,8 @@ export function isQueryEmbeddingEnabled(): boolean {
 /**
  * Generates a 768-dim embedding via the Gemini embedding API (separate quota
  * from Groq — does not compete with the summarization token budget).
- * Calls the REST endpoint directly: the installed @google/generative-ai SDK
- * (0.24.1) predates `outputDimensionality` support in its types.
+ * Calls the REST endpoint directly (the former @google/generative-ai SDK
+ * predated `outputDimensionality` support and has been removed).
  * Returns an empty array on failure so callers can gracefully skip vector search.
  */
 export async function embedText(text: string): Promise<number[]> {

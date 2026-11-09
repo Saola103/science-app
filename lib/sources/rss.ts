@@ -32,7 +32,8 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
     category: "physics",
   },
   {
-    url: "https://feeds.feedburner.com/NASABreakingNews",
+    // 公式のカノニカルURL(2026-11-10確認: 200。旧feedburner URLと同内容だが、第三者の配信経由をやめる)
+    url: "https://www.nasa.gov/news-release/feed/",
     source: "NASA",
     category: "astronomy",
   },
@@ -200,6 +201,25 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
   },
 ];
 
+/**
+ * RSSの説明文を保存用の短い抜粋にする(G4: ニュース本文を複製しない)。
+ * HTMLタグを除去し、主要な実体参照を戻し、空白を畳んで NEWS_DESCRIPTION_MAX_CHARS 以内に切る。
+ * content:encoded(全文)は読まない。呼び出し側は <description> だけを渡すこと。
+ */
+export function toExcerpt(raw: string, maxChars: number = NEWS_DESCRIPTION_MAX_CHARS): string {
+  return raw
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&#8230;|&hellip;/g, "…")
+    .replace(/&(nbsp|#160);/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#8217;|&rsquo;/g, "’")
+    .replace(/&lt;|&gt;/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxChars);
+}
+
 /** Deterministic ID from URL */
 function urlToId(url: string): string {
   let hash = 5381;
@@ -247,7 +267,8 @@ async function parseFeed(
       const title = getTag(item, "title");
       const rawLink = getTag(item, "link") || getTag(item, "guid");
       const url = rawLink.startsWith("http") ? rawLink : "";
-      const description = getTag(item, "description").slice(0, NEWS_DESCRIPTION_MAX_CHARS);
+      // content:encoded(全文)は意図的に読まない。<description> を短い抜粋にして保存するだけ。
+      const description = toExcerpt(getTag(item, "description"));
       const pubDate = getTag(item, "pubDate") || getTag(item, "dc:date");
 
       if (title && url) {

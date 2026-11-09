@@ -22,7 +22,7 @@ npm run lint
 
 ## 環境変数（`.env.local`、Git 管理外）
 
-`GROQ_API_KEY` / `GEMINI_API_KEY` / `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `RESEND_API_KEY` / `FROM_EMAIL` / `CRON_SECRET`（任意で `ADMIN_PASSWORD`、`ENABLE_QUERY_EMBEDDING`）。`ENABLE_QUERY_EMBEDDING=true` のときだけ、ユーザーの検索語をGemini embeddingに送る意味検索が有効（未設定/false=既定は送らずキーワード検索のみ。収集時のアブストラクトembeddingと `/api/papers/similar` は無関係）。値は絶対に読み上げたりコミットしたりしない。
+`GROQ_API_KEY` / `GEMINI_API_KEY` / `NEXT_PUBLIC_SUPABASE_URL` / `NEXT_PUBLIC_SUPABASE_ANON_KEY` / `SUPABASE_SERVICE_ROLE_KEY` / `CRON_SECRET`（任意で `ADMIN_PASSWORD`、`ENABLE_QUERY_EMBEDDING`）。`ENABLE_QUERY_EMBEDDING=true` のときだけ、ユーザーの検索語をGemini embeddingに送る意味検索が有効（未設定/false=既定は送らずキーワード検索のみ。収集時のアブストラクトembeddingと `/api/papers/similar` は無関係）。値は絶対に読み上げたりコミットしたりしない。
 
 ## 改善サイクル（builder / judge）
 
