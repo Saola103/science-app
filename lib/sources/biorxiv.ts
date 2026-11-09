@@ -9,8 +9,12 @@
  *   interval : "YYYY-MM-DD/YYYY-MM-DD"  or  "NNN" (last N days)
  *   cursor   : pagination offset (0, 30, 60, …)
  *
- * All bioRxiv preprints are open-access CC BY / CC BY-ND — safe to summarize.
+ * G4(法務整備): 著者が選んだライセンスはまちまち(許可なき再利用不可・ND・NC を含む)。
+ * CC BY / CC0 のみ収集し、ライセンス不明・空欄は除外する(CC BY への補完はしない)。
+ * 許可値は lib/sources/policy.ts の PREPRINT_ALLOWED_LICENSES。
  */
+
+import { isPreprintLicenseAllowed } from "./policy";
 
 const BIORXIV_API = "https://api.biorxiv.org/details";
 
@@ -100,6 +104,8 @@ export async function fetchBiorxivPapers(
     if (rec.category.toLowerCase() !== category.toLowerCase()) continue;
     if (seen.has(rec.doi)) continue;
     seen.add(rec.doi);
+    // ライセンスが CC BY / CC0 でない(不明・空欄を含む)ものは収集しない
+    if (!isPreprintLicenseAllowed(rec.license)) continue;
 
     const authorList = rec.authors
       .split(";")
@@ -121,7 +127,7 @@ export async function fetchBiorxivPapers(
       doi: rec.doi,
       category: BIORXIV_CATEGORIES[category] ?? "biology",
       source: sourceLabel,
-      license: rec.license || "CC BY",
+      license: rec.license,
     });
   }
 
