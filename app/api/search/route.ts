@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { fetchArxivOpenAccessPapers, ArxivOpenAccessPaper } from "../../../lib/sources/arxiv";
 import { fetchPubMedPapers } from "../../../lib/sources/pubmed";
 import { summarize } from "../../../lib/llm/summarize";
-import { generateText } from "../../../lib/llm/index";
-import { searchPapersByVector, hybridSearch } from "../../../lib/supabase/vectorSearch";
+import { generateText, isQueryEmbeddingEnabled } from "../../../lib/llm/index";
+import { searchPapersForQuery, hybridSearch } from "../../../lib/supabase/vectorSearch";
 import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
 import { readJsonLimited } from "../../../lib/api/readJson";
 import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
@@ -134,7 +134,7 @@ async function handleSearch(
       if (vectorPapers.length >= 5) {
         // Apply time filter
         let filteredPapers = applyTimeFilter(vectorPapers, timeRange);
-        return NextResponse.json({ papers: filteredPapers.slice(0, 10), searchMethod: "vector" });
+        return NextResponse.json({ papers: filteredPapers.slice(0, 10), searchMethod: isQueryEmbeddingEnabled() ? "vector" : "keyword" });
       }
 
       // Otherwise, fetch from external APIs
@@ -254,7 +254,7 @@ ${history?.map(h => `${h.role}: ${h.content}`).join("\n") || "なし"}
             aiResponse.pubmedQuery
               ? fetchPubMedPapers(aiResponse.pubmedQuery, 5, "relevance")
               : Promise.resolve([]),
-            searchPapersByVector(lastUserMessage || "", 5, 0.3).catch(() => []),
+            searchPapersForQuery(lastUserMessage || "", 5, 0.3).catch(() => []),
           ]);
 
           // Merge results

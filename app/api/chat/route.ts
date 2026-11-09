@@ -2,7 +2,7 @@ import { createGroq } from '@ai-sdk/groq';
 import { streamText, generateText } from 'ai';
 import { searchArxivPapers } from '../../../lib/agents/arxivSearch';
 import { fetchPubMedPapers } from '../../../lib/sources/pubmed';
-import { searchPapersByVector } from '../../../lib/supabase/vectorSearch';
+import { searchPapersForQuery } from '../../../lib/supabase/vectorSearch';
 import { checkRateLimit, getClientIp } from '../../../lib/rateLimit';
 import { readJsonLimited } from '../../../lib/api/readJson';
 import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, recordApiUsage, runInPublicScope } from '../../../lib/llm/publicBudget';
@@ -87,7 +87,7 @@ async function handleChat(userQuery: string, trimmedMessages: { role: "user" | "
   const [arxivResults, pubmedResults, vectorResults] = await Promise.allSettled([
     searchArxivPapers(searchKeywords),
     fetchPubMedPapers(searchKeywords, 3, "relevance").catch(() => []),
-    searchPapersByVector(searchKeywords, 3, 0.3).catch(() => []),
+    searchPapersForQuery(searchKeywords, 3, 0.3).catch(() => []),
   ]);
 
   const allPapers: { title: string; url: string; summary: string; source: string }[] = [];
