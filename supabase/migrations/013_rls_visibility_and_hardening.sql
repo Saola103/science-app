@@ -132,7 +132,7 @@ ALTER FUNCTION public.increment_api_daily_usage(date, text, bigint) SET search_p
 --    Hidden rows must be invisible to anon:
 --     BEGIN; SET LOCAL ROLE anon;
 --       SELECT count(*) FROM papers WHERE source IN ('bioRxiv','medRxiv')
---         AND license IS DISTINCT FROM ALL (ARRAY['cc_by','cc0','cc0_ng']);   -- expect 0
+--         AND (license IS NULL OR license NOT IN ('cc_by','cc0','cc0_ng'));   -- expect 0
 --       SELECT count(*) FROM news WHERE source_name NOT IN ('NASA','NSF');    -- expect 0
 --     ROLLBACK;
 -- c) Privileges (anon should have only SELECT on papers/news, nothing on the 4 tables):
