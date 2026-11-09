@@ -8,6 +8,7 @@ import { mapFeedItemToArticle, FeedApiItem } from "../../../lib/proto/mapArticle
 import { ArticleIllustration } from "../../../components/proto/illustrations";
 import { ArticleDetailSheet } from "../../../components/proto/ArticleDetailSheet";
 import { Article } from "../../../lib/proto/types";
+import { LegalLinks } from "../../../components/LegalLinks";
 
 function FireIcon({ size = 20 }: { size?: number }) {
   return (
@@ -276,6 +277,8 @@ export default function MyPage() {
       )}
 
       <FeedbackForm />
+
+      <LegalLinks className="mt-8 mb-2" />
 
       {openArticle && <ArticleDetailSheet article={openArticle} onClose={() => setOpenArticle(null)} />}
     </div>

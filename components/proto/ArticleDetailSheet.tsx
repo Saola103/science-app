@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { useTranslations } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
+import { LegalLinks } from "../LegalLinks";
+import { AI_SUMMARY_DISCLAIMER } from "../../lib/site/disclaimer";
 import { parseGeneralSummary } from "../../lib/format/summaryText";
 
 type ExplanationMode = "easy" | "detailed";
@@ -162,8 +164,10 @@ export function ArticleDetailSheet({ article, onClose }: { article: Article; onC
 
         <div className="px-5 pb-5 pt-2 shrink-0" style={{ borderTop: "1px solid #F1F3F6" }}>
           <p className="text-[11.5px] text-[#94A3B8] pt-3">
-            {article.source} ・ {article.author} ・ {article.publishedAt}
+            出典: {article.source} ・ {article.author} ・ {article.publishedAt}
           </p>
+          <p className="text-[11.5px] leading-[1.6] text-[#6B7280] pt-1">{AI_SUMMARY_DISCLAIMER}</p>
+          <LegalLinks className="pt-1 !justify-start" />
           <a
             // Real articles (lib/proto/mapArticle.ts) carry the actual source
             // URL; mock ARTICLES don't, so fall back to a search link built
