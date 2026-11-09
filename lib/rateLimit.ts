@@ -1,6 +1,6 @@
 /**
  * Best-effort per-IP rate limiting for the routes that spend LLM/API budget
- * per request (chat, search). This is in-memory, so it only limits requests
+ * per request (search). This is in-memory, so it only limits requests
  * hitting the same warm serverless instance — not a real distributed limiter.
  * That's a deliberate trade-off: a proper distributed limiter needs an
  * external store (e.g. Upstash Redis), which is a new paid-ish dependency the
