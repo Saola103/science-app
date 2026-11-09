@@ -63,7 +63,7 @@
  */
 
 import { getSupabaseServerClient } from "./serviceClient";
-import { embedText } from "../llm/index";
+import { embedText, isQueryEmbeddingEnabled } from "../llm/index";
 import { isPaperDisplayable } from "../sources/policy";
 import type { PaperCardData } from "../../types";
 
@@ -85,6 +85,10 @@ export async function searchPapersByVector(
   matchCount: number = 10,
   matchThreshold: number = 0.3
 ): Promise<VectorSearchResult[]> {
+  // Privacy gate: user-typed queries are not sent to Gemini unless explicitly
+  // enabled (ENABLE_QUERY_EMBEDDING=true). Callers fall back to keyword search.
+  if (!isQueryEmbeddingEnabled()) return [];
+
   // 1. Generate embedding for the search query
   const queryEmbedding = await embedText(query);
 
@@ -151,26 +155,93 @@ export async function findSimilarPapers(
   return ((data || []) as VectorSearchResult[]).filter((p) => p.id !== paperId && isPaperDisplayable(p));
 }
 
+const KEYWORD_STOPWORDS = new Set([
+  "the", "of", "and", "or", "in", "on", "for", "to", "a", "an", "is", "are", "by", "with", "from", "about", "how", "what", "why",
+]);
+
+/**
+ * Split a free-text query into safe substring-match tokens.
+ * - Strips characters that are special in PostgREST filter strings / ilike
+ *   patterns (`, ( ) % * _ \\ "`), so user input cannot alter the filter.
+ * - Hiragana runs (particles, okurigana) act as separators so that a Japanese
+ *   phrase like "麻酔と意識" becomes ["麻酔", "意識"].
+ */
+export function tokenizeKeywordQuery(query: string): string[] {
+  const tokens = query
+    .normalize("NFKC")
+    .replace(/[,()%*_\\"'`;:]/g, " ")
+    .split(/[\s、。・\/\u3040-\u309f]+/)
+    .map((t) => t.trim())
+    .filter((t) => t.length >= 2 && !KEYWORD_STOPWORDS.has(t.toLowerCase()));
+  return [...new Set(tokens)].slice(0, 6);
+}
+
+/**
+ * Keyword search (no embedding, no external call besides Supabase): case-
+ * insensitive substring match of any query token against title / abstract /
+ * Japanese summary, ranked by how many tokens match (title weighted higher),
+ * then by recency.
+ */
+export async function keywordSearchPapers(
+  query: string,
+  maxResults: number = 10
+): Promise<VectorSearchResult[]> {
+  const tokens = tokenizeKeywordQuery(query);
+  if (tokens.length === 0) return [];
+  const supabase = getSupabaseServerClient();
+  const filter = tokens
+    .flatMap((t) => [`title.ilike.%${t}%`, `abstract.ilike.%${t}%`, `summary_general.ilike.%${t}%`])
+    .join(",");
+  const { data, error } = await supabase
+    .from("papers")
+    .select("id, title, abstract, journal, url, published_at, summary, summary_general, summary_expert, image_url, source, license")
+    .or(filter)
+    .order("published_at", { ascending: false })
+    .limit(Math.max(maxResults * 5, 50));
+  if (error) {
+    console.error("[keywordSearch] query failed:", error.message);
+    throw new Error(`Keyword search failed: ${error.message}`);
+  }
+  const lower = tokens.map((t) => t.toLowerCase());
+  const score = (p: any) => {
+    const title = String(p.title ?? "").toLowerCase();
+    const rest = `${p.abstract ?? ""} ${p.summary_general ?? ""}`.toLowerCase();
+    return lower.reduce((n, t) => n + (title.includes(t) ? 2 : 0) + (rest.includes(t) ? 1 : 0), 0);
+  };
+  return ((data || []) as any[])
+    .map((p, i) => ({ p, i, s: score(p) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i) // stable: ties keep recency order
+    .map(({ p }) => ({ ...p, similarity: 0 }) as VectorSearchResult)
+    .filter(isPaperDisplayable)
+    .slice(0, maxResults);
+}
+
+/**
+ * Query-driven paper search used by public routes: semantic (vector) search
+ * only when ENABLE_QUERY_EMBEDDING=true, otherwise keyword search.
+ */
+export async function searchPapersForQuery(
+  query: string,
+  matchCount: number = 5,
+  matchThreshold: number = 0.3
+): Promise<VectorSearchResult[]> {
+  if (isQueryEmbeddingEnabled()) return searchPapersByVector(query, matchCount, matchThreshold);
+  return keywordSearchPapers(query, matchCount);
+}
+
 /**
  * Hybrid search: combine keyword results with vector similarity.
- * Falls back to keyword-only if vector search fails.
+ * With ENABLE_QUERY_EMBEDDING off (default) this is keyword-only and never
+ * contacts the embedding API.
  */
 export async function hybridSearch(
   query: string,
   maxResults: number = 10
 ): Promise<VectorSearchResult[]> {
-  const supabase = getSupabaseServerClient();
-
   // Run keyword search and vector search in parallel
   const [keywordResults, vectorResults] = await Promise.allSettled([
-    // Keyword search via Supabase full-text or ilike
-    supabase
-      .from("papers")
-      .select("id, title, abstract, journal, url, published_at, summary, summary_general, summary_expert, image_url, source, license")
-      .or(`title.ilike.%${query}%,abstract.ilike.%${query}%`)
-      .order("published_at", { ascending: false })
-      .limit(maxResults),
-    // Vector similarity search
+    keywordSearchPapers(query, maxResults),
+    // Vector similarity search (returns [] when query embedding is disabled)
     searchPapersByVector(query, maxResults, 0.3).catch(() => []),
   ]);
 
@@ -189,11 +260,11 @@ export async function hybridSearch(
   }
 
   // Then keyword results
-  if (keywordResults.status === "fulfilled" && keywordResults.value.data) {
-    for (const paper of keywordResults.value.data) {
+  if (keywordResults.status === "fulfilled") {
+    for (const paper of keywordResults.value) {
       if (!seen.has(paper.id)) {
         seen.add(paper.id);
-        merged.push({ ...paper, similarity: 0 } as VectorSearchResult);
+        merged.push(paper);
       }
     }
   }

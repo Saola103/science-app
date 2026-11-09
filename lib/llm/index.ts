@@ -83,6 +83,18 @@ export async function generateText(prompt: string, temperature = 0.7): Promise<s
 }
 
 /**
+ * Whether USER-TYPED search queries / questions may be sent to the Gemini
+ * embedding API. Off by default (the free Gemini tier may use submitted
+ * content to improve Google products); set ENABLE_QUERY_EMBEDDING=true once
+ * on a paid tier to restore semantic search. Does NOT affect embedding of
+ * public paper abstracts at collection time (embedText callers in the cron /
+ * backfill paths) nor stored-vector lookups (/api/papers/similar).
+ */
+export function isQueryEmbeddingEnabled(): boolean {
+  return process.env.ENABLE_QUERY_EMBEDDING === "true";
+}
+
+/**
  * Generates a 768-dim embedding via the Gemini embedding API (separate quota
  * from Groq — does not compete with the summarization token budget).
  * Calls the REST endpoint directly: the installed @google/generative-ai SDK
