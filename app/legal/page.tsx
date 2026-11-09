@@ -1,3 +1,5 @@
+import { CONTACT_EMAIL } from "../../lib/site/contact";
+
 export default function LegalPage() {
     return (
         <div className="mx-auto max-w-4xl px-6 py-24 space-y-12">
@@ -11,7 +13,7 @@ export default function LegalPage() {
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">お問い合わせ先</td>
-                            <td className="py-4">contact@saolams.com</td>
+                            <td className="py-4">{CONTACT_EMAIL}</td>
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">販売価格</td>

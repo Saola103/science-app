@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
+import { NEWS_ALLOWED_SOURCES, PAPER_VISIBILITY_OR } from "../../../lib/sources/policy";
 
 export const maxDuration = 30;
 
@@ -94,12 +95,14 @@ export async function GET(req: NextRequest) {
               .from("papers")
               .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
               .in("id", paperIds)
+              .or(PAPER_VISIBILITY_OR) // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
           : Promise.resolve({ data: [] as never[] }),
         newsIds.length > 0
           ? supabase
               .from("news")
               .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
               .in("id", newsIds)
+              .in("source_name", [...NEWS_ALLOWED_SOURCES]) // G4: 許可した情報源のみ
           : Promise.resolve({ data: [] as never[] }),
       ]);
 
@@ -119,7 +122,7 @@ export async function GET(req: NextRequest) {
           items.push({
             id: n.id, type: "news", title: n.title,
             summary: n.summary_general || n.description, summary_general: n.summary_general,
-            category: n.category, published_at: n.published_at, url: n.url, source: n.source_name, image_url: n.image_url,
+            category: n.category, published_at: n.published_at, url: n.url, source: n.source_name, image_url: null, // G4: ニュースの外部画像は返さない
           });
         }
       }
@@ -187,7 +190,8 @@ export async function GET(req: NextRequest) {
 
     async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
       let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
-      if (sourceFilter) countQuery = countQuery.in("source", sourceFilter);
+      if (sourceFilter) countQuery = countQuery.or(PAPER_VISIBILITY_OR);
+      if (table === "news") countQuery = countQuery.in("source_name", [...NEWS_ALLOWED_SOURCES]);
       countQuery = withValidHeadline(countQuery);
       if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
       const { count } = await countQuery;
@@ -209,7 +213,7 @@ export async function GET(req: NextRequest) {
         supabase
           .from("papers")
           .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-          .in("source", ["arXiv", "bioRxiv", "medRxiv"])
+          .or(PAPER_VISIBILITY_OR)
       )
     ).order("published_at", { ascending: false });
 
@@ -226,7 +230,8 @@ export async function GET(req: NextRequest) {
     let newsQuery = withValidHeadline(
       supabase
         .from("news")
-        .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
+        .select("id, title, description, summary_general, category, published_at, url, source_name")
+        .in("source_name", [...NEWS_ALLOWED_SOURCES])
     ).order("published_at", { ascending: false });
 
     if (randomizeFirstPage) {
@@ -273,7 +278,7 @@ export async function GET(req: NextRequest) {
           published_at: n.published_at,
           url: n.url,
           source: n.source_name,
-          image_url: n.image_url,
+          image_url: null, // G4: ニュースの外部画像は返さない
         });
       }
     }

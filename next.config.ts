@@ -126,14 +126,9 @@ const nextConfig: NextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' https://www.googletagmanager.com",
       "style-src 'self' 'unsafe-inline'",
-      // https: (not a per-domain allowlist): images.unsplash.com (fixed
-      // category thumbnails for papers) plus ~20+ different RSS feed
-      // domains for news.image_url (see lib/sources/rss.ts) — an
-      // enumerated allowlist isn't practical for the latter and would need
-      // updating every time a feed is added/changed. Images can't execute
-      // script, so this is a much lower-risk relaxation than doing the same
-      // for script-src/connect-src.
-      "img-src 'self' data: blob: https: https://*.supabase.co",
+      // G4: 外部画像は一切読み込まない(ニュースRSSの画像ホットリンクを廃止したため、
+      // 以前の `https:` 全許可を撤去)。Unsplash は OG meta の文字列URLのみで表示しない。
+      "img-src 'self' data: blob:",
       "font-src 'self' data:",
       "connect-src 'self' https://*.supabase.co https://www.google-analytics.com https://analytics.google.com",
       "frame-ancestors 'self'",

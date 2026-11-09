@@ -13,6 +13,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "../../lib/supabase/serviceClient";
+import { isAllowedNewsSource } from "../../lib/sources/policy";
 import NewsShareClient from "./NewsShareClient";
 
 type Props = {
@@ -48,16 +49,17 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const supabase = getSupabaseServerClient();
     const { data } = await supabase
       .from("news")
-      .select("title, summary_general, category, image_url")
+      .select("title, summary_general, category, source_name")
       .eq("id", id)
       .single();
 
-    if (!data) return { title: "POCKET DIVE | 科学をスワイプ" };
+    if (!data || !isAllowedNewsSource(data.source_name)) return { title: "POCKET DIVE | 科学をスワイプ" };
 
     const summary = data.summary_general ? stripMd(data.summary_general).slice(0, 140) : "最新の科学ニュースをやさしく解説";
     const title = `${data.title} | POCKET DIVE`;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://pocketdive.vercel.app";
-    const ogImage = data.image_url || `${appUrl}/og-default.png`;
+    // G4: RSS由来の外部画像はOGにも使わない
+    const ogImage = `${appUrl}/og-default.png`;
 
     return {
       title,
@@ -94,7 +96,7 @@ export default async function NewsSharePage({ searchParams }: Props) {
     .eq("id", id)
     .single();
 
-  if (error || !data) notFound();
+  if (error || !data || !isAllowedNewsSource(data.source_name)) notFound(); // G4
 
   return <NewsShareClient news={data} />;
 }

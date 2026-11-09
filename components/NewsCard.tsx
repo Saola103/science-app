@@ -1,12 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
-// A plain <img>, not next/image: image_url comes from whichever of the ~20+
-// RSS feeds in lib/sources/rss.ts an article was collected from, so the
-// domain is arbitrary and unpredictable ahead of time. next/image's remote
-// optimization requires every source domain to be allowlisted in
-// next.config.ts's images.remotePatterns, which doesn't scale to "any RSS
-// feed we might add"; a plain <img> just renders whatever URL it's given.
+// G4(法務整備): ニュースの外部画像は表示しない。image_url は受け取っても使わず、
+// 自前のグラデーションのプレースホルダを出す(外部ホットリンクなし)。
 
 export type NewsCardData = {
     id: string;
@@ -44,19 +40,7 @@ export function NewsCard({ news }: { news: NewsCardData }) {
                 className="relative aspect-[16/10] overflow-hidden cursor-pointer"
                 onClick={() => setIsExpanded(!isExpanded)}
             >
-                {news.image_url ? (
-                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary external RSS domain, see import comment above
-                    <img
-                        src={news.image_url}
-                        alt={news.title}
-                        loading="lazy"
-                        className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                    />
-                ) : (
-                    <div className="w-full h-full bg-slate-100 flex items-center justify-center text-slate-300">
-                        NO IMAGE
-                    </div>
-                )}
+                <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-blue-950 to-slate-900" aria-hidden="true" />
                 <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors duration-500"></div>
             </div>
 

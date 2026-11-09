@@ -5,6 +5,7 @@ import { ArrowRight, FlaskConical, Play } from 'lucide-react';
 import { PaperCardData } from '../types';
 import { NewsCardData } from './NewsCard';
 import { useStreak } from '../lib/hooks/useStreak';
+import { LegalLinks } from './LegalLinks';
 
 interface HomeContentProps {
   papers: PaperCardData[] | null;
@@ -293,6 +294,8 @@ export function HomeContent({ papers, news }: HomeContentProps) {
           </div>
         </button>
       </section>
+
+      <LegalLinks tone="dark" className="pt-8 pb-4" />
     </div>
   );
 }

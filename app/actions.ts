@@ -2,6 +2,7 @@
 
 import { getSupabaseServerClient } from "../lib/supabase/serviceClient";
 import { NewsCardData } from "../components/NewsCard";
+import { NEWS_ALLOWED_SOURCES, PAPER_VISIBILITY_OR } from "../lib/sources/policy";
 
 export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     console.log("[fetchLatestPapers] Fetching, limit:", limit, "categories:", categories);
@@ -10,6 +11,7 @@ export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     let query = supabase
         .from("papers")
         .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source, category, image_url")
+        .or(PAPER_VISIBILITY_OR) // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
         .order("published_at", { ascending: false });
 
     // Simple personalization: Filter by categories if provided
@@ -37,7 +39,8 @@ export async function fetchLatestNews(limit = 6): Promise<NewsCardData[]> {
 
   const { data, error } = await supabase
     .from("news")
-    .select("id, title, url, published_at, description, summary_general, image_url, source_name, category")
+    .select("id, title, url, published_at, description, summary_general, source_name, category")
+    .in("source_name", [...NEWS_ALLOWED_SOURCES]) // G4: 許可した情報源のみ
     .order("published_at", { ascending: false })
     .limit(limit);
 
@@ -55,7 +58,7 @@ export async function fetchLatestNews(limit = 6): Promise<NewsCardData[]> {
     published_at: item.published_at ?? null,
     summary_general: item.summary_general ?? item.description ?? null,
     summary_expert: null,
-    image_url: item.image_url ?? null,
+    image_url: null, // G4: ニュースの外部画像は使わない
     category: item.category ?? null,
   }));
 }

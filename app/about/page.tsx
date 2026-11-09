@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Shield, BookOpen, Users, Mail } from "lucide-react";
+import { CONTACT_EMAIL } from "../../lib/site/contact";
 
 export default function AboutPage() {
   return (
@@ -48,17 +49,17 @@ export default function AboutPage() {
             </div>
             <div className="md:col-span-8 space-y-6">
               <p className="text-base md:text-lg font-medium leading-relaxed text-slate-600">
-                本プロジェクトは、学術的なオープンアクセス精神に基づき運営されています。
+                本プロジェクトは、学術的なオープンアクセスの精神を大切に、無料・非営利で運営しています。
               </p>
               <ul className="space-y-4">
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
-                  情報ソース: arXiv 等のライセンスが明確なオープンアクセスリポジトリのみを対象としています。
+                  情報ソース: 論文は arXiv と、bioRxiv/medRxiv のうち CC BY または CC0 のライセンスのもの、ニュースは公的機関（NASA・NSF・CERN）の公開情報を対象としています。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと表現は弁護士確認後に確定 */}
                 </li>
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
-                  知的財産権の尊重: AIによる要約生成においては、元の著作物の表現を模倣せず、事実関係のみを再構成する手法を徹底しています。
+                  知的財産権の尊重: AIによる要約生成においては、元の著作物の表現をそのまま写さず、事実関係を再構成するよう努めています。AIによる要約には誤りが含まれることがあるため、必ず原文もご確認ください。
                 </li>
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
-                  権利保護: 掲載されている情報について、著作権者様より削除要請があった場合は速やかに対応いたします。ご連絡は contact@pocket-dive.app までお願いいたします。
+                  権利保護: 掲載されている情報について、著作権者様より削除要請があった場合は速やかに対応いたします。ご連絡は {CONTACT_EMAIL} までお願いいたします。
                 </li>
               </ul>
             </div>
@@ -77,17 +78,18 @@ export default function AboutPage() {
                 <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center font-black text-lg italic">P</div>
                 <div>
                   <div className="text-lg font-black uppercase leading-none">POCKET DIVE 開発チーム</div>
-                  <div className="text-[10px] font-bold tracking-widest text-slate-400 uppercase mt-1">非営利組織</div>
+                  {/* 要確認: 運営者の表記はオーナー決定事項。法人格はないため「非営利組織」「NPO」とは書かない */}
+                  <div className="text-[10px] font-bold tracking-widest text-slate-400 mt-1">非営利で運営する教育プロジェクト</div>
                 </div>
               </div>
               
-              <a href="mailto:contact@pocket-dive.app" className="flex items-center gap-4 p-6 rounded-3xl border-2 border-slate-100 hover:border-sky-600 hover:bg-sky-50 transition-all group">
+              <a href={`mailto:${CONTACT_EMAIL}`} className="flex items-center gap-4 p-6 rounded-3xl border-2 border-slate-100 hover:border-sky-600 hover:bg-sky-50 transition-all group">
                 <div className="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-white flex items-center justify-center text-slate-400 group-hover:text-sky-600 transition-colors">
                   <Mail className="w-5 h-5" />
                 </div>
                 <div>
                   <div className="text-xs font-black uppercase tracking-widest text-slate-400 group-hover:text-sky-600">お問い合わせ</div>
-                  <div className="text-sm font-bold text-slate-900 mt-1">contact@pocket-dive.app</div>
+                  <div className="text-sm font-bold text-slate-900 mt-1">{CONTACT_EMAIL}</div>
                 </div>
               </a>
             </div>

@@ -7,6 +7,7 @@ import { getCategoryLabel } from "../../lib/proto/mockData";
 import { Article } from "../../lib/proto/types";
 import { HEADER_H, NAV_H } from "../../lib/proto/layoutMetrics";
 import { useProtoStore } from "../../lib/proto/store";
+import { AI_SUMMARY_DISCLAIMER } from "../../lib/site/disclaimer";
 
 export const zen = { fontFamily: "var(--font-zen-maru), sans-serif" };
 
@@ -308,7 +309,10 @@ function FeedSlide({
         </div>
 
         <p className="pt-5 pr-14 text-[13.2px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.55)" }}>
-          {article.source} ・ {article.author} ・ {article.publishedAt}
+          出典: {article.source} ・ {article.author} ・ {article.publishedAt}
+        </p>
+        <p className="pt-1.5 pr-14 text-[11.5px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.5)" }}>
+          {AI_SUMMARY_DISCLAIMER}
         </p>
       </div>
 

@@ -377,7 +377,7 @@ export async function collectNews(): Promise<NewsResult> {
           title: article.title,
           description: article.description,
           url: article.url,
-          image_url: article.image_url,
+          image_url: null, // G4: 外部画像URLは保存しない
           published_at: article.published_at,
           source_name: article.source_name,
           category: finalCategory,

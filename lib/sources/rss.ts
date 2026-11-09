@@ -5,11 +5,14 @@
  * Used by the daily collection pipeline to populate the news table.
  */
 
+import { isAllowedNewsSource, NEWS_DESCRIPTION_MAX_CHARS } from "./policy";
+
 export type RSSNewsArticle = {
   id: string;
   title: string;
   description: string;
   url: string;
+  /** 常に null(G4法務整備: 外部画像URLは保存・表示しない) */
   image_url: string | null;
   published_at: string;
   source_name: string;
@@ -220,23 +223,6 @@ function getTag(xml: string, tag: string): string {
   return m ? extractCDATA(m[1]) : "";
 }
 
-/** Try to extract an image URL from a feed item */
-function extractImage(item: string): string | null {
-  // media:content url="..."
-  const media = item.match(/media:content[^>]+url="([^"]+)"/i);
-  if (media) return media[1];
-
-  // enclosure url="..."
-  const enclosure = item.match(/enclosure[^>]+url="([^"]+\.(?:jpg|jpeg|png|gif|webp)[^"]*)"/i);
-  if (enclosure) return enclosure[1];
-
-  // img src in description
-  const img = item.match(/<img[^>]+src="([^"]+)"/i);
-  if (img) return img[1];
-
-  return null;
-}
-
 async function parseFeed(
   feedUrl: string,
   sourceName: string,
@@ -261,9 +247,8 @@ async function parseFeed(
       const title = getTag(item, "title");
       const rawLink = getTag(item, "link") || getTag(item, "guid");
       const url = rawLink.startsWith("http") ? rawLink : "";
-      const description = getTag(item, "description").slice(0, 600);
+      const description = getTag(item, "description").slice(0, NEWS_DESCRIPTION_MAX_CHARS);
       const pubDate = getTag(item, "pubDate") || getTag(item, "dc:date");
-      const image = extractImage(item);
 
       if (title && url) {
         const published = pubDate
@@ -275,7 +260,7 @@ async function parseFeed(
           title,
           description,
           url,
-          image_url: image,
+          image_url: null, // G4: RSS由来の外部画像URLは保存しない(ホットリンク回避)
           published_at: published,
           source_name: sourceName,
           category,
@@ -297,8 +282,11 @@ async function parseFeed(
  * Fails gracefully — returns empty array if all feeds fail.
  */
 export async function fetchScienceNewsFromRSS(): Promise<RSSNewsArticle[]> {
+  // G4: 許可リスト(lib/sources/policy.ts)にある情報源のフィードだけを巡回する。
+  // RSS_FEEDS の他の定義は、法務確認で許可できた時にすぐ戻せるよう残してある。
+  const feeds = RSS_FEEDS.filter((f) => isAllowedNewsSource(f.source));
   const settled = await Promise.allSettled(
-    RSS_FEEDS.map((f) => parseFeed(f.url, f.source, f.category, 5))
+    feeds.map((f) => parseFeed(f.url, f.source, f.category, 5))
   );
 
   const articles: RSSNewsArticle[] = [];

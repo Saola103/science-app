@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isPaperDisplayable } from "../../../../lib/sources/policy";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 
 export async function GET(req: NextRequest) {
@@ -10,11 +11,11 @@ export async function GET(req: NextRequest) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("papers")
-    .select("id, title, abstract, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+    .select("id, title, abstract, summary_general, summary_expert, category, published_at, url, authors, source, image_url, license")
     .eq("id", id)
     .single();
 
-  if (error || !data) {
+  if (error || !data || !isPaperDisplayable(data)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 

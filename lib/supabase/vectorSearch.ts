@@ -64,6 +64,7 @@
 
 import { getSupabaseServerClient } from "./serviceClient";
 import { embedText } from "../llm/index";
+import { isPaperDisplayable } from "../sources/policy";
 import type { PaperCardData } from "../../types";
 
 export type VectorSearchResult = PaperCardData & {
@@ -106,7 +107,8 @@ export async function searchPapersByVector(
     throw new Error(`Vector search failed: ${error.message}`);
   }
 
-  return (data || []) as VectorSearchResult[];
+  // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
+  return ((data || []) as VectorSearchResult[]).filter(isPaperDisplayable);
 }
 
 /**
@@ -145,7 +147,8 @@ export async function findSimilarPapers(
   }
 
   // Filter out the source paper itself
-  return ((data || []) as VectorSearchResult[]).filter((p) => p.id !== paperId);
+  // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
+  return ((data || []) as VectorSearchResult[]).filter((p) => p.id !== paperId && isPaperDisplayable(p));
 }
 
 /**
@@ -163,7 +166,7 @@ export async function hybridSearch(
     // Keyword search via Supabase full-text or ilike
     supabase
       .from("papers")
-      .select("id, title, abstract, journal, url, published_at, summary, summary_general, summary_expert, image_url, source")
+      .select("id, title, abstract, journal, url, published_at, summary, summary_general, summary_expert, image_url, source, license")
       .or(`title.ilike.%${query}%,abstract.ilike.%${query}%`)
       .order("published_at", { ascending: false })
       .limit(maxResults),
@@ -195,5 +198,5 @@ export async function hybridSearch(
     }
   }
 
-  return merged.slice(0, maxResults);
+  return merged.filter(isPaperDisplayable).slice(0, maxResults);
 }

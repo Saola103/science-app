@@ -11,6 +11,8 @@
 // API intentionally mirrors next-intl's client hooks (`t(key)`,
 // `t(key, {var})`, dot-separated namespaces) so callers didn't need to change
 // their usage, only their import.
+import { CONTACT_EMAIL } from "../site/contact";
+
 
 const ja = {
   Common: {
@@ -64,7 +66,7 @@ const ja = {
     newsDesc: "世界中で日々刻々と進化するテクノロジーや科学の「今」をキャッチしましょう。AIが要約したニュースで、効率的に知識をアップデート。",
     newsBadge: "インサイト",
     papersTitle: "新着論文",
-    papersDesc: "arXivやPubMedから届く膨大な論文から、価値のある研究をセレクト。専門家向けと一般向けの二段階要約で、深い学びを提供します。",
+    papersDesc: "arXivやbioRxiv・medRxivに公開される膨大な論文から、価値のある研究をセレクト。専門家向けと一般向けの二段階要約で、深い学びを提供します。",
     papersBadge: "アカデミック",
     searchTitle: "知のリサーチを、",
     searchSubtitle: "知のリサーチを、もっとダイレクトに。",
@@ -96,7 +98,7 @@ const ja = {
   },
   Papers: {
     title: "新着論文",
-    description: "arXivやPubMedから届く膨大な論文から、価値のある研究をセレクト。一般向けと専門家向けの二段階要約で、深い学びを提供します。",
+    description: "arXivやbioRxiv・medRxivに公開される膨大な論文から、価値のある研究をセレクト。一般向けと専門家向けの二段階要約で、深い学びを提供します。",
     diveTitle: "論文ダイブ",
     diveSubtitle: "知の最前線へ、潜る。",
     latestPapers: "最新の論文",
@@ -176,13 +178,13 @@ const ja = {
     motivation:
       "科学技術の進展に伴い、最新の知見は日々膨大な情報として蓄積されています。しかし、専門的な学術知見と、それを必要とする社会との間には「情報格差」という分厚い壁が存在します。本プロジェクトは、学術研究の入り口に立つ若き探究者たちが、英語の壁や専門用語の壁に挫折することなく、自身の興味に基づいて最短距離で知の深淵へダイブできる環境を提供することを目的としています。",
     complianceTitle: "コンプライアンスと著作権ポリシー",
-    compliance: "本プロジェクトは、学術的なオープンアクセス精神に基づき運営されています。",
-    complianceList1: "情報ソース: arXiv 等のライセンスが明確なオープンアクセスリポジトリのみを対象としています。",
-    complianceList2: "知的財産権の尊重: AIによる要約生成においては、元の著作物の表現を模倣せず、事実関係のみを再構成する手法を徹底しています。",
-    complianceList3: "権利保護: 掲載されている情報について、著作権者様より削除要請があった場合は速やかに対応いたします。ご連絡は contact@pocket-dive.app までお願いいたします。",
-    contactInfo: "お問い合わせ: contact@pocket-dive.app",
+    compliance: "本プロジェクトは、学術的なオープンアクセスの精神を大切に、無料・非営利で運営しています。",
+    complianceList1: "情報ソース: 論文は arXiv と bioRxiv/medRxiv(CC BY・CC0 のライセンスのもの)、ニュースは公的機関(NASA・NSF・CERN)の公開情報を対象としています。各情報源の利用条件に従うよう努めています。",
+    complianceList2: "知的財産権の尊重: AIによる要約生成においては、元の著作物の表現をそのまま写さず、事実関係を再構成するよう努めています。AIの要約には誤りが含まれることがあるため、必ず原文もご確認ください。",
+    complianceList3: `権利保護: 掲載されている情報について、著作権者様より削除要請があった場合は速やかに対応いたします。ご連絡は ${CONTACT_EMAIL} までお願いいたします。`,
+    contactInfo: `お問い合わせ: ${CONTACT_EMAIL}`,
     missionVision: "ミッション & ビジョン",
-    nonProfit: "非営利組織",
+    nonProfit: "非営利で運営する教育プロジェクト",
     contactUs: "お問い合わせ",
   },
   Proto: {
