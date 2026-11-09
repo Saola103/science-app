@@ -176,6 +176,11 @@ export function tokenizeKeywordQuery(query: string): string[] {
   return [...new Set(tokens)].slice(0, 6);
 }
 
+/** tokenizeKeywordQuery の結果から、PostgREST の .or() 用 ilike 条件を作る(トークンは無害化済みの前提)。 */
+export function buildKeywordOrFilter(tokens: string[], columns: string[]): string {
+  return tokens.flatMap((t) => columns.map((c) => `${c}.ilike.%${t}%`)).join(",");
+}
+
 /**
  * Keyword search (no embedding, no external call besides Supabase): case-
  * insensitive substring match of any query token against title / abstract /
@@ -189,9 +194,7 @@ export async function keywordSearchPapers(
   const tokens = tokenizeKeywordQuery(query);
   if (tokens.length === 0) return [];
   const supabase = getSupabaseServerClient();
-  const filter = tokens
-    .flatMap((t) => [`title.ilike.%${t}%`, `abstract.ilike.%${t}%`, `summary_general.ilike.%${t}%`])
-    .join(",");
+  const filter = buildKeywordOrFilter(tokens, ["title", "abstract", "summary_general"]);
   const { data, error } = await supabase
     .from("papers")
     .select("id, title, abstract, journal, url, published_at, summary, summary_general, summary_expert, image_url, source, license")

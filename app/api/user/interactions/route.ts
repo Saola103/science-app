@@ -9,8 +9,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
+import { fetchVisibleItemsByIds } from "../../../../lib/sources/visibility";
+import { checkRateLimit, getClientIp } from "../../../../lib/rateLimit";
 
 export async function GET(req: NextRequest) {
+  // R1-08: DB負荷対策(認証より前に判定)
+  if (!checkRateLimit(`interactions:${getClientIp(req)}`, 30, 60_000)) {
+    return NextResponse.json({ error: "rate limited" }, { status: 429 });
+  }
+
   const { searchParams } = new URL(req.url);
   const action = searchParams.get("action") || "like";
   const idsOnly = searchParams.get("idsOnly") === "true";
@@ -56,25 +63,8 @@ export async function GET(req: NextRequest) {
 
   const paperIds = interactions.filter(i => i.item_type === "paper").map(i => i.item_id);
   const newsIds  = interactions.filter(i => i.item_type === "news").map(i => i.item_id);
-  const results: any[] = [];
-
-  if (paperIds.length > 0) {
-    const { data: papers } = await supabase
-      .schema(schema)
-      .from("papers")
-      .select("id, title, summary_general, category, published_at, url, authors, source")
-      .in("id", paperIds);
-    if (papers) results.push(...papers.map(p => ({ ...p, type: "paper" })));
-  }
-
-  if (newsIds.length > 0) {
-    const { data: news } = await supabase
-      .schema(schema)
-      .from("news")
-      .select("id, title, summary_general, category, published_at, url, source")
-      .in("id", newsIds);
-    if (news) results.push(...news.map(n => ({ ...n, type: "news" })));
-  }
+  // R1-01: フィードと同じ可視性条件(許可リスト・ライセンス)を共通関数で適用
+  const results = await fetchVisibleItemsByIds(supabase, schema, paperIds, newsIds);
 
   const orderMap = new Map(interactions.map((i, idx) => [i.item_id, idx]));
   results.sort((a, b) => (orderMap.get(a.id) ?? 99) - (orderMap.get(b.id) ?? 99));

@@ -10,7 +10,7 @@
 
 import { MetadataRoute } from "next";
 import { getSupabaseServerClient } from "../lib/supabase/serviceClient";
-import { PAPER_VISIBILITY_OR_ANY } from "../lib/sources/policy";
+import { applyPaperVisibility } from "../lib/sources/visibility";
 
 const BASE_URL = "https://pocketdive.vercel.app";
 
@@ -59,10 +59,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   let paperRoutes: MetadataRoute.Sitemap = [];
   try {
     const supabase = getSupabaseServerClient();
-    const { data: papers } = await supabase
-      .from("papers")
-      .select("id, published_at")
-      .or(PAPER_VISIBILITY_OR_ANY)
+    const { data: papers } = await applyPaperVisibility(
+      supabase.from("papers").select("id, published_at")
+    )
       .order("published_at", { ascending: false })
       .limit(200);
 

@@ -8,7 +8,9 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
-import { NEWS_ALLOWED_SOURCES, PAPER_VISIBILITY_OR } from "../../../lib/sources/policy";
+import { applyNewsVisibility, applyPaperVisibility } from "../../../lib/sources/visibility";
+import { parseLimit, sanitizeCategory } from "../../../lib/api/params";
+import { buildKeywordOrFilter, tokenizeKeywordQuery } from "../../../lib/supabase/vectorSearch";
 
 export const maxDuration = 30;
 
@@ -64,10 +66,16 @@ export async function GET(req: NextRequest) {
     // been removed — /feedapp is now the only shipped feed UI). Remaining
     // callers (app/page.tsx's HomeContent, /search) pass limit<=20
     // explicitly, so this is additive — their behavior is unchanged.
-    const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 60);
+    const limit = parseLimit(searchParams.get("limit"), 10, 1, 60); // R1-04: NaN/0/負数を防ぐ
     const preferencesStr = searchParams.get("preferences");
-    const categoryFilter = searchParams.get("category"); // optional category filter
-    const q = searchParams.get("q")?.trim(); // optional free-text search (title/summary)
+    const categoryFilter = sanitizeCategory(searchParams.get("category")); // optional category filter (R1-04: 無害化)
+    const rawQ = searchParams.get("q")?.trim(); // optional free-text search (title/summary)
+    // R1-04: .or() には keywordSearchPapers と同じトークン化済みの語だけを入れる
+    const qTokens = rawQ ? tokenizeKeywordQuery(rawQ) : [];
+    const q = rawQ || undefined;
+    if (rawQ && qTokens.length === 0) {
+      return NextResponse.json({ items: [], nextCursor: null, hasMore: false });
+    }
     const idsParam = searchParams.get("ids"); // optional: fetch specific items by id, e.g. "paper-<uuid>,news-<uuid>"
 
     let preferences: Record<string, number> = {};
@@ -91,18 +99,20 @@ export async function GET(req: NextRequest) {
 
       const [papersRes, newsRes] = await Promise.allSettled([
         paperIds.length > 0
-          ? supabase
-              .from("papers")
-              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-              .in("id", paperIds)
-              .or(PAPER_VISIBILITY_OR) // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
+          ? applyPaperVisibility( // G4: 許可リスト+ライセンス(共通関数)
+              supabase
+                .from("papers")
+                .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+                .in("id", paperIds)
+            )
           : Promise.resolve({ data: [] as never[] }),
         newsIds.length > 0
-          ? supabase
-              .from("news")
-              .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
-              .in("id", newsIds)
-              .in("source_name", [...NEWS_ALLOWED_SOURCES]) // G4: 許可した情報源のみ
+          ? applyNewsVisibility( // G4: 許可した情報源のみ(共通関数)
+              supabase
+                .from("news")
+                .select("id, title, description, summary_general, category, published_at, url, source_name, image_url")
+                .in("id", newsIds)
+            )
           : Promise.resolve({ data: [] as never[] }),
       ]);
 
@@ -190,8 +200,8 @@ export async function GET(req: NextRequest) {
 
     async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
       let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
-      if (sourceFilter) countQuery = countQuery.or(PAPER_VISIBILITY_OR);
-      if (table === "news") countQuery = countQuery.in("source_name", [...NEWS_ALLOWED_SOURCES]);
+      if (sourceFilter) countQuery = applyPaperVisibility(countQuery);
+      if (table === "news") countQuery = applyNewsVisibility(countQuery);
       countQuery = withValidHeadline(countQuery);
       if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
       const { count } = await countQuery;
@@ -210,10 +220,11 @@ export async function GET(req: NextRequest) {
     // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
     let papersQuery = withRewrittenPrompt(
       withValidHeadline(
-        supabase
-          .from("papers")
-          .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-          .or(PAPER_VISIBILITY_OR)
+        applyPaperVisibility(
+          supabase
+            .from("papers")
+            .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+        )
       )
     ).order("published_at", { ascending: false });
 
@@ -224,14 +235,15 @@ export async function GET(req: NextRequest) {
       if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
     }
     if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
-    if (q) papersQuery = papersQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,summary.ilike.%${q}%`);
+    if (q) papersQuery = papersQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "summary"]));
 
     // Fetch news too (also filtered by category/q when set, same as papers)
     let newsQuery = withValidHeadline(
-      supabase
-        .from("news")
-        .select("id, title, description, summary_general, category, published_at, url, source_name")
-        .in("source_name", [...NEWS_ALLOWED_SOURCES])
+      applyNewsVisibility(
+        supabase
+          .from("news")
+          .select("id, title, description, summary_general, category, published_at, url, source_name")
+      )
     ).order("published_at", { ascending: false });
 
     if (randomizeFirstPage) {
@@ -241,7 +253,7 @@ export async function GET(req: NextRequest) {
       if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
     }
     if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
-    if (q) newsQuery = newsQuery.or(`title.ilike.%${q}%,summary_general.ilike.%${q}%,description.ilike.%${q}%`);
+    if (q) newsQuery = newsQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "description"]));
 
     const [papersResult, newsResult] = await Promise.allSettled([papersQuery, newsQuery]);
 

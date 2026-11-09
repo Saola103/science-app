@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { isPaperDisplayable } from "../../../../lib/sources/policy";
+import { checkRateLimit, getClientIp } from "../../../../lib/rateLimit";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 
 export async function GET(req: NextRequest) {
+  // R1-08: DB負荷対策
+  if (!checkRateLimit(`by-id:${getClientIp(req)}`, 60, 60_000)) {
+    return NextResponse.json({ error: "rate limited" }, { status: 429 });
+  }
   const id = req.nextUrl.searchParams.get("id");
   if (!id) {
     return NextResponse.json({ error: "id required" }, { status: 400 });
