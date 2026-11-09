@@ -10,6 +10,7 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getSupabaseServerClient } from "../../lib/supabase/serviceClient";
+import { isPaperDisplayable } from "../../lib/sources/policy";
 import PaperShareClient from "./PaperShareClient";
 
 type Props = {
@@ -45,11 +46,11 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     const supabase = getSupabaseServerClient();
     const { data } = await supabase
       .from("papers")
-      .select("title, summary_general, category, image_url")
+      .select("title, summary_general, category, image_url, source, license")
       .eq("id", id)
       .single();
 
-    if (!data) return { title: "POCKET DIVE | 科学をスワイプ" };
+    if (!data || !isPaperDisplayable(data)) return { title: "POCKET DIVE | 科学をスワイプ" };
 
     const summary = data.summary_general ? stripMd(data.summary_general).slice(0, 140) : "最新の科学論文をやさしく解説";
     const title = `${data.title} | POCKET DIVE`;
@@ -87,11 +88,11 @@ export default async function PaperSharePage({ searchParams }: Props) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("papers")
-    .select("id, title, summary_general, summary_expert, category, published_at, url, authors, source")
+    .select("id, title, summary_general, summary_expert, category, published_at, url, authors, source, license")
     .eq("id", id)
     .single();
 
-  if (error || !data) notFound();
+  if (error || !data || !isPaperDisplayable(data)) notFound(); // G4: bioRxiv/medRxiv ライセンス
 
   return <PaperShareClient paper={data} />;
 }
