@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../../lib/supabase/serviceClient";
 import { summarize, summarizeNews } from "../../../../lib/llm/summarize";
 import { embedText } from "../../../../lib/llm/index";
+import { getTodayGroqUsage } from "../../../../lib/llm/dailyUsage";
 import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 import { hasValidHeadline } from "../../../../lib/format/summaryText";
 
@@ -37,7 +38,21 @@ export async function GET(req: NextRequest) {
   // Groq is now throttled to its TPM budget inside generateText() itself
   // (see lib/llm/index.ts), so this limit is bounded by Vercel's maxDuration
   // rather than a daily token cap — 40 summary-pairs comfortably fits in 300s.
-  const limit = 40;
+  // 2026-11-09: capped at 10 (was 40) and gated on the day's Groq usage so
+  // repairs never eat the headroom reserved for the evening collection and
+  // for public chat/search. The old-format/no-summary backlog is hidden from
+  // the feed anyway (has_valid_headline filter), so draining it slowly is OK.
+  const REPAIR_USAGE_CEILING = 90_000; // tokens already spent today above which repairs are skipped
+  const { tokensUsed, available } = await getTodayGroqUsage();
+  if (available && tokensUsed >= REPAIR_USAGE_CEILING) {
+    return NextResponse.json({
+      success: true,
+      skipped: "daily Groq usage above repair ceiling; headroom kept for collection and public routes",
+      tokensUsed,
+      ceiling: REPAIR_USAGE_CEILING,
+    });
+  }
+  const limit = 10;
   // Gemini embeddings are capped at 1000/day (separate from Groq). New papers
   // collected each day use ~45 of that; keep this well under the remainder so
   // it never starves same-day collection.

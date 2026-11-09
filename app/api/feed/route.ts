@@ -11,6 +11,10 @@ import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
 
 export const maxDuration = 30;
 
+// Papers whose summary_updated_at is before this were summarized with the
+// pre-rewrite prompt. Same value as app/api/cron/backfill-prompts.
+const PROMPT_REWRITE_CUTOFF = "2026-09-22T00:00:00Z";
+
 type FeedItem = {
   id: string;
   type: "paper" | "news";
@@ -170,10 +174,22 @@ export async function GET(req: NextRequest) {
       return query.eq("has_valid_headline", true);
     }
 
+    // 2026-11-09: papers summarized before the prompt rewrite (see
+    // cron/backfill-prompts, now paused to free Groq budget for public
+    // traffic) have an older, lower-quality summary style even when their
+    // headline is valid. Keep them out of the feed until they are rewritten.
+    // The first filter above already hides invalid-headline rows; this one
+    // additionally hides the old-prompt rows. Saved-article lookups (ids
+    // mode, handled earlier) are unaffected.
+    function withRewrittenPrompt(query: any): any {
+      return query.gte("summary_updated_at", PROMPT_REWRITE_CUTOFF);
+    }
+
     async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
       let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
       if (sourceFilter) countQuery = countQuery.in("source", sourceFilter);
       countQuery = withValidHeadline(countQuery);
+      if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
       const { count } = await countQuery;
       const poolSize = count ?? 0;
       const maxOffset = Math.max(0, poolSize - half);
@@ -188,11 +204,13 @@ export async function GET(req: NextRequest) {
       : [0, 0];
 
     // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
-    let papersQuery = withValidHeadline(
-      supabase
-        .from("papers")
-        .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
-        .in("source", ["arXiv", "bioRxiv", "medRxiv"])
+    let papersQuery = withRewrittenPrompt(
+      withValidHeadline(
+        supabase
+          .from("papers")
+          .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+          .in("source", ["arXiv", "bioRxiv", "medRxiv"])
+      )
     ).order("published_at", { ascending: false });
 
     if (randomizeFirstPage) {

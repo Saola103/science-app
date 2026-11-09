@@ -11,10 +11,6 @@
     {
       "path": "/api/cron/fix-summaries",
       "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/api/cron/backfill-prompts",
-      "schedule": "0 23 * * *"
     }
   ]
 }
