@@ -1,4 +1,9 @@
-const ARXIV_API_BASE = "http://export.arxiv.org/api/query";
+import { fetchTextBounded } from "../http/boundedFetch";
+
+const ARXIV_API_BASE = "https://export.arxiv.org/api/query";
+/** 外部取得の時間・サイズ上限(R2-05) */
+const ARXIV_TIMEOUT_MS = 15_000;
+const ARXIV_MAX_BYTES = 4 * 1024 * 1024;
 
 export type ArxivOpenAccessPaper = {
   id: string;
@@ -11,11 +16,7 @@ export type ArxivOpenAccessPaper = {
 };
 
 async function fetchText(url: string): Promise<string> {
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`arXiv API request failed: ${res.status} ${res.statusText}`);
-  }
-  return await res.text();
+  return fetchTextBounded(url, { timeoutMs: ARXIV_TIMEOUT_MS, maxBytes: ARXIV_MAX_BYTES });
 }
 
 function extractTag(block: string, tag: string): string | undefined {
@@ -39,7 +40,7 @@ function extractAllAuthors(block: string): string[] {
 /**
  * arXiv からオープンアクセス論文（原則すべて OA）を検索して返す。
  *
- * - `http://export.arxiv.org/api/query?search_query=...` を叩いて Atom フィードを取得
+ * - `https://export.arxiv.org/api/query?search_query=...` を叩いて Atom フィードを取得
  * - 各 entry から title, id/url, published, summary(abstract), authors を抽出
  * - arXiv 論文は原則 OA なのでライセンスフィルタリングは行わず、`license` は "arXiv OA" として扱う
  */

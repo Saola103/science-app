@@ -8,6 +8,12 @@
  * We add a polite delay between calls.
  */
 
+import { fetchJsonBounded, fetchTextBounded } from "../http/boundedFetch";
+
+/** 外部取得の時間・サイズ上限(R2-05) */
+const PUBMED_TIMEOUT_MS = 15_000;
+const PUBMED_MAX_BYTES = 8 * 1024 * 1024;
+
 const ESEARCH_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi";
 const EFETCH_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi";
 const ESUMMARY_BASE = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi";
@@ -49,14 +55,16 @@ async function searchPubMed(
   const apiKey = process.env.NCBI_API_KEY;
   if (apiKey) params.set("api_key", apiKey);
 
-  const res = await fetch(`${ESEARCH_BASE}?${params.toString()}`);
-  if (!res.ok) {
-    console.error(`PubMed eSearch failed: ${res.status} ${res.statusText}`);
+  try {
+    const data = await fetchJsonBounded<{ esearchresult?: { idlist?: string[] } }>(`${ESEARCH_BASE}?${params.toString()}`, {
+      timeoutMs: PUBMED_TIMEOUT_MS,
+      maxBytes: PUBMED_MAX_BYTES,
+    });
+    return data?.esearchresult?.idlist || [];
+  } catch (e) {
+    console.error("PubMed eSearch failed:", e instanceof Error ? e.message : e);
     return [];
   }
-
-  const data = await res.json();
-  return data?.esearchresult?.idlist || [];
 }
 
 /**
@@ -75,14 +83,16 @@ async function fetchPubMedDetails(pmids: string[]): Promise<PubMedPaper[]> {
   const apiKey = process.env.NCBI_API_KEY;
   if (apiKey) params.set("api_key", apiKey);
 
-  const res = await fetch(`${EFETCH_BASE}?${params.toString()}`);
-  if (!res.ok) {
-    console.error(`PubMed eFetch failed: ${res.status} ${res.statusText}`);
+  try {
+    const xml = await fetchTextBounded(`${EFETCH_BASE}?${params.toString()}`, {
+      timeoutMs: PUBMED_TIMEOUT_MS,
+      maxBytes: PUBMED_MAX_BYTES,
+    });
+    return parsePubMedXml(xml);
+  } catch (e) {
+    console.error("PubMed eFetch failed:", e instanceof Error ? e.message : e);
     return [];
   }
-
-  const xml = await res.text();
-  return parsePubMedXml(xml);
 }
 
 /**

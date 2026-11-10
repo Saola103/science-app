@@ -5,7 +5,8 @@
  * Used by the daily collection pipeline to populate the news table.
  */
 
-import { isAllowedNewsSource, NEWS_DESCRIPTION_MAX_CHARS } from "./policy";
+import { isAllowedNewsSource, NEWS_DESCRIPTION_MAX_CHARS, NEWS_TITLE_MAX_CHARS } from "./policy";
+import { fetchTextBounded } from "../http/boundedFetch";
 
 export type RSSNewsArticle = {
   id: string;
@@ -235,7 +236,9 @@ const RSS_FEEDS: { url: string; source: string; category: string; maxItems?: num
  * content:encoded(全文)は読まない。呼び出し側は <description> だけを渡すこと。
  */
 export function toExcerpt(raw: string, maxChars: number = NEWS_DESCRIPTION_MAX_CHARS): string {
+  // 正規表現の二次的な遅延を避けるため、先に生テキストの長さを抑える(R2-05)
   return raw
+    .slice(0, RAW_DESCRIPTION_MAX)
     // description にタグがエスケープ(&lt;img ... /&gt;)されて入るフィード(ESA/Webb等)向け: 先に除去する
     .replace(/&lt;\/?[a-zA-Z][^&]*?&gt;/g, " ")
     .replace(/<[^>]*>/g, " ")
@@ -259,18 +262,82 @@ function urlToId(url: string): string {
   return "rss-" + Math.abs(hash >>> 0).toString(36);
 }
 
-/** Extract content from CDATA or plain text tags */
+/** フィード1本の応答サイズ上限(R2-05)。通常は数十〜数百KB。 */
+export const RSS_MAX_BYTES = 2 * 1024 * 1024;
+/** タイトルの最大文字数(R2-04: プロンプトに入るため長さを抑える) */
+export const RSS_TITLE_MAX_CHARS = NEWS_TITLE_MAX_CHARS;
+/** タグ除去の前に見る生テキストの上限(正規表現の二次的な遅延を避ける。R2-05) */
+const RAW_TITLE_MAX = 2_000;
+const RAW_DESCRIPTION_MAX = 8_000;
+const RAW_FIELD_MAX = 2_000;
+
+/** Extract content from CDATA or plain text tags(indexOf のみ。入力は呼び出し側で短く切ってから渡す) */
 function extractCDATA(raw: string): string {
-  const cdata = raw.match(/<!\[CDATA\[([\s\S]*?)\]\]>/);
-  if (cdata) return cdata[1].trim();
+  const open = raw.indexOf("<![CDATA[");
+  if (open >= 0) {
+    const close = raw.indexOf("]]>", open + 9);
+    if (close >= 0) return raw.slice(open + 9, close).trim();
+  }
   return raw.replace(/<[^>]+>/g, "").trim();
 }
 
-/** Extract the first occurrence of a tag's content */
-function getTag(xml: string, tag: string): string {
-  const re = new RegExp(`<${tag}(?:\\s[^>]*)?>([\\s\\S]*?)<\\/${tag}>`, "i");
-  const m = xml.match(re);
-  return m ? extractCDATA(m[1]) : "";
+/**
+ * 最初の <tag ...>...</tag> の中身を返す。indexOf だけで走査するので、閉じタグが無い/タグが大量にある
+ * 入力でも計算量は入力長に比例する(正規表現の二次的な遅延を避ける)。タグ名は大文字小文字を区別しない。
+ */
+export function getTag(xml: string, tag: string, maxRaw = RAW_FIELD_MAX): string {
+  const lower = xml.toLowerCase();
+  // toLowerCase で長さが変わる文字(例: İ)を含む場合は、添字がずれるので小文字化しない
+  const hay = lower.length === xml.length ? lower : xml;
+  const t = tag.toLowerCase();
+  const openTag = "<" + t;
+  const closeTag = "</" + t + ">";
+  let from = 0;
+  for (;;) {
+    const i = hay.indexOf(openTag, from);
+    if (i < 0) return "";
+    const next = hay.charAt(i + openTag.length);
+    if (next === ">" || /\s/.test(next)) {
+      const gt = hay.indexOf(">", i + openTag.length);
+      if (gt < 0) return "";
+      const end = hay.indexOf(closeTag, gt + 1);
+      if (end < 0) return "";
+      return extractCDATA(xml.slice(gt + 1, Math.min(end, gt + 1 + maxRaw)));
+    }
+    from = i + openTag.length;
+  }
+}
+
+/** <item>...</item> の中身を順に返す(indexOf のみ) */
+export function* iterateItems(xml: string): Generator<string> {
+  let from = 0;
+  for (;;) {
+    const i = xml.indexOf("<item>", from);
+    if (i < 0) return;
+    const end = xml.indexOf("</item>", i + 6);
+    if (end < 0) return;
+    yield xml.slice(i + 6, end);
+    from = end + 7;
+  }
+}
+
+/** リンクは http/https のみ許可(R2-06)。それ以外・解釈できないものは空文字。 */
+export function sanitizeLink(raw: string): string {
+  const v = raw.trim();
+  if (!v || v.length > 2048) return "";
+  try {
+    const u = new URL(v);
+    return u.protocol === "https:" || u.protocol === "http:" ? v : "";
+  } catch {
+    return "";
+  }
+}
+
+/** 公開日時: 解釈できなければ now、未来日は now に丸める(フィード最上位への固定を防ぐ。R2-06) */
+export function normalizePublishedAt(pubDate: string, now: Date = new Date()): string {
+  const parsed = pubDate ? new Date(pubDate) : null;
+  if (!parsed || isNaN(parsed.getTime()) || parsed.getTime() > now.getTime()) return now.toISOString();
+  return parsed.toISOString();
 }
 
 async function parseFeed(
@@ -282,31 +349,25 @@ async function parseFeed(
   timeoutMs = 12_000
 ): Promise<RSSNewsArticle[]> {
   try {
-    const res = await fetch(feedUrl, {
+    const xml = await fetchTextBounded(feedUrl, {
       headers: { "User-Agent": "PocketDive_Bot/1.0 (https://pocketdive.vercel.app)" },
-      signal: AbortSignal.timeout(timeoutMs),
+      timeoutMs,
+      maxBytes: RSS_MAX_BYTES,
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const xml = await res.text();
 
     const articles: RSSNewsArticle[] = [];
-    const itemRe = /<item>([\s\S]*?)<\/item>/g;
-    let match: RegExpExecArray | null;
     let count = 0;
 
-    while ((match = itemRe.exec(xml)) !== null && count < maxItems) {
-      const item = match[1];
-      const title = getTag(item, "title");
-      const rawLink = getTag(item, "link") || getTag(item, "guid");
-      const url = rawLink.startsWith("http") ? rawLink : "";
+    for (const item of iterateItems(xml)) {
+      if (count >= maxItems) break;
+      const title = getTag(item, "title", RAW_TITLE_MAX).replace(/\s+/g, " ").trim().slice(0, RSS_TITLE_MAX_CHARS);
+      const url = sanitizeLink(getTag(item, "link") || getTag(item, "guid"));
       // content:encoded(全文)は意図的に読まない。<description> を短い抜粋にして保存するだけ。
-      const description = toExcerpt(getTag(item, "description"));
+      const description = toExcerpt(getTag(item, "description", RAW_DESCRIPTION_MAX));
       const pubDate = getTag(item, "pubDate") || getTag(item, "dc:date");
 
       if (title && url) {
-        const parsed = pubDate ? new Date(pubDate) : null;
-        const published =
-          parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+        const published = normalizePublishedAt(pubDate);
         // 更新の少ないフィードで古い記事を拾い直さない(maxAgeDays 指定のフィードのみ)
         if (maxAgeDays && Date.now() - new Date(published).getTime() > maxAgeDays * 86_400_000) continue;
 

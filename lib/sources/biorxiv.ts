@@ -14,6 +14,7 @@
  * 許可値は lib/sources/policy.ts の PREPRINT_ALLOWED_LICENSES。
  */
 
+import { fetchJsonBounded } from "../http/boundedFetch";
 import { isPreprintLicenseAllowed } from "./policy";
 
 const BIORXIV_API = "https://api.biorxiv.org/details";
@@ -82,12 +83,7 @@ export async function fetchBiorxivPapers(
 
   let data: { collection?: BiorxivRecord[]; messages?: { status: string }[] };
   try {
-    const res = await fetch(url);
-    if (!res.ok) {
-      console.error(`[bioRxiv] fetch failed: ${res.status} ${res.statusText}`);
-      return [];
-    }
-    data = await res.json();
+    data = await fetchJsonBounded(url, { timeoutMs: 15_000, maxBytes: 8 * 1024 * 1024 });
   } catch (e) {
     console.error("[bioRxiv] fetch error:", e);
     return [];

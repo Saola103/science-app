@@ -15,6 +15,7 @@
  */
 
 import { CONTACT_EMAIL } from "../site/contact";
+import { fetchJsonBounded, fetchTextBounded } from "../http/boundedFetch";
 import { CROSSREF_CC_BY_4_URL, EUROPEPMC_LICENSE_RAW } from "./policy";
 
 export type OpenAccessPaper = {
@@ -41,6 +42,11 @@ const CROSSREF_WORKS = "https://api.crossref.org/works";
 /** 外部サービス1回あたりのタイムアウト(ms)。 */
 export const FETCH_TIMEOUT_MS = 10_000;
 const FULLTEXT_TIMEOUT_MS = 15_000;
+/** 応答サイズ上限(R2-05)。検索JSONは通常数百KB、PLOSの全文XMLは数MBに達しうる。 */
+export const SEARCH_MAX_BYTES = 4 * 1024 * 1024;
+export const FULLTEXT_MAX_BYTES = 8 * 1024 * 1024;
+/** cleanText が見る生テキストの上限(タグ除去の正規表現が二次的に遅くならないように。R2-05) */
+export const CLEAN_TEXT_MAX_RAW = 30_000;
 
 /** 連絡先付き User-Agent(Crossref の polite pool / Europe PMC への礼儀) */
 const USER_AGENT = `PocketDive_Bot/1.0 (https://pocketdive.vercel.app; mailto:${CONTACT_EMAIL})`;
@@ -77,7 +83,7 @@ const ENTITIES: Record<string, string> = {
 /** HTML/JATSタグを除去し、実体参照を戻し、空白を畳む(二重エスケープ `&lt;i&gt;` も処理) */
 export function cleanText(raw: string | null | undefined): string {
   if (!raw) return "";
-  let s = raw;
+  let s = raw.slice(0, CLEAN_TEXT_MAX_RAW);
   for (let i = 0; i < 2; i++) {
     s = s.replace(/&(amp|lt|gt|quot|#39|apos|nbsp);/g, (m) => ENTITIES[m] ?? m).replace(/<\/?[a-zA-Z][^>]*>/g, " ");
   }
@@ -101,6 +107,18 @@ export function isEuropePmcLicenseAllowed(license: unknown): boolean {
 /** Crossref の license 配列に CC BY 4.0 の URL が(完全一致で)あるか。 */
 export function hasCrossrefCcBy4(licenses: unknown): boolean {
   return Array.isArray(licenses) && licenses.some((l) => l && (l as { URL?: unknown }).URL === CROSSREF_CC_BY_4_URL);
+}
+
+/**
+ * `YYYY-MM-DD` だけを受け付け(実在する日付で)、未来日は今日に丸めて `...T00:00:00Z` を返す(R2-06)。
+ * 形式が違えば undefined(呼び出し側の既定=取得時刻になる)。
+ */
+export function toPublishedAt(ymdStr: string | undefined | null, now: Date = new Date()): string | undefined {
+  if (!ymdStr || !/^\d{4}-\d{2}-\d{2}$/.test(ymdStr)) return undefined;
+  const d = new Date(`${ymdStr}T00:00:00Z`);
+  if (isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== ymdStr) return undefined;
+  const today = now.toISOString().slice(0, 10);
+  return `${ymdStr > today ? today : ymdStr}T00:00:00Z`;
 }
 
 /** `id` に使える文字だけか(existing.ts の SAFE_ID と同じ範囲) */
@@ -143,7 +161,7 @@ export function parseEpmcRecord(r: EpmcRecord, stream: "epmc_journals" | "epmc_t
     title,
     abstract,
     authors,
-    publishedAt: r.firstPublicationDate ? `${r.firstPublicationDate}T00:00:00Z` : undefined,
+    publishedAt: toPublishedAt(r.firstPublicationDate),
     url: doi ? `https://doi.org/${doi}` : `https://europepmc.org/article/PMC/${pmcid}`,
     journal: cleanText(r.journalInfo?.journal?.title) || undefined,
     pmcid,
@@ -176,9 +194,8 @@ export function parseCrossrefItem(it: CrossrefItem): OpenAccessPaper | null {
   const abstract = cleanText(it.abstract).slice(0, ABSTRACT_MAX_CHARS);
   if (abstract.length < ABSTRACT_MIN_CHARS) return null;
   const dp = it.published?.["date-parts"]?.[0];
-  const publishedAt = dp && dp[0]
-    ? `${dp[0]}-${String(dp[1] ?? 1).padStart(2, "0")}-${String(dp[2] ?? 1).padStart(2, "0")}T00:00:00Z`
-    : undefined;
+  const publishedAt =
+    dp && dp[0] ? toPublishedAt(`${dp[0]}-${String(dp[1] ?? 1).padStart(2, "0")}-${String(dp[2] ?? 1).padStart(2, "0")}`) : undefined;
   const authors = (it.author ?? [])
     .map((a) => [a.given, a.family].filter(Boolean).join(" ").trim())
     .filter(Boolean)
@@ -200,9 +217,13 @@ export function parseCrossrefItem(it: CrossrefItem): OpenAccessPaper | null {
 /** 全文XMLから Author summary だけを取り出す。見つからない/CC BY 4.0の記載が無ければ null。全文は返さない。 */
 export function extractAuthorSummary(xml: string): string | null {
   if (!xml.includes("creativecommons.org/licenses/by/4.0")) return null;
-  const m = xml.match(/<abstract abstract-type="summary">([\s\S]*?)<\/abstract>/);
-  if (!m) return null;
-  const text = cleanText(m[1]).replace(/^Author summary\s*/i, "").slice(0, ABSTRACT_MAX_CHARS);
+  // 正規表現ではなく indexOf で切り出す(閉じタグが無い巨大入力でも線形時間。R2-05)
+  const OPEN = '<abstract abstract-type="summary">';
+  const start = xml.indexOf(OPEN);
+  if (start < 0) return null;
+  const end = xml.indexOf("</abstract>", start + OPEN.length);
+  if (end < 0) return null;
+  const text = cleanText(xml.slice(start + OPEN.length, end)).replace(/^Author summary\s*/i, "").slice(0, ABSTRACT_MAX_CHARS);
   return text.length >= ABSTRACT_MIN_CHARS ? text : null;
 }
 
@@ -229,9 +250,7 @@ export function buildPlosQuery(daysBack = 14, now = new Date()): string {
 
 // ── 取得(ネットワーク) ───────────────────────────────────────────────────
 
-async function fetchWithTimeout(url: string, timeoutMs: number, accept: string): Promise<Response> {
-  return fetch(url, { headers: { "User-Agent": USER_AGENT, Accept: accept }, signal: AbortSignal.timeout(timeoutMs) });
-}
+const headersFor = (accept: string) => ({ "User-Agent": USER_AGENT, Accept: accept });
 
 async function searchEuropePmc(query: string, pageSize: number): Promise<EpmcRecord[]> {
   const params = new URLSearchParams({
@@ -241,9 +260,11 @@ async function searchEuropePmc(query: string, pageSize: number): Promise<EpmcRec
     pageSize: String(pageSize),
     sort: "P_PDATE_D desc",
   });
-  const res = await fetchWithTimeout(`${EPMC_SEARCH}?${params}`, FETCH_TIMEOUT_MS, "application/json");
-  if (!res.ok) throw new Error(`Europe PMC HTTP ${res.status}`);
-  const data = (await res.json()) as { resultList?: { result?: EpmcRecord[] } };
+  const data = await fetchJsonBounded<{ resultList?: { result?: EpmcRecord[] } }>(`${EPMC_SEARCH}?${params}`, {
+    timeoutMs: FETCH_TIMEOUT_MS,
+    maxBytes: SEARCH_MAX_BYTES,
+    headers: headersFor("application/json"),
+  });
   return data.resultList?.result ?? [];
 }
 
@@ -280,9 +301,11 @@ export async function fetchFrontiersYoungMindsPapers(rows = 10, daysBack = 30): 
       order: "desc",
       select: "DOI,title,license,published,abstract,author,container-title,type",
     });
-    const res = await fetchWithTimeout(`${CROSSREF_WORKS}?${params}`, FETCH_TIMEOUT_MS, "application/json");
-    if (!res.ok) throw new Error(`Crossref HTTP ${res.status}`);
-    const data = (await res.json()) as { message?: { items?: CrossrefItem[] } };
+    const data = await fetchJsonBounded<{ message?: { items?: CrossrefItem[] } }>(`${CROSSREF_WORKS}?${params}`, {
+      timeoutMs: FETCH_TIMEOUT_MS,
+      maxBytes: SEARCH_MAX_BYTES,
+      headers: headersFor("application/json"),
+    });
     return (data.message?.items ?? []).map(parseCrossrefItem).filter((p): p is OpenAccessPaper => !!p);
   } catch (e) {
     console.warn("[OpenAccess] Crossref (Frontiers for Young Minds) failed:", e);
@@ -312,9 +335,12 @@ export async function fetchPlosCandidates(pageSize = 10): Promise<OpenAccessPape
 export async function attachPlosAuthorSummary(candidate: OpenAccessPaper): Promise<OpenAccessPaper | null> {
   if (!candidate.pmcid) return null;
   try {
-    const res = await fetchWithTimeout(EPMC_FULLTEXT(candidate.pmcid), FULLTEXT_TIMEOUT_MS, "application/xml");
-    if (!res.ok) return null;
-    const summary = extractAuthorSummary(await res.text());
+    const xml = await fetchTextBounded(EPMC_FULLTEXT(candidate.pmcid), {
+      timeoutMs: FULLTEXT_TIMEOUT_MS,
+      maxBytes: FULLTEXT_MAX_BYTES,
+      headers: headersFor("application/xml"),
+    });
+    const summary = extractAuthorSummary(xml);
     return summary ? { ...candidate, abstract: summary } : null;
   } catch (e) {
     console.warn(`[OpenAccess] fullTextXML failed for ${candidate.pmcid}:`, e);
