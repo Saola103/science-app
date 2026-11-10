@@ -165,6 +165,7 @@ export function ArticleDetailSheet({ article, onClose }: { article: Article; onC
         <div className="px-5 pb-5 pt-2 shrink-0" style={{ borderTop: "1px solid #F1F3F6" }}>
           <p className="text-[11.5px] text-[#94A3B8] pt-3">
             出典: {article.source} ・ {article.author} ・ {article.publishedAt}
+            {article.attribution && ` ・ ${article.attribution}`}
           </p>
           <p className="text-[11.5px] leading-[1.6] text-[#6B7280] pt-1">{AI_SUMMARY_DISCLAIMER}</p>
           <LegalLinks className="pt-1 !justify-start" />

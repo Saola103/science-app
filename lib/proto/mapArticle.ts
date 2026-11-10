@@ -1,5 +1,6 @@
 import { Article, Illustration } from "./types";
 import { mapDbCategoryToTaxonomy } from "./mockData";
+import { attributionFor, sourceDisplayName } from "../sources/policy";
 import { stripMarkdown, stripMarkdownExpert, parseGeneralSummary } from "../format/summaryText";
 
 /** Shape returned by GET /api/feed's `items` array (see app/api/feed/route.ts). */
@@ -262,7 +263,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const expertBody = rawExpert ? stripMarkdownExpert(rawExpert) : null;
 
   const category = mapDbCategoryToTaxonomy(item.category, `${item.title} ${rawGeneral}`);
-  const sourceLabel = item.source || (item.type === "paper" ? "arXiv" : "ニュース");
+  const sourceLabel = sourceDisplayName(item.source) || (item.type === "paper" ? "arXiv" : "ニュース");
   const publishedAt = formatPublishedAt(item.published_at);
 
   const easyExplanation = easyExplanationBlock || generalBody || item.title;
@@ -303,6 +304,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
       { label: "分野", text: category },
     ],
     source: sourceLabel,
+    attribution: attributionFor(item.source) ?? undefined,
     author: formatAuthors(item.authors, item.source, item.type),
     publishedAt,
     easyExplanation,

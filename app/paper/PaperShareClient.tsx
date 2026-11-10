@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { attributionFor, sourceDisplayName } from "../../lib/sources/policy";
 
 const CATEGORY_WORDS = "physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other";
 
@@ -131,7 +132,8 @@ export default function PaperShareClient({ paper }: { paper: Paper }) {
           <p className="text-xs text-white/50">
             <span className="text-white/30 uppercase text-[9px] font-black tracking-widest mr-1">著者</span>
             {authors}{(paper.authors?.length ?? 0) > 3 && ` +${(paper.authors?.length ?? 0) - 3}`}
-            {source && <span className="ml-2 text-white/30">via {source}</span>}
+            {source && <span className="ml-2 text-white/30">via {sourceDisplayName(source)}</span>}
+            {attributionFor(paper.source) && <span className="ml-2 text-white/30">{attributionFor(paper.source)}</span>}
           </p>
         )}
 

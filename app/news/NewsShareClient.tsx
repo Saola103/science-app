@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { attributionFor } from "../../lib/sources/policy";
 
 const CATEGORY_WORDS = "physics|biology|it_ai|medicine|astronomy|chemistry|environment|mathematics|other";
 
@@ -126,6 +127,7 @@ export default function NewsShareClient({ news }: { news: News }) {
           <p className="text-xs text-white/50">
             <span className="text-white/30 uppercase text-[9px] font-black tracking-widest mr-1">出典</span>
             {source}
+            {attributionFor(news.source_name) && <span className="ml-2 text-white/30">{attributionFor(news.source_name)}</span>}
           </p>
         )}
 

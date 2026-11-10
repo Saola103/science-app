@@ -23,6 +23,9 @@ export type Article = {
   // Mock ARTICLES in lib/proto/mockData.ts leave this undefined — components
   // fall back to a Google search link built from source+summary in that case.
   url?: string;
+  // CC BY の情報源だけ入る帰属文言(ライセンス名・変更あり等)。既存の「出典: …」行の末尾に足して表示する。
+  // 未設定=従来どおりの表示(lib/sources/policy.ts の attributionFor)。
+  attribution?: string;
   // True when detailedExplanation ("くわしく") is effectively the same text
   // as easyExplanation ("やさしく") — either because expert summary
   // generation failed for this item (detailedExplanation fell back to

@@ -310,6 +310,7 @@ function FeedSlide({
 
         <p className="pt-5 pr-14 text-[13.2px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.55)" }}>
           出典: {article.source} ・ {article.author} ・ {article.publishedAt}
+          {article.attribution && ` ・ ${article.attribution}`}
         </p>
         <p className="pt-1.5 pr-14 text-[11.5px] font-bold" style={{ ...zen, color: "rgba(255,255,255,0.5)" }}>
           {AI_SUMMARY_DISCLAIMER}
