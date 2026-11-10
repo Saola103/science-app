@@ -171,7 +171,7 @@ const ja = {
   },
   About: {
     title: "運営者情報",
-    projectTeam: "POCKET DIVE 開発チーム",
+    projectTeam: "運営: Saola",
     description:
       "Pocket Diveは、科学情報へのアクセシビリティ向上を目的とした非営利の探索プラットフォームです。AI技術を用いて、難解な学術論文や最新の科学ニュースを整理・要約し、次世代を担う学生から専門家まで、誰もが科学の最前線に触れられる環境を構築しています。",
     motivationTitle: "開発の背景と目的",
