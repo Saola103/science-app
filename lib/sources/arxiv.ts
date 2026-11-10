@@ -2,7 +2,7 @@ import { fetchTextBounded } from "../http/boundedFetch";
 
 const ARXIV_API_BASE = "https://export.arxiv.org/api/query";
 /** 外部取得の時間・サイズ上限(R2-05) */
-const ARXIV_TIMEOUT_MS = 15_000;
+const ARXIV_TIMEOUT_MS = 30_000; // 実測: 平常でも5〜15秒かかることがある(2026-11-10)
 const ARXIV_MAX_BYTES = 4 * 1024 * 1024;
 
 export type ArxivOpenAccessPaper = {

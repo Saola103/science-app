@@ -83,7 +83,7 @@ export async function fetchBiorxivPapers(
 
   let data: { collection?: BiorxivRecord[]; messages?: { status: string }[] };
   try {
-    data = await fetchJsonBounded(url, { timeoutMs: 15_000, maxBytes: 8 * 1024 * 1024 });
+    data = await fetchJsonBounded(url, { timeoutMs: 20_000, maxBytes: 8 * 1024 * 1024 });
   } catch (e) {
     console.error("[bioRxiv] fetch error:", e);
     return [];
