@@ -33,7 +33,7 @@
 --   1b. feed_interactions (R2-07): interactions_read_own no longer includes
 --      "OR user_id IS NULL" (a logged-in user could read all anonymous logs);
 --      interactions_insert_authenticated keeps auth.uid() = user_id and adds
---      length limits (item_id/session_id 200, category 40, item_type/action 20).
+--      length limits (item_id/session_id 200, item_type/action 20; the table has no category column).
 --   2. Defence in depth: REVOKE write privileges from anon/authenticated on
 --      papers/news; REVOKE ALL on the policy-less tables.
 --   3. increment_api_daily_usage: pin search_path (advisor warning).
@@ -153,7 +153,7 @@ CREATE POLICY "interactions_read_own"
   USING (user_id = auth.uid());
 
 -- INSERT (authenticated, direct REST): same ownership rule as before plus length
--- limits. Limits mirror the app (validateIdString 200 / category 40 / item_type
+-- limits. Limits mirror the app (validateIdString 200 / item_type
 -- 'paper'|'news' / action 'unlike' is the longest at 6). coalesce keeps NULLs passing.
 DROP POLICY IF EXISTS "interactions_insert_authenticated" ON public.feed_interactions;
 CREATE POLICY "interactions_insert_authenticated"
@@ -163,7 +163,6 @@ CREATE POLICY "interactions_insert_authenticated"
     auth.uid() = user_id
     AND length(coalesce(item_id::text, '')) <= 200
     AND length(coalesce(session_id::text, '')) <= 200
-    AND length(coalesce(category::text, '')) <= 40
     AND length(coalesce(item_type::text, '')) <= 20
     AND length(coalesce(action::text, '')) <= 20
   );

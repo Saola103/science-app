@@ -47,7 +47,7 @@ export const EXPECTED_STATEMENTS: string[] = [
   `DROP POLICY IF EXISTS "interactions_read_own" ON public.feed_interactions`,
   `CREATE POLICY "interactions_read_own" ON public.feed_interactions FOR SELECT TO authenticated USING (user_id = auth.uid())`,
   `DROP POLICY IF EXISTS "interactions_insert_authenticated" ON public.feed_interactions`,
-  `CREATE POLICY "interactions_insert_authenticated" ON public.feed_interactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id AND length(coalesce(item_id::text, '')) <= 200 AND length(coalesce(session_id::text, '')) <= 200 AND length(coalesce(category::text, '')) <= 40 AND length(coalesce(item_type::text, '')) <= 20 AND length(coalesce(action::text, '')) <= 20)`,
+  `CREATE POLICY "interactions_insert_authenticated" ON public.feed_interactions FOR INSERT TO authenticated WITH CHECK (auth.uid() = user_id AND length(coalesce(item_id::text, '')) <= 200 AND length(coalesce(session_id::text, '')) <= 200 AND length(coalesce(item_type::text, '')) <= 20 AND length(coalesce(action::text, '')) <= 20)`,
   "REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER ON TABLE public.papers, public.news FROM anon, authenticated",
   REVOKE_LOOP_DO,
   "ALTER FUNCTION public.increment_api_daily_usage(date, text, bigint) SET search_path = public, pg_temp",
@@ -212,7 +212,7 @@ mutate("ALTER FUNCTION 削除", /ALTER FUNCTION public\.increment_api_daily_usag
 mutate("ライセンス追加", /license IN \('cc_by', 'cc0', 'cc0_ng'\)/, "license IN ('cc_by', 'cc0', 'cc0_ng', 'cc_by_nc')");
 mutate("他名ポリシー DROP ブロック削除", /DO \$\$\nDECLARE r record;[\s\S]*?END \$\$;/, "");
 mutate("feed_interactions に IS NULL を戻す", /USING \(user_id = auth\.uid\(\)\);/, "USING (user_id = auth.uid() OR user_id IS NULL);");
-mutate("insert の長さ制限を外す", /\n    AND length\(coalesce\(category::text, ''\)\) <= 40/, "");
+mutate("insert の長さ制限を外す", /\n    AND length\(coalesce\(item_type::text, ''\)\) <= 20/, "");
 mutate("想定外の GRANT 追加", /ALTER FUNCTION public\.increment_api_daily_usage/, "GRANT ALL ON public.papers TO anon;\nALTER FUNCTION public.increment_api_daily_usage");
 // 総当たりは「ポリシーだけ書き換えて USING が広がった」ケースも拾う(完全一致テストとは独立の確認)
 const widened = sql.replace(/AND license IN \('cc_by', 'cc0', 'cc0_ng'\)/, "AND license IS NOT NULL");
