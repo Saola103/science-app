@@ -1,20 +1,13 @@
 /**
  * CC BY 新ソース(ESO/ESA、Europe PMC、Frontiers for Young Minds、PLOS)のテスト。
  * 実行: npx tsx scripts/tests/sources-expansion.test.ts (ネットワーク・DB不要)
- *  - 許可リスト(policy.ts)と migration 014 のSQLリテラルが一致すること
  *  - ライセンスは完全一致のみ、訂正記事は除外
  *  - Groq枠ガードの判定
  */
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
 import {
-  NEWS_ALLOWED_SOURCES,
   NEWS_CC_BY_SOURCES,
-  PAPER_ALLOWED_SOURCES,
   OPEN_ACCESS_PAPER_SOURCES,
-  OPEN_ACCESS_ALLOWED_LICENSES,
-  PREPRINT_ALLOWED_LICENSES,
-  PAPER_VISIBILITY_OR,
   isPaperDisplayable,
   isAllowedNewsSource,
   attributionFor,
@@ -43,34 +36,7 @@ import {
   OPEN_ACCESS_STREAM_CAPS,
 } from "../../lib/pipeline/openAccessBudget";
 
-// ── 1. policy.ts と migration 014 の一致 ─────────────────────────────────────
-const sql = readFileSync(new URL("../../supabase/migrations/014_sources_expansion_rls.sql", import.meta.url), "utf8");
-const lit = (s: string) => [...s.matchAll(/'([^']+)'/g)].map((m) => m[1]);
-const stmt = (name: string) => {
-  const m = sql.match(new RegExp(`^CREATE POLICY "${name}"[\\s\\S]*?USING \\(([\\s\\S]*?)\\);`, "m"));
-  assert.ok(m, `policy ${name} not found in 014`);
-  return m[1];
-};
-const papersPolicy = stmt("papers_public_read");
-const newsPolicy = stmt("news_public_read");
-// news
-assert.deepEqual(lit(newsPolicy).sort(), [...NEWS_ALLOWED_SOURCES].sort());
-// papers: arXiv + (bio/med, preprint licenses) + (open access sources, cc_by)
-const inLists = [...papersPolicy.matchAll(/source IN \(([^)]*)\) AND license IN \(([^)]*)\)/g)].map((m) => ({ s: lit(m[1]), l: lit(m[2]) }));
-assert.equal(inLists.length, 2);
-assert.deepEqual(inLists[0].s, ["bioRxiv", "medRxiv"]);
-assert.deepEqual(inLists[0].l, [...PREPRINT_ALLOWED_LICENSES]);
-assert.deepEqual(inLists[1].s, [...OPEN_ACCESS_PAPER_SOURCES]);
-assert.deepEqual(inLists[1].l, [...OPEN_ACCESS_ALLOWED_LICENSES]);
-assert.ok(papersPolicy.includes("source = 'arXiv'"));
-// 014 に含まれる source の全集合 == PAPER_ALLOWED_SOURCES
-assert.deepEqual([...new Set(["arXiv", ...inLists[0].s, ...inLists[1].s])].sort(), [...PAPER_ALLOWED_SOURCES].sort());
-// PostgREST 条件(アプリ側)も同じ集合
-assert.ok(PAPER_VISIBILITY_OR.includes("source.in.(EuropePMC,FrontiersYoungMinds,PLOS),license.in.(cc_by)"));
-assert.ok(PAPER_VISIBILITY_OR.includes("source.in.(bioRxiv,medRxiv),license.in.(cc_by,cc0,cc0_ng)"));
-// 冪等・ロールバック・VERIFY が書かれている
-assert.ok(/DROP POLICY IF EXISTS "papers_public_read"/.test(sql) && /DROP POLICY IF EXISTS "news_public_read"/.test(sql));
-assert.ok(/ROLLBACK \(comment/.test(sql) && /VERIFY after applying/.test(sql));
+// ── 1. policy.ts と migration 014 の一致は scripts/tests/migration014.test.ts ──────────
 
 // ── 2. 表示判定(許可リスト・ライセンス完全一致) ──────────────────────────────
 for (const src of OPEN_ACCESS_PAPER_SOURCES) {

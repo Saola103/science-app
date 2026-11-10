@@ -25,7 +25,15 @@
 --   rule as the app. service_role bypasses RLS, so cron and all server-side
 --   app code (getSupabaseServerClient) are unaffected.
 --
---   1. papers_public_read / news_public_read -> USING the visibility rule.
+--   1. Drop every OTHER papers/news policy that grants SELECT (or ALL) and is not
+--      the "*_service_only_write" USING (false) policy (R2-02: a hand-made
+--      "Enable read access for all users" policy would be OR-ed with ours and
+--      re-open the table). Each DROP is reported with RAISE NOTICE.
+--      Then papers_public_read / news_public_read -> USING the visibility rule.
+--   1b. feed_interactions (R2-07): interactions_read_own no longer includes
+--      "OR user_id IS NULL" (a logged-in user could read all anonymous logs);
+--      interactions_insert_authenticated keeps auth.uid() = user_id and adds
+--      length limits (item_id/session_id 200, category 40, item_type/action 20).
 --   2. Defence in depth: REVOKE write privileges from anon/authenticated on
 --      papers/news; REVOKE ALL on the policy-less tables.
 --   3. increment_api_daily_usage: pin search_path (advisor warning).
@@ -79,10 +87,41 @@
 --   GRANT ALL ON public.api_daily_usage, public.feedback,
 --     public.groq_daily_usage, public.subscribers TO anon, authenticated;  -- only if ever needed
 --   ALTER FUNCTION public.increment_api_daily_usage(date, text, bigint) RESET search_path;
+--   (c) feed_interactions back to the 006 definitions:
+--   DROP POLICY IF EXISTS "interactions_read_own" ON public.feed_interactions;
+--   CREATE POLICY "interactions_read_own" ON public.feed_interactions FOR SELECT
+--     TO authenticated USING (user_id = auth.uid() OR user_id IS NULL);
+--   DROP POLICY IF EXISTS "interactions_insert_authenticated" ON public.feed_interactions;
+--   CREATE POLICY "interactions_insert_authenticated" ON public.feed_interactions FOR INSERT
+--     TO authenticated WITH CHECK (auth.uid() = user_id);
+--   (d) Policies dropped by section 1-0 are NOT restored automatically; the NOTICE
+--   lines printed when 014 ran name them (their definitions were not stored).
 
 -- ─────────────────────────────────────────────────────────────
 -- 1. Visibility policies
 -- ─────────────────────────────────────────────────────────────
+-- 1-0. Drop foreign SELECT/ALL policies on papers/news (idempotent).
+--      Kept: papers_public_read / news_public_read (re-created below) and the
+--      "*_service_only_write" policies when their USING is exactly false.
+--      RESTRICTIVE policies are left alone (they can only narrow access).
+DO $$
+DECLARE r record;
+BEGIN
+  FOR r IN
+    SELECT schemaname, tablename, policyname
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename IN ('papers', 'news')
+      AND permissive = 'PERMISSIVE'
+      AND cmd IN ('SELECT', 'ALL')
+      AND policyname NOT IN ('papers_public_read', 'news_public_read')
+      AND NOT (policyname IN ('papers_service_only_write', 'news_service_only_write') AND qual = 'false')
+  LOOP
+    EXECUTE format('DROP POLICY %I ON %I.%I', r.policyname, r.schemaname, r.tablename);
+    RAISE NOTICE 'dropped extra policy % on %.%', r.policyname, r.schemaname, r.tablename;
+  END LOOP;
+END $$;
+
 ALTER TABLE public.papers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "papers_public_read" ON public.papers;
 CREATE POLICY "papers_public_read"
@@ -104,7 +143,32 @@ CREATE POLICY "news_public_read"
   TO anon, authenticated
   USING (source_name IN ('NASA', 'NSF', 'ESO', 'ESA/Webb', 'ESA/Hubble'));
 
--- feed_interactions policies: intentionally unchanged.
+-- 1-1. feed_interactions (R2-07). Other feed_interactions policies unchanged.
+-- SELECT: own rows only (was: OR user_id IS NULL = every anonymous log row).
+-- The app reads this table only through service_role, so nothing changes for it.
+DROP POLICY IF EXISTS "interactions_read_own" ON public.feed_interactions;
+CREATE POLICY "interactions_read_own"
+  ON public.feed_interactions FOR SELECT
+  TO authenticated
+  USING (user_id = auth.uid());
+
+-- INSERT (authenticated, direct REST): same ownership rule as before plus length
+-- limits. Limits mirror the app (validateIdString 200 / category 40 / item_type
+-- 'paper'|'news' / action 'unlike' is the longest at 6). coalesce keeps NULLs passing.
+DROP POLICY IF EXISTS "interactions_insert_authenticated" ON public.feed_interactions;
+CREATE POLICY "interactions_insert_authenticated"
+  ON public.feed_interactions FOR INSERT
+  TO authenticated
+  WITH CHECK (
+    auth.uid() = user_id
+    AND length(coalesce(item_id::text, '')) <= 200
+    AND length(coalesce(session_id::text, '')) <= 200
+    AND length(coalesce(category::text, '')) <= 40
+    AND length(coalesce(item_type::text, '')) <= 20
+    AND length(coalesce(action::text, '')) <= 20
+  );
+-- Not limited here: the NUMBER of rows (Postgres RLS cannot rate-limit). Login is
+-- not implemented yet, so there is no authenticated path today.
 
 -- ─────────────────────────────────────────────────────────────
 -- 2. Privilege hardening (defence in depth; RLS remains the main wall)
@@ -143,9 +207,18 @@ ALTER FUNCTION public.increment_api_daily_usage(date, text, bigint) SET search_p
 -- ─────────────────────────────────────────────────────────────
 -- VERIFY after applying (SQL Editor; all read-only)
 -- ─────────────────────────────────────────────────────────────
--- a) Policies:
---   SELECT tablename, policyname, cmd, roles, qual FROM pg_policies
+-- a) Policies. Expected exactly: papers_public_read, papers_service_only_write,
+--    news_public_read, news_service_only_write (4 rows). Run this BEFORE too:
+--   SELECT tablename, policyname, permissive, cmd, roles, qual FROM pg_policies
 --     WHERE tablename IN ('papers','news') ORDER BY 1, 2;
+--    Any other SELECT/ALL policy must be gone (expect 0 rows):
+--   SELECT tablename, policyname FROM pg_policies
+--     WHERE tablename IN ('papers','news') AND permissive = 'PERMISSIVE' AND cmd IN ('SELECT','ALL')
+--       AND policyname NOT IN ('papers_public_read','news_public_read')
+--       AND NOT (policyname IN ('papers_service_only_write','news_service_only_write') AND qual = 'false');
+--    feed_interactions (R2-07): read_own has no IS NULL; insert has the length checks:
+--   SELECT policyname, cmd, qual, with_check FROM pg_policies
+--     WHERE tablename = 'feed_interactions' ORDER BY 1;
 -- b) Expected anon-visible counts must equal the app-visible counts.
 --    Simulated anon (rolls back, no side effects):
 --     BEGIN; SET LOCAL ROLE anon;

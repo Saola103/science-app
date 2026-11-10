@@ -80,7 +80,7 @@ export const PAPER_ALLOWED_SOURCES: readonly string[] = [
   "PLOS",
 ];
 /** 上記のうちライセンス判定が必要なもの(bioRxiv系) */
-const LICENSE_CHECKED_PAPER_SOURCES: readonly string[] = ["bioRxiv", "medRxiv"];
+export const LICENSE_CHECKED_PAPER_SOURCES: readonly string[] = ["bioRxiv", "medRxiv"];
 
 /**
  * Europe PMC / Crossref / PLOS 経由で収集する CC BY 論文の source 値。
