@@ -53,6 +53,9 @@ export function isAllowedNewsSource(sourceName: string | null | undefined): bool
   return !!sourceName && NEWS_ALLOWED_SOURCES.includes(sourceName);
 }
 
+/** RSSタイトルとして保存・プロンプトに入れる最大文字数(R2-04) */
+export const NEWS_TITLE_MAX_CHARS = 300;
+
 /** RSS説明文として保存する最大文字数(ニュース本文の複製を避けるため短く保つ) */
 export const NEWS_DESCRIPTION_MAX_CHARS = 300;
 

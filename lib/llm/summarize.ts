@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { generateText } from "./index";
+import { NEWS_DESCRIPTION_MAX_CHARS, NEWS_TITLE_MAX_CHARS } from "../sources/policy";
 
 type SummarizeOptions = {
   /** 要約の最大文字数（後方互換のため保持、新プロンプトでは無視） */
@@ -104,9 +105,23 @@ function loadPromptTemplate(filename: string): string {
   return template;
 }
 
-function buildCasualPrompt(content: string): string {
-  const cleaned = cleanAbstract(content);
-  return loadPromptTemplate("casual-summary.md").replace("{{PAPER_CONTENT}}", cleaned);
+/**
+ * テンプレートの {{KEY}} を1回の走査で差し込む(R2-04)。
+ * - 関数形式の置換なので、値に含まれる `$\``・`$'`・`$&` などの特殊パターンが解釈されない
+ * - 差し込んだ値の中の {{...}} は再度置換されない(順次 replace だと後続のキーに食われる)
+ */
+export function fillTemplate(template: string, values: Record<string, string>): string {
+  return template.replace(/\{\{([A-Z_]+)\}\}/g, (whole, key: string) => (key in values ? values[key] : whole));
+}
+
+/** プロンプトに入れる外部文字列の長さ上限(論文のアブストラクト。収集側で3000字に切っているが念のため) */
+export const PAPER_CONTENT_MAX_CHARS = 6000;
+/** cleanAbstract(正規表現)に渡す生テキストの上限(二次的な遅延を避ける) */
+export const PAPER_CONTENT_RAW_MAX_CHARS = 20_000;
+
+export function buildCasualPrompt(content: string): string {
+  const cleaned = cleanAbstract(content.slice(0, PAPER_CONTENT_RAW_MAX_CHARS)).slice(0, PAPER_CONTENT_MAX_CHARS);
+  return fillTemplate(loadPromptTemplate("casual-summary.md"), { PAPER_CONTENT: cleaned });
 }
 
 /**
@@ -121,9 +136,9 @@ function buildCasualPrompt(content: string): string {
  * シンプルなラベル形式でstripMarkdownの干渉を受けにくく、
  * FeedCardの「くわしく」表示でそのまま自然に読める。
  */
-function buildExpertPrompt(content: string): string {
-  const cleaned = cleanAbstract(content);
-  return loadPromptTemplate("expert-summary.md").replace("{{PAPER_CONTENT}}", cleaned);
+export function buildExpertPrompt(content: string): string {
+  const cleaned = cleanAbstract(content.slice(0, PAPER_CONTENT_RAW_MAX_CHARS)).slice(0, PAPER_CONTENT_MAX_CHARS);
+  return fillTemplate(loadPromptTemplate("expert-summary.md"), { PAPER_CONTENT: cleaned });
 }
 
 function buildPrompt(content: string, options: SummarizeOptions = {}): string {
@@ -157,10 +172,11 @@ export function buildNewsPrompt(article: {
   category?: string;
 }): string {
   const catTag = article.category || "other";
-  return loadPromptTemplate("news-summary.md")
-    .replace("{{CATEGORY}}", catTag)
-    .replace("{{TITLE}}", article.title)
-    .replace("{{DESCRIPTION}}", article.description);
+  return fillTemplate(loadPromptTemplate("news-summary.md"), {
+    CATEGORY: catTag,
+    TITLE: article.title.slice(0, NEWS_TITLE_MAX_CHARS),
+    DESCRIPTION: article.description.slice(0, NEWS_DESCRIPTION_MAX_CHARS),
+  });
 }
 
 export async function summarizeNews(article: {
