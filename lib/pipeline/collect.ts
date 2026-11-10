@@ -20,6 +20,23 @@ import { upsertPaperToSupabase, upsertNewsToSupabase } from "../supabase/service
 import { CATEGORY_IMAGES } from "../llm/summarize";
 import { mapDbCategoryToTaxonomy } from "../proto/mockData";
 import { classifyAgainstDb } from "./existing";
+import { NEWS_CC_BY_SOURCES } from "../sources/policy";
+import {
+  fetchEuropePmcJournalPapers,
+  fetchEuropePmcTopicPapers,
+  fetchFrontiersYoungMindsPapers,
+  fetchPlosCandidates,
+  attachPlosAuthorSummary,
+  type OpenAccessPaper,
+} from "../sources/openAccess";
+import {
+  NewSourceGate,
+  OPEN_ACCESS_PAPERS_PER_RUN,
+  OPEN_ACCESS_STREAM_CAPS,
+  NEW_NEWS_PER_RUN,
+  EST_TOKENS_PER_PAPER,
+  EST_TOKENS_PER_NEWS,
+} from "./openAccessBudget";
 
 // News summary instructions live in lib/llm/prompts/news-summary.md and are
 // loaded via lib/llm/summarize.ts's summarizeNews() (2026-09-26: this file
@@ -327,7 +344,10 @@ export async function collectFromBiorxiv(perCategory = PAPERS_PER_CATEGORY): Pro
 /**
  * Collect science news from RSS feeds, generate Japanese summaries, and save to DB
  */
-export async function collectNews(): Promise<NewsResult> {
+export async function collectNews(startedAt: number = Date.now()): Promise<NewsResult> {
+  // CC BY の新ニュース機関(ESO/ESA)だけ、1回あたりの件数・当日Groq使用量・経過時間のガードをかける
+  // (既存のNASA/NSFの処理は変えない)。ガードは lib/pipeline/openAccessBudget.ts。
+  const newNewsGate = new NewSourceGate(startedAt, NEW_NEWS_PER_RUN, EST_TOKENS_PER_NEWS);
   let collected = 0;
   let errors = 0;
   let skipped = 0;
@@ -356,6 +376,7 @@ export async function collectNews(): Promise<NewsResult> {
     console.log(`[Pipeline] news: fetched=${fetched.length} skipped=${skipped} new=${newCount} repair=${repaired}`);
 
     for (const article of articles) {
+      if (NEWS_CC_BY_SOURCES.includes(article.source_name) && !(await newNewsGate.allow())) continue;
       try {
         // Generate a Japanese summary using Groq (same title-first format as paper summaries)
         let summaryJa: string | null = null;
@@ -399,12 +420,119 @@ export async function collectNews(): Promise<NewsResult> {
 }
 
 /**
+ * CC BY のオープンアクセス論文(Europe PMC / Frontiers for Young Minds / PLOS Author Summary)を収集する。
+ * 2026-11 追加。既存ソースの処理が終わった後に呼ぶ(Groq枠と300秒を既存ソースより優先して使わせない)。
+ * - 取得は各サービス10〜15秒のタイムアウト付きで並列(1つが遅くても全体を止めない)。
+ * - 重複スキップは classifyAgainstDb。新規/要修復のうち、ストリーム別上限と合計上限(openAccessBudget.ts)に収め、
+ *   さらに1件ごとに当日Groq使用量・経過時間を確認して、超えそうなら止まる。
+ * - 保存は今までと同じ processPaper(アブストラクト/著者要約のみ。全文は保存しない)。
+ */
+export async function collectOpenAccessPapers(
+  opts: { startedAt?: number } = {}
+): Promise<CollectResult[]> {
+  const startedAt = opts.startedAt ?? Date.now();
+  const results: CollectResult[] = [];
+  const gate = new NewSourceGate(startedAt, OPEN_ACCESS_PAPERS_PER_RUN, EST_TOKENS_PER_PAPER);
+
+  // 1) 取得(並列・タイムアウト付き)。失敗した源は空配列で返る。
+  const [journals, topics, frym, plosCands] = await Promise.all([
+    fetchEuropePmcJournalPapers(),
+    fetchEuropePmcTopicPapers(),
+    fetchFrontiersYoungMindsPapers(),
+    fetchPlosCandidates(),
+  ]);
+
+  // PLOS候補と同じ論文がEurope PMC側に重複して入らないようにする
+  const plosPmcids = new Set(plosCands.map((p) => p.pmcid));
+  const epmcJ = journals.filter((p) => !plosPmcids.has(p.pmcid));
+  const epmcT = topics.filter((p) => !plosPmcids.has(p.pmcid) && !epmcJ.some((j) => j.id === p.id));
+
+  // 2) 源ごとに「重複スキップ」→ キャップ → 処理
+  type Stream = { label: string; source: string; items: OpenAccessPaper[]; resolve?: (p: OpenAccessPaper) => Promise<OpenAccessPaper | null> };
+  const streams: Stream[] = [
+    { label: "journals", source: "EuropePMC", items: epmcJ },
+    { label: "topics", source: "EuropePMC", items: epmcT },
+    { label: "frontiers_young_minds", source: "FrontiersYoungMinds", items: frym },
+    { label: "plos_author_summary", source: "PLOS", items: plosCands, resolve: attachPlosAuthorSummary },
+  ];
+  const streamCapKey: Record<string, keyof typeof OPEN_ACCESS_STREAM_CAPS> = {
+    journals: "epmc_journals",
+    topics: "epmc_topics",
+    frontiers_young_minds: "frontiers_young_minds",
+    plos_author_summary: "plos_author_summary",
+  };
+
+  for (const st of streams) {
+    let collected = 0, errors = 0, skipped = 0, newCount = 0, repaired = 0;
+    try {
+      let todo = st.items;
+      try {
+        const c = await classifyAgainstDb("papers", st.items);
+        todo = c.toProcess;
+        skipped = c.skipped;
+        newCount = c.newCount;
+        repaired = c.repairCount;
+        errors += c.errorCount;
+      } catch (e) {
+        console.error(`[Pipeline] existing-id check failed for ${st.source}/${st.label}; skipping batch:`, e);
+        errors++;
+        todo = [];
+      }
+      const cap = OPEN_ACCESS_STREAM_CAPS[streamCapKey[st.label]];
+      console.log(`[Pipeline] ${st.source}/${st.label}: fetched=${st.items.length} skipped=${skipped} new=${newCount} repair=${repaired} cap=${cap}`);
+
+      let handled = 0;
+      let xmlChecks = 0; // 全文XMLを見に行く回数の上限(Author summary が無い候補で空振りし続けない)
+      for (const cand of todo) {
+        if (handled >= cap) break;
+        try {
+          // PLOS: Author summary が取れた候補だけ処理する(全文XMLは要約の抜き出し後に破棄。Groqは使わない)
+          let paper: OpenAccessPaper | null = cand;
+          if (st.resolve) {
+            if (xmlChecks >= 5) break;
+            if (xmlChecks > 0) await delay(1000);
+            xmlChecks++;
+            paper = await st.resolve(cand);
+            if (!paper) continue;
+          }
+          if (!(await gate.allow())) break;
+          handled++;
+          await processPaper({
+            id: paper.id,
+            title: paper.title,
+            abstract: paper.abstract,
+            authors: paper.authors,
+            publishedAt: paper.publishedAt,
+            url: paper.url,
+            license: paper.license,
+            journal: paper.journal,
+            pmcid: paper.pmcid,
+            source: paper.source,
+          });
+          collected++;
+          await delay(1000);
+        } catch (e) {
+          console.error(`Failed to process ${st.source} paper ${cand.id}:`, e);
+          errors++;
+        }
+      }
+    } catch (e) {
+      console.error(`${st.source}/${st.label} failed:`, e);
+      errors++;
+    }
+    results.push({ source: st.source, category: st.label, collected, errors, skipped, newCount, repaired });
+  }
+  return results;
+}
+
+/**
  * Run the full collection pipeline (arXiv + bioRxiv/medRxiv + News)
  */
 export async function runCollectionPipeline(opts?: { perCategory?: number }): Promise<{
   arXiv: CollectResult[];
   bioRxiv: CollectResult[];
   news: NewsResult;
+  openAccess: CollectResult[];
   totalCollected: number;
   totalErrors: number;
   totalSkipped: number;
@@ -418,21 +546,34 @@ export async function runCollectionPipeline(opts?: { perCategory?: number }): Pr
   const [arXiv, bioRxiv, news] = await Promise.all([
     collectFromArxiv(opts?.perCategory),
     collectFromBiorxiv(opts?.perCategory),
-    collectNews(),
+    collectNews(startTime),
   ]);
+
+  // CC BY のオープンアクセス論文は既存ソースの後に(枠・時間は既存を優先)。失敗しても全体は落とさない。
+  let openAccess: CollectResult[] = [];
+  try {
+    openAccess = await collectOpenAccessPapers({ startedAt: startTime });
+  } catch (e) {
+    console.error("[Pipeline] open-access collection failed:", e);
+  }
 
   const totalCollected =
     arXiv.reduce((s, r) => s + r.collected, 0) +
     bioRxiv.reduce((s, r) => s + r.collected, 0) +
+    openAccess.reduce((s, r) => s + r.collected, 0) +
     news.collected;
 
   const totalErrors =
     arXiv.reduce((s, r) => s + r.errors, 0) +
     bioRxiv.reduce((s, r) => s + r.errors, 0) +
+    openAccess.reduce((s, r) => s + r.errors, 0) +
     news.errors;
 
   const sum = (k: "skipped" | "newCount" | "repaired") =>
-    arXiv.reduce((s, r) => s + r[k], 0) + bioRxiv.reduce((s, r) => s + r[k], 0) + news[k];
+    arXiv.reduce((s, r) => s + r[k], 0) +
+    bioRxiv.reduce((s, r) => s + r[k], 0) +
+    openAccess.reduce((s, r) => s + r[k], 0) +
+    news[k];
   const totalSkipped = sum("skipped");
   const totalNew = sum("newCount");
   const totalRepaired = sum("repaired");
@@ -442,5 +583,5 @@ export async function runCollectionPipeline(opts?: { perCategory?: number }): Pr
     `[Pipeline] Done in ${duration}s. Processed: ${totalCollected} (new ${totalNew}, repaired ${totalRepaired}), Skipped: ${totalSkipped}, Errors: ${totalErrors}`
   );
 
-  return { arXiv, bioRxiv, news, totalCollected, totalErrors, totalSkipped, totalNew, totalRepaired };
+  return { arXiv, bioRxiv, news, openAccess, totalCollected, totalErrors, totalSkipped, totalNew, totalRepaired };
 }

@@ -25,7 +25,7 @@ assert.ok(PAPER_VISIBILITY_OR.includes("source.eq.arXiv"));
 assert.ok(PAPER_VISIBILITY_OR.includes("source.in.(bioRxiv,medRxiv)"));
 
 // --- ニュース許可リスト(CERN除外) ---
-assert.deepEqual([...NEWS_ALLOWED_SOURCES], ["NASA", "NSF"]);
+assert.deepEqual([...NEWS_ALLOWED_SOURCES], ["NASA", "NSF", "ESO", "ESA/Webb", "ESA/Hubble"]);
 assert.equal(isAllowedNewsSource("CERN"), false);
 assert.ok(NEWS_EXCLUDED_REASONS["CERN"]);
 assert.equal(isAllowedNewsSource("NASA"), true);
@@ -35,7 +35,7 @@ const calls: string[] = [];
 const rec: any = { or: (f: string) => (calls.push("or:" + f), rec), in: (c: string, v: string[]) => (calls.push(`in:${c}:${v.join("|")}`), rec) };
 applyPaperVisibility(rec);
 applyNewsVisibility(rec);
-assert.deepEqual(calls, ["or:" + PAPER_VISIBILITY_OR, "in:source_name:NASA|NSF"]);
+assert.deepEqual(calls, ["or:" + PAPER_VISIBILITY_OR, "in:source_name:NASA|NSF|ESO|ESA/Webb|ESA/Hubble"]);
 
 // --- R1-01: 履歴取得でも非表示行を返さない(SQLが効かなくてもJS側で二重に落とす) ---
 function fakeClient(rows: Record<string, any[]>, log: string[]) {

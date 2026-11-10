@@ -9,12 +9,21 @@
 
 /**
  * 許可するニュース情報源(source_name)。法務整備書で「許諾が明確・低リスク」と
- * 評価できる公的機関のみ(3-3 / 3-6: NASA, NSF)。CERN は 2026-11-10 に除外(下記参照)。
+ * 評価できる公的機関のみ(3-3 / 3-6: NASA, NSF。第2版G-1 #3〜#5: ESO, ESA/Webb, ESA/Hubble=CC BY 4.0)。
+ * CERN は 2026-11-10 に除外(下記参照)。国立天文台は確認連絡の要否が未決のため未追加。
+ * SQL側(migration 014)の news_public_read はこの配列のコピー。
  * 評価が書かれていない・リスクが高い・条件が重い情報源は除外側に倒している。
  * 除外理由は NEWS_EXCLUDED_REASONS を参照。追加は法務確認後に行うこと。
  * 要確認: NASAは第三者権利の素材が混ざりうる(画像は表示しないため本文のみ対象)。
  */
-export const NEWS_ALLOWED_SOURCES: readonly string[] = ["NASA", "NSF"];
+export const NEWS_ALLOWED_SOURCES: readonly string[] = ["NASA", "NSF", "ESO", "ESA/Webb", "ESA/Hubble"];
+
+/**
+ * 上記のうち、2026-11 に法務整備書 第2版 G章(G-1 #3〜#5)で追加した CC BY 4.0 の機関。
+ * 1回の収集あたりの新規件数に上限を設けるGroq枠ガードの対象(lib/pipeline/openAccessBudget.ts)。
+ * 国立天文台は確認連絡の要否が未決のため追加していない。
+ */
+export const NEWS_CC_BY_SOURCES: readonly string[] = ["ESO", "ESA/Webb", "ESA/Hubble"];
 
 /** 除外している情報源と理由(ドキュメント目的。ロジックでは使わない)。 */
 export const NEWS_EXCLUDED_REASONS: Record<string, string> = {
@@ -61,9 +70,30 @@ export const PREPRINT_ALLOWED_LICENSES: readonly string[] = ["cc_by", "cc0", "cc
  * PubMed・未知の source・null・小文字表記などは全て非表示。
  * フィード(PAPER_VISIBILITY_OR)と isPaperDisplayable は必ずこの定数から導く。
  */
-export const PAPER_ALLOWED_SOURCES: readonly string[] = ["arXiv", "bioRxiv", "medRxiv"];
-/** 上記のうちライセンス判定が必要なもの */
+export const PAPER_ALLOWED_SOURCES: readonly string[] = [
+  "arXiv",
+  "bioRxiv",
+  "medRxiv",
+  // 2026-11 追加(法務整備書 第2版 G-1 #6〜#8)。いずれも CC BY のみ(下記 OPEN_ACCESS_*)
+  "EuropePMC",
+  "FrontiersYoungMinds",
+  "PLOS",
+];
+/** 上記のうちライセンス判定が必要なもの(bioRxiv系) */
 const LICENSE_CHECKED_PAPER_SOURCES: readonly string[] = ["bioRxiv", "medRxiv"];
+
+/**
+ * Europe PMC / Crossref / PLOS 経由で収集する CC BY 論文の source 値。
+ * 収集時に「Europe PMC の license が文字列 "cc by" と完全一致」または
+ * 「Crossref の license URL が CC BY 4.0 の URL と完全一致」のものだけを取り込み、
+ * papers.license には正規化した "cc_by" を保存する(取り込み時に検証済みの印)。
+ * 空欄・不明・cc by-nc / by-nd / by-sa 等は収集しない。
+ */
+export const OPEN_ACCESS_PAPER_SOURCES: readonly string[] = ["EuropePMC", "FrontiersYoungMinds", "PLOS"];
+export const OPEN_ACCESS_ALLOWED_LICENSES: readonly string[] = ["cc_by"];
+/** 取り込み側(フェッチャー)が受け付ける生のライセンス値(完全一致・大文字小文字も区別) */
+export const EUROPEPMC_LICENSE_RAW = "cc by";
+export const CROSSREF_CC_BY_4_URL = "https://creativecommons.org/licenses/by/4.0/";
 
 export function isPreprintLicenseAllowed(license: string | null | undefined): boolean {
   return !!license && PREPRINT_ALLOWED_LICENSES.includes(license.trim().toLowerCase());
@@ -78,6 +108,8 @@ export function isPaperDisplayable(p: { source?: string | null; license?: string
   const src = p.source;
   if (!src || !PAPER_ALLOWED_SOURCES.includes(src)) return false;
   if (LICENSE_CHECKED_PAPER_SOURCES.includes(src)) return isPreprintLicenseAllowed(p.license);
+  // CC BY 系: SQL(完全一致)と同じく trim / 大文字小文字の寛容化をしない
+  if (OPEN_ACCESS_PAPER_SOURCES.includes(src)) return !!p.license && OPEN_ACCESS_ALLOWED_LICENSES.includes(p.license);
   return true;
 }
 
@@ -85,4 +117,44 @@ export function isPaperDisplayable(p: { source?: string | null; license?: string
  * Supabase(PostgREST)クエリ用の可視性条件。isPaperDisplayable と同じ基準。
  * `.or(PAPER_VISIBILITY_OR)` で使う(共通適用は lib/sources/visibility.ts の applyPaperVisibility)。
  */
-export const PAPER_VISIBILITY_OR = `source.eq.arXiv,and(source.in.(${LICENSE_CHECKED_PAPER_SOURCES.join(",")}),license.in.(${PREPRINT_ALLOWED_LICENSES.join(",")}))`;
+export const PAPER_VISIBILITY_OR = `source.eq.arXiv,and(source.in.(${LICENSE_CHECKED_PAPER_SOURCES.join(",")}),license.in.(${PREPRINT_ALLOWED_LICENSES.join(",")})),and(source.in.(${OPEN_ACCESS_PAPER_SOURCES.join(",")}),license.in.(${OPEN_ACCESS_ALLOWED_LICENSES.join(",")}))`;
+
+// ── 出典行の帰属表示(CC BY: 出典・ライセンス・変更の表示) ───────────────────
+
+/** 内部の source 値 → 画面に出す出典名(それ以外はそのまま) */
+export const SOURCE_DISPLAY_NAMES: Record<string, string> = {
+  EuropePMC: "Europe PMC",
+  FrontiersYoungMinds: "Frontiers for Young Minds",
+  PLOS: "PLOS",
+};
+
+export function sourceDisplayName(source: string | null | undefined): string | null {
+  if (!source) return null;
+  return SOURCE_DISPLAY_NAMES[source] ?? source;
+}
+
+const CC_BY_4_NOTE = "ライセンス: CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)";
+const CC_BY_GENERIC_NOTE = "ライセンス: CC BY(版は原文ページに記載)";
+const CHANGE_NOTE = "原文をAIが要約・日本語化しています(変更あり)";
+
+/**
+ * 既存の「出典: …」行に足す帰属文言。CC BY の情報源だけ返し、それ以外は null
+ * (NASA/NSF/arXiv/bioRxiv 等の表示は変えない)。
+ * 機関のニュースには「推奨を意味しない」旨も付ける。
+ */
+export function attributionFor(source: string | null | undefined): string | null {
+  switch (source) {
+    case "ESO":
+      return `${CC_BY_4_NOTE}・${CHANGE_NOTE}・ESOの推奨を意味しません`;
+    case "ESA/Webb":
+    case "ESA/Hubble":
+      return `${CC_BY_4_NOTE}・${CHANGE_NOTE}・ESAの推奨を意味しません`;
+    case "FrontiersYoungMinds":
+      return `${CC_BY_4_NOTE}・${CHANGE_NOTE}`;
+    case "EuropePMC":
+    case "PLOS":
+      return `${CC_BY_GENERIC_NOTE}・${CHANGE_NOTE}`;
+    default:
+      return null;
+  }
+}

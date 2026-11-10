@@ -19,7 +19,7 @@ export type RSSNewsArticle = {
   category: string;
 };
 
-const RSS_FEEDS: { url: string; source: string; category: string }[] = [
+const RSS_FEEDS: { url: string; source: string; category: string; maxItems?: number; maxAgeDays?: number; timeoutMs?: number }[] = [
   // ── 既存（実績あり）──────────────────────────────────────────────────────
   {
     url: "https://www.sciencedaily.com/rss/all.xml",
@@ -36,6 +36,34 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
     url: "https://www.nasa.gov/news-release/feed/",
     source: "NASA",
     category: "astronomy",
+  },
+
+  // ── CC BY 4.0 の天文機関(2026-11 追加。法務整備書 第2版 G-1 #3〜#5)────────
+  // いずれも更新が月数回以下。直近60日分・各2件までを見る(画像は使わない)。
+  // ESA/Webb は description に HTML(<img>)がエスケープされて入るため toExcerpt が除去する。
+  {
+    url: "https://www.eso.org/public/news/feed/",
+    source: "ESO",
+    category: "astronomy",
+    maxItems: 2,
+    maxAgeDays: 60,
+    timeoutMs: 20_000, // 応答が遅いことがある(ESA/Hubbleは8〜30秒)。全フィード並列なので全体の待ちは最長20秒
+  },
+  {
+    url: "https://esawebb.org/news/feed/",
+    source: "ESA/Webb",
+    category: "astronomy",
+    maxItems: 2,
+    maxAgeDays: 60,
+    timeoutMs: 20_000, // 応答が遅いことがある(ESA/Hubbleは8〜30秒)。全フィード並列なので全体の待ちは最長20秒
+  },
+  {
+    url: "https://esahubble.org/news/feed/",
+    source: "ESA/Hubble",
+    category: "astronomy",
+    maxItems: 2,
+    maxAgeDays: 60,
+    timeoutMs: 20_000, // 応答が遅いことがある(ESA/Hubbleは8〜30秒)。全フィード並列なので全体の待ちは最長20秒
   },
 
   // ── 追加：海外プレスリリース・ニュース（著作権フリー or 公開情報）────────
@@ -208,6 +236,8 @@ const RSS_FEEDS: { url: string; source: string; category: string }[] = [
  */
 export function toExcerpt(raw: string, maxChars: number = NEWS_DESCRIPTION_MAX_CHARS): string {
   return raw
+    // description にタグがエスケープ(&lt;img ... /&gt;)されて入るフィード(ESA/Webb等)向け: 先に除去する
+    .replace(/&lt;\/?[a-zA-Z][^&]*?&gt;/g, " ")
     .replace(/<[^>]*>/g, " ")
     .replace(/&#8230;|&hellip;/g, "…")
     .replace(/&(nbsp|#160);/g, " ")
@@ -247,12 +277,14 @@ async function parseFeed(
   feedUrl: string,
   sourceName: string,
   category: string,
-  maxItems = 5
+  maxItems = 5,
+  maxAgeDays?: number,
+  timeoutMs = 12_000
 ): Promise<RSSNewsArticle[]> {
   try {
     const res = await fetch(feedUrl, {
       headers: { "User-Agent": "PocketDive_Bot/1.0 (https://pocket-dive.app)" },
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const xml = await res.text();
@@ -272,9 +304,11 @@ async function parseFeed(
       const pubDate = getTag(item, "pubDate") || getTag(item, "dc:date");
 
       if (title && url) {
-        const published = pubDate
-          ? new Date(pubDate).toISOString()
-          : new Date().toISOString();
+        const parsed = pubDate ? new Date(pubDate) : null;
+        const published =
+          parsed && !isNaN(parsed.getTime()) ? parsed.toISOString() : new Date().toISOString();
+        // 更新の少ないフィードで古い記事を拾い直さない(maxAgeDays 指定のフィードのみ)
+        if (maxAgeDays && Date.now() - new Date(published).getTime() > maxAgeDays * 86_400_000) continue;
 
         articles.push({
           id: urlToId(url),
@@ -307,7 +341,7 @@ export async function fetchScienceNewsFromRSS(): Promise<RSSNewsArticle[]> {
   // RSS_FEEDS の他の定義は、法務確認で許可できた時にすぐ戻せるよう残してある。
   const feeds = RSS_FEEDS.filter((f) => isAllowedNewsSource(f.source));
   const settled = await Promise.allSettled(
-    feeds.map((f) => parseFeed(f.url, f.source, f.category, 5))
+    feeds.map((f) => parseFeed(f.url, f.source, f.category, f.maxItems ?? 5, f.maxAgeDays, f.timeoutMs))
   );
 
   const articles: RSSNewsArticle[] = [];
