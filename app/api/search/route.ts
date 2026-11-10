@@ -7,7 +7,7 @@ import { generateText, isQueryEmbeddingEnabled } from "../../../lib/llm/index";
 import { searchPapersForQuery, hybridSearch } from "../../../lib/supabase/vectorSearch";
 import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
 import { readJsonLimited } from "../../../lib/api/readJson";
-import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
+import { BUDGET_EXCEEDED_MESSAGE, MAX_DEEP_SUMMARIES, allocateSummaries, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
 
 // タイムアウト設定（VercelのHobbyプランだと10秒制限があるが、Proなら長い。一応長めに）
 export const maxDuration = 60;
@@ -281,9 +281,12 @@ ${history?.map(h => `${h.role}: ${h.content}`).join("\n") || "なし"}
 
           // Summarize top results
           const topPapers = allPapers.slice(0, 8);
-          const summarizedPapers = await Promise.all(topPapers.map(async (p) => {
+          // R2-08: 要約(Groq)の直前に公開枠を再確認し、1リクエストで新規に要約する件数も上限(MAX_DEEP_SUMMARIES)にする
+          const recheck = await checkPublicBudget({ groq: true });
+          const doSummarize = allocateSummaries(topPapers, MAX_DEEP_SUMMARIES, recheck.blocked);
+          const summarizedPapers = await Promise.all(topPapers.map(async (p, idx) => {
               if (p.summary_general || p.summary) return p;
-              if (p.abstract) {
+              if (p.abstract && doSummarize[idx]) {
                   try {
                     const s = await summarize(p.abstract, { maxLength: 200, tone: "casual" });
                     return { ...p, summary: s };

@@ -12,7 +12,7 @@ npm run build   # 本番ビルド
 npm run lint    # ESLint
 ```
 
-環境変数は `.env.local` に設定（Supabase・Groq・Gemini・Resend の各キーなど。詳細は [CLAUDE.md](CLAUDE.md) 参照）。
+環境変数は `.env.local` に設定（Supabase・Groq・Gemini の各キーなど。詳細は [CLAUDE.md](CLAUDE.md) 参照）。
 
 ## 技術スタック
 

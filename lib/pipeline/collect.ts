@@ -31,6 +31,7 @@ import {
 } from "../sources/openAccess";
 import {
   NewSourceGate,
+  isPastDeadline,
   OPEN_ACCESS_PAPERS_PER_RUN,
   OPEN_ACCESS_STREAM_CAPS,
   NEW_NEWS_PER_RUN,
@@ -434,6 +435,12 @@ export async function collectOpenAccessPapers(
   const results: CollectResult[] = [];
   const gate = new NewSourceGate(startedAt, OPEN_ACCESS_PAPERS_PER_RUN, EST_TOKENS_PER_PAPER);
 
+  // 0) 締切(R2-08): 既存ソースの処理で時間を使い切っていたら、外部取得も始めない
+  if (isPastDeadline(startedAt)) {
+    console.warn("[Pipeline] open-access collection skipped: past deadline before fetching");
+    return results;
+  }
+
   // 1) 取得(並列・タイムアウト付き)。失敗した源は空配列で返る。
   const [journals, topics, frym, plosCands] = await Promise.all([
     fetchEuropePmcJournalPapers(),
@@ -464,6 +471,11 @@ export async function collectOpenAccessPapers(
 
   for (const st of streams) {
     let collected = 0, errors = 0, skipped = 0, newCount = 0, repaired = 0;
+    if (isPastDeadline(startedAt)) {
+      console.warn(`[Pipeline] ${st.source}/${st.label}: skipped (past deadline)`);
+      results.push({ source: st.source, category: st.label, collected, errors, skipped, newCount, repaired });
+      continue;
+    }
     try {
       let todo = st.items;
       try {
@@ -490,6 +502,7 @@ export async function collectOpenAccessPapers(
           let paper: OpenAccessPaper | null = cand;
           if (st.resolve) {
             if (xmlChecks >= 5) break;
+            if (isPastDeadline(startedAt)) break; // 全文XMLの取得(外部通信)の前にも締切を確認(R2-08)
             if (xmlChecks > 0) await delay(1000);
             xmlChecks++;
             paper = await st.resolve(cand);

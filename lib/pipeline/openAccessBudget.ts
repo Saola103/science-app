@@ -40,6 +40,11 @@ export const UNKNOWN_USAGE_MAX_ITEMS = 2;
 /** 収集開始からこの時間(ms)を超えたら新ソースの処理を始めない(maxDuration=300秒に余裕を残す) */
 export const NEW_SOURCES_DEADLINE_MS = 200_000;
 
+/** 収集開始からの経過が締切を超えたか。外部取得・DB照会の「前」にも使う(R2-08)。 */
+export function isPastDeadline(startedAt: number, now: number = Date.now()): boolean {
+  return now - startedAt > NEW_SOURCES_DEADLINE_MS;
+}
+
 export type GateInput = {
   processed: number;
   cap: number;
