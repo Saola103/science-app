@@ -2,7 +2,7 @@ import { CONTACT_EMAIL } from "../../lib/site/contact";
 
 // Google Analytics は layout.tsx と同じ環境変数で読み込みの有無が決まる(ビルド時に確定)。
 // 本文もそれに合わせて出し分ける。
-// 要確認(オーナー決定・未対応): 運営者の表記、未成年である旨と保護者の関与、GA4を本番で使うかの最終決定、
+// 要確認(オーナー決定・未対応): 未成年である旨と保護者の関与、GA4を本番で使うかの最終決定、
 // 外部サービス(Groq/Gemini/Supabase/Vercel)の保持・学習利用の取り扱い、保存期間。
 const GA_ENABLED = !!process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
 

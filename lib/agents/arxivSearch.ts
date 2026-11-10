@@ -1,4 +1,5 @@
 import { parseStringPromise } from 'xml2js';
+import { CONTACT_EMAIL } from '../site/contact';
 
 export interface ArxivPaper {
   id: string;
@@ -11,7 +12,7 @@ export interface ArxivPaper {
 /**
  * Searches for papers on arXiv using their API.
  * Adheres to strict usage rules:
- * - User-Agent: PocketDive_Bot/1.0 (contact@pocket-dive.app)
+ * - User-Agent: PocketDive_Bot/1.0 (mailto:CONTACT_EMAIL, lib/site/contact.ts)
  * - 3-second delay before request
  * - Graceful error handling
  *
@@ -42,7 +43,7 @@ export async function searchArxivPapers(query: string, maxResults: number = 5): 
       method: 'GET',
       headers: {
         // 2. Set User-Agent as required
-        'User-Agent': 'PocketDive_Bot/1.0 (contact@pocket-dive.app)'
+        'User-Agent': `PocketDive_Bot/1.0 (mailto:${CONTACT_EMAIL})`
       }
     });
 

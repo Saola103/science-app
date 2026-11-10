@@ -1,6 +1,6 @@
 import { CONTACT_EMAIL } from "../../lib/site/contact";
 
-// 要確認(オーナー決定事項・未対応): 運営者の表記、運営者が未成年である旨と保護者の関与、
+// 要確認(オーナー決定事項・未対応): 運営者が未成年である旨と保護者の関与、
 // 準拠法・管轄、年齢の下限。文面案は 20_ビジネス/進行中/ビジネス戦略/POCKET_DIVE_法務整備_G4.md 2-1 参照。
 export default function TermsPage() {
     return (

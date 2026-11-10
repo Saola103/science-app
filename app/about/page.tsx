@@ -77,8 +77,8 @@ export default function AboutPage() {
               <div className="flex items-center gap-4 p-6 rounded-3xl bg-slate-900 text-white shadow-xl shadow-slate-900/10">
                 <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center font-black text-lg italic">P</div>
                 <div>
-                  <div className="text-lg font-black uppercase leading-none">POCKET DIVE 開発チーム</div>
-                  {/* 要確認: 運営者の表記はオーナー決定事項。法人格はないため「非営利組織」「NPO」とは書かない */}
+                  <div className="text-lg font-black uppercase leading-none">運営: Saola</div>
+                  {/* 運営者の表記は「Saola」に統一(2026-11-10オーナー決定)。法人格はないため「非営利組織」「NPO」とは書かない。高校生である旨の記載は未決定(要確認) */}
                   <div className="text-[10px] font-bold tracking-widest text-slate-400 mt-1">非営利で運営する教育プロジェクト</div>
                 </div>
               </div>

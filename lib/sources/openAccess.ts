@@ -43,7 +43,7 @@ export const FETCH_TIMEOUT_MS = 10_000;
 const FULLTEXT_TIMEOUT_MS = 15_000;
 
 /** 連絡先付き User-Agent(Crossref の polite pool / Europe PMC への礼儀) */
-const USER_AGENT = `PocketDive_Bot/1.0 (https://pocket-dive.app; mailto:${CONTACT_EMAIL})`;
+const USER_AGENT = `PocketDive_Bot/1.0 (https://pocketdive.vercel.app; mailto:${CONTACT_EMAIL})`;
 
 const ABSTRACT_MAX_CHARS = 3000;
 const ABSTRACT_MIN_CHARS = 100;

@@ -9,7 +9,7 @@ export default function LegalPage() {
                     <tbody>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold w-1/3">運営者名</td>
-                            <td className="py-4">Saola (Science Papers Project)</td>
+                            <td className="py-4">Saola</td>
                         </tr>
                         <tr className="border-b border-white/10">
                             <td className="py-4 font-bold">お問い合わせ先</td>

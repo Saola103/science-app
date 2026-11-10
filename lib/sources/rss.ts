@@ -283,7 +283,7 @@ async function parseFeed(
 ): Promise<RSSNewsArticle[]> {
   try {
     const res = await fetch(feedUrl, {
-      headers: { "User-Agent": "PocketDive_Bot/1.0 (https://pocket-dive.app)" },
+      headers: { "User-Agent": "PocketDive_Bot/1.0 (https://pocketdive.vercel.app)" },
       signal: AbortSignal.timeout(timeoutMs),
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
