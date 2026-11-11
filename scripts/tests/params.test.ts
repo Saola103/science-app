@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { parseLimit, sanitizeCategory, validateCategoryString, validateIdString } from "../../lib/api/params";
+import { parseLimit, sanitizeCategory } from "../../lib/api/params";
 import { buildKeywordOrFilter, tokenizeKeywordQuery } from "../../lib/supabase/vectorSearch";
 import { readJsonLimited } from "../../lib/api/readJson";
 
@@ -28,20 +28,7 @@ assert.equal(sanitizeCategory("neuro),and(x"), "neuroandx");
 assert.equal(sanitizeCategory("%%%"), null);
 assert.equal(sanitizeCategory("a".repeat(100))?.length, 40);
 assert.equal(sanitizeCategory("神経科学"), "神経科学");
-assert.equal(validateCategoryString("it_ai"), "it_ai");
-assert.equal(validateCategoryString({}), null);
-assert.equal(validateCategoryString("a,b"), null);
-assert.equal(validateCategoryString("a".repeat(41)), null);
 
-// R1-05 id
-assert.equal(validateIdString("paper-1234-abcd"), "paper-1234-abcd");
-assert.equal(validateIdString("hep-th/9901001"), "hep-th/9901001");
-assert.equal(validateIdString({}), null);
-assert.equal(validateIdString(["a"]), null);
-assert.equal(validateIdString(""), null);
-assert.equal(validateIdString("a".repeat(201)), null);
-assert.equal(validateIdString("a b"), null);
-assert.equal(validateIdString("a,b)"), null);
 
 // R1-05 サイズ制限・不正JSON
 (async () => {

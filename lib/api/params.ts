@@ -23,17 +23,3 @@ export function sanitizeCategory(raw: string | null | undefined): string | null 
     .slice(0, 40);
   return cleaned.length > 0 ? cleaned : null;
 }
-
-/** item_id / session_id 用: 文字種(英数字・`-_:./`)と長さ(1〜200)を検証。不正なら null。 */
-export function validateIdString(raw: unknown, maxLen = 200): string | null {
-  if (typeof raw !== "string") return null;
-  if (raw.length < 1 || raw.length > maxLen) return null;
-  return /^[A-Za-z0-9_:./\-]+$/.test(raw) ? raw : null;
-}
-
-/** category 用: 文字列で40文字以内、文字・数字・`_`・`-`・空白のみ。 */
-export function validateCategoryString(raw: unknown): string | null {
-  if (typeof raw !== "string") return null;
-  if (raw.length < 1 || raw.length > 40) return null;
-  return /^[\p{L}\p{N}_ -]+$/u.test(raw) ? raw : null;
-}
