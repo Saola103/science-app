@@ -32,6 +32,7 @@ import {
 import {
   NewSourceGate,
   isPastDeadline,
+  isPastArxivDeadline,
   OPEN_ACCESS_PAPERS_PER_RUN,
   OPEN_ACCESS_STREAM_CAPS,
   NEW_NEWS_PER_RUN,
@@ -226,10 +227,17 @@ export async function processPaper(paper: {
  * but can be overridden for a one-off local run without the 300s maxDuration
  * constraint — see scripts/collect-once.ts.
  */
-export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promise<CollectResult[]> {
+export async function collectFromArxiv(
+  perCategory = PAPERS_PER_CATEGORY,
+  startedAt?: number // 指定時のみ、300秒の手前で残りを次回に持ち越す(cron用)
+): Promise<CollectResult[]> {
   const results: CollectResult[] = [];
 
   for (const [category, query] of Object.entries(ARXIV_CATEGORY_QUERIES)) {
+    if (startedAt !== undefined && isPastArxivDeadline(startedAt)) {
+      console.warn(`[Pipeline] arXiv deadline reached; deferring ${category} and the rest to the next run.`);
+      break;
+    }
     let collected = 0;
     let errors = 0;
     let skipped = 0;
@@ -257,6 +265,10 @@ export async function collectFromArxiv(perCategory = PAPERS_PER_CATEGORY): Promi
       console.log(`[Pipeline] arXiv ${category}: fetched=${fetched.length} skipped=${skipped} new=${newCount} repair=${repaired}`);
 
       for (const paper of papers) {
+        if (startedAt !== undefined && isPastArxivDeadline(startedAt)) {
+          console.warn(`[Pipeline] arXiv deadline reached; deferring remaining ${category} papers to the next run.`);
+          break;
+        }
         try {
           await processPaper({
             ...paper,
@@ -557,7 +569,8 @@ export async function runCollectionPipeline(opts?: { perCategory?: number }): Pr
 
   // Run all three in parallel
   const [arXiv, bioRxiv, news] = await Promise.all([
-    collectFromArxiv(opts?.perCategory),
+    // perCategory 指定(手元の単発実行)のときは締切を付けない
+    collectFromArxiv(opts?.perCategory, opts?.perCategory === undefined ? startTime : undefined),
     collectFromBiorxiv(opts?.perCategory),
     collectNews(startTime),
   ]);

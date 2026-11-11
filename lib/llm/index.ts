@@ -50,8 +50,9 @@ function getGroqClient(): Groq {
     throw new Error("GROQ_API_KEY is required. Get a free key at https://console.groq.com");
   }
   // SDK default is a 10-minute timeout; cap each call so one stuck request
-  // cannot eat the 300s collection budget (existing 429 retry loop is unchanged).
-  return new Groq({ apiKey, timeout: GROQ_REQUEST_TIMEOUT_MS, maxRetries: 1 });
+  // cannot eat the 300s collection budget. maxRetries is 0 so the only retry is
+  // the outer 429 loop in generateText (worst case 45s x 3, no hidden SDK retries).
+  return new Groq({ apiKey, timeout: GROQ_REQUEST_TIMEOUT_MS, maxRetries: 0 });
 }
 
 export async function generateText(prompt: string, temperature = 0.7): Promise<string> {
@@ -80,6 +81,10 @@ export async function generateText(prompt: string, temperature = 0.7): Promise<s
         await new Promise((r) => setTimeout(r, 5000 * (attempt + 1)));
         continue;
       }
+      // A timed-out / failed call may still have consumed tokens on Groq's side;
+      // count the cap so the daily estimate is never lower than reality.
+      // (A 429 is rejected before generation, so it is not counted.)
+      if (!isRateLimit) recordGroqUsage(maxTokens);
       console.error("[Groq generateText Error]:", err);
       throw err;
     }
