@@ -37,7 +37,6 @@ const ja = {
     paperSource: "出典",
     terms: "利用規約",
     privacy: "プライバシーポリシー",
-    legal: "特定商取引法に基づく表記",
     footerTagline: "科学の知見を、すべての人へ。",
     footerContactDesc: "ご質問やご相談はこちらからお問い合わせください。",
     footerDevelopedBy: "Developed by Pocket Dive Project Team",

@@ -58,7 +58,7 @@ export function BottomNav() {
   // "フィード"・"マイページ" now point into /feedapp (the current version); that
   // route ships its own header/bottom nav and is excluded above, so these two
   // items only ever act as entry points from the pages this nav still renders
-  // on (home, /paper, /search, /about, /privacy, /terms, /legal).
+  // on (home, /paper, /search, /about, /privacy, /terms).
   const items = [
     { label: 'ホーム',    href: `/`,               icon: HomeIcon,    match: (p: string) => p === `/` },
     { label: 'フィード',  href: `/feedapp/feed`,   icon: FeedIcon,    match: (p: string) => p.includes('/feedapp') },

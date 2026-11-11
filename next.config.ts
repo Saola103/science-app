@@ -97,8 +97,17 @@ const nextConfig: NextConfig = {
   // (例: pocketdive.vercel.app/ja)がいつまでも生き続けてしまう。301で
   // 新URLへ畳み込み、再クロール時にインデックスが新URLへ統合・旧URLが
   // 自然に消えるようにする。
+  // 2026-11-12: /legal(特定商取引法に基づく表記)を撤去。完全無料・広告なし・課金なし・寄付なしの間は
+  // 表示義務の対象になりにくいとの Leg 判断(法務整備書 第8章)。運営者・窓口は /about /terms /privacy に残す。
+  // 外部に出したURL・検索インデックスのリンク切れを避けるため /about へ恒久リダイレクト。
+  // 課金・広告・寄付を始める前に、ページの新設を含めて再判定すること。
   async redirects() {
     return [
+      {
+        source: "/legal",
+        destination: "/about",
+        permanent: true,
+      },
       {
         source: "/ja",
         destination: "/",

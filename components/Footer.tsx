@@ -68,7 +68,6 @@ export function Footer() {
                 <div className="flex gap-8 text-[10px] font-bold tracking-[0.2em] uppercase text-slate-300">
                     <Link href="/terms" className="hover:text-slate-900 transition-colors uppercase">利用規約</Link>
                     <Link href="/privacy" className="hover:text-slate-900 transition-colors uppercase">プライバシーポリシー</Link>
-                    <Link href="/legal" className="hover:text-slate-900 transition-colors uppercase">特定商取引法に基づく表記</Link>
                 </div>
             </div>
         </footer>
