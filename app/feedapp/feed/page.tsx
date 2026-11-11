@@ -1,12 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { useLocale, useTranslations } from "../../../lib/i18n/ja";
 import { useProtoStore } from "../../../lib/proto/store";
 import { CATEGORIES, CATEGORY_STYLE, getCategoryLabel } from "../../../lib/proto/mockData";
 import { Article } from "../../../lib/proto/types";
 import { useArticles } from "../../../lib/proto/useFeedData";
+import { mapFeedItemToArticle, FeedApiItem } from "../../../lib/proto/mapArticle";
 import { ArticleDetailSheet } from "../../../components/proto/ArticleDetailSheet";
 import { FeedScroll, zen, shuffle, weightedShuffle, hashSeed } from "../../../components/proto/FeedScroll";
 
@@ -35,7 +37,25 @@ function categoryWeight(category: string, pool: Article[], followed: string[], s
   return w;
 }
 
+// 関連論文から来たとき(/feedapp/feed?focus=<paper id>)の対象ID。形式が合わなければ無視する。
+const FOCUS_ID_RE = /^[A-Za-z0-9._:-]{1,200}$/;
+
 export default function FeedPage() {
+  return (
+    <Suspense fallback={null}>
+      <FeedPageWithFocus />
+    </Suspense>
+  );
+}
+
+// focus が変わったら中身を作り直す(同じ画面から別の関連論文へ移ったときも先頭に戻す)
+function FeedPageWithFocus() {
+  const raw = useSearchParams().get("focus");
+  const focus = raw && FOCUS_ID_RE.test(raw) ? raw : null;
+  return <FeedPageInner key={focus ?? ""} focus={focus} />;
+}
+
+function FeedPageInner({ focus }: { focus: string | null }) {
   const [filter, setFilter] = useState<string>(ALL);
   const [filterOpen, setFilterOpen] = useState(false);
   const [openArticle, setOpenArticle] = useState<Article | null>(null);
@@ -79,6 +99,7 @@ export default function FeedPage() {
   const [slides, setSlides] = useState<Article[]>([]);
   const knownIdsRef = useRef<Set<string>>(new Set());
   const chunkRef = useRef(0);
+  const [focusReady, setFocusReady] = useState(!focus);
 
   const weightOf = useCallback(
     (article: Article) => {
@@ -112,6 +133,7 @@ export default function FeedPage() {
       chunkRef.current = 0;
       return;
     }
+    if (!focusReady) return; // focus の論文が先頭に入るまで待つ
     const newOnes = articles.filter((a) => !knownIdsRef.current.has(a.id));
     if (newOnes.length === 0) return;
     for (const a of newOnes) knownIdsRef.current.add(a.id);
@@ -120,7 +142,31 @@ export default function FeedPage() {
     const ordered = filter === ALL ? weightedShuffle(newOnes, weightOf, seed) : shuffle(newOnes, seed);
     setSlides((prev) => [...prev, ...ordered]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [articles, filter]);
+  }, [articles, filter, focusReady]);
+
+  // focus 指定の論文は /api/feed?ids= で取得し(可視性ルールはAPI側で適用済み)、
+  // 一覧の先頭に置く。表示できない論文なら何も足さず通常のフィードになる。
+  useEffect(() => {
+    if (!focus) return;
+    let cancelled = false;
+    fetch(`/api/feed?ids=${encodeURIComponent(`paper-${focus}`)}`)
+      .then((res) => (res.ok ? res.json() : { items: [] }))
+      .then((data: { items?: FeedApiItem[] }) => {
+        if (cancelled) return;
+        const a = (data.items ?? []).map(mapFeedItemToArticle).find((x) => !x.isDuplicateSummary);
+        if (a) {
+          knownIdsRef.current.add(a.id);
+          setSlides([a]);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setFocusReady(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [focus]);
 
   const nearEndLockRef = useRef(false);
   useEffect(() => {
@@ -156,7 +202,7 @@ export default function FeedPage() {
 
   return (
     <>
-      {slides.length === 0 && loading ? (
+      {slides.length === 0 && (loading || !focusReady) ? (
         <div className="fixed inset-0 flex items-center justify-center">
           <p className="text-[13px] text-[#94A3B8]" style={zen}>
             {tDiscovery("loading")}
