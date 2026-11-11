@@ -153,7 +153,7 @@ CREATE POLICY "interactions_read_own"
   USING (user_id = auth.uid());
 
 -- INSERT (authenticated, direct REST): same ownership rule as before plus length
--- limits. Limits mirror the app (validateIdString 200 / item_type
+-- limits. Limits are the ones the (since removed) /api/feed/interact route used (id 200 / item_type
 -- 'paper'|'news' / action 'unlike' is the longest at 6). coalesce keeps NULLs passing.
 DROP POLICY IF EXISTS "interactions_insert_authenticated" ON public.feed_interactions;
 CREATE POLICY "interactions_insert_authenticated"
