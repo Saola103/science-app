@@ -53,7 +53,7 @@ export default function AboutPage() {
               </p>
               <ul className="space-y-4">
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
-                  情報ソース: 論文は arXiv と、bioRxiv/medRxiv のうち CC BY または CC0 のライセンスのもの、ニュースは公的機関（NASA・NSF・CERN）の公開情報を対象としています。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと表現は弁護士確認後に確定 */}
+                  情報ソース: 論文は arXiv、Europe PMC・Frontiers for Young Minds・PLOS のうち CC BY のライセンスのもの、bioRxiv/medRxiv のうち CC BY または CC0 のライセンスのもの、ニュースは公的機関（NASA・NSF・ESO・ESA/Webb・ESA/Hubble）の公開情報を対象としています。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと表現は弁護士確認後に確定 */}
                 </li>
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
                   知的財産権の尊重: AIによる要約生成においては、元の著作物の表現をそのまま写さず、事実関係を再構成するよう努めています。AIによる要約には誤りが含まれることがあるため、必ず原文もご確認ください。
@@ -79,7 +79,7 @@ export default function AboutPage() {
                 <div>
                   <div className="text-lg font-black uppercase leading-none">運営: Saola</div>
                   {/* 運営者の表記は「Saola」に統一(2026-11-10オーナー決定)。法人格はないため「非営利組織」「NPO」とは書かない。高校生である旨の記載は未決定(要確認) */}
-                  <div className="text-[10px] font-bold tracking-widest text-slate-400 mt-1">非営利で運営する教育プロジェクト</div>
+                  <div className="text-[10px] font-bold tracking-widest text-slate-400 mt-1">個人（学生）が運営する、広告・課金のない非営利の教育プロジェクト</div>
                 </div>
               </div>
               

@@ -16,7 +16,7 @@ export default function PrivacyPage() {
             <div className="prose dark:prose-invert max-w-none space-y-8 font-medium text-slate-700 dark:text-slate-300">
                 <section>
                     <h2 className="text-xl font-bold text-foreground">1. 運営の性質</h2>
-                    <p>本サービスは個人開発・非営利の教育目的で運営されており、商用の対価を目的としたサービス提供ではありません。</p>
+                    <p>本サービスは個人（学生）が運営する非営利の教育目的のサービスであり、商用の対価を目的としたサービス提供ではありません。</p>
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">2. 取得する情報</h2>
