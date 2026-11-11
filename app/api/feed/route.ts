@@ -128,7 +128,7 @@ export async function GET(req: NextRequest) {
             summary: p.summary_general || p.summary, summary_general: p.summary_general, summary_expert: p.summary_expert,
             category: p.category, published_at: p.published_at, url: p.url,
             authors: Array.isArray(p.authors) ? p.authors : [], source: p.source || "arXiv", image_url: p.image_url,
-            ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
+            ...(p.source === "EuropePMC" && p.journal ? { journal: String(p.journal).slice(0, 120) } : {}),
             ...(isNcPreprint(p) ? { license: p.license } : {}),
           });
         }
@@ -308,7 +308,7 @@ export async function GET(req: NextRequest) {
           authors: Array.isArray(p.authors) ? p.authors : [],
           source: p.source || "arXiv",
           image_url: p.image_url,
-          ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
+          ...(p.source === "EuropePMC" && p.journal ? { journal: String(p.journal).slice(0, 120) } : {}),
           ...(isNcPreprint(p) ? { license: p.license } : {}),
         });
       }
