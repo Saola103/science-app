@@ -169,7 +169,7 @@ export function parseEpmcRecord(r: EpmcRecord, stream: "epmc_journals" | "epmc_t
     authors,
     publishedAt: toPublishedAt(r.firstPublicationDate),
     url: doi ? `https://doi.org/${doi}` : `https://europepmc.org/article/PMC/${pmcid}`,
-    journal: cleanText(r.journalInfo?.journal?.title) || undefined,
+    journal: cleanText(r.journalInfo?.journal?.title).slice(0, 120) || undefined,
     pmcid,
     license: "cc_by",
     source: stream === "plos_author_summary" ? "PLOS" : "EuropePMC",
