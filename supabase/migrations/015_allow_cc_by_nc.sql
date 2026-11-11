@@ -2,7 +2,12 @@
 -- POCKET DIVE 015: show bioRxiv / medRxiv papers whose license is exactly CC BY-NC
 -- ============================================================
 -- Run in Supabase Dashboard > SQL Editor (owner applies manually; NOT applied
--- by Dev). Idempotent: safe to run more than once. Apply AFTER 014.
+-- by Dev). Idempotent: safe to run more than once.
+-- PREREQUISITE: 014 MUST ALREADY BE APPLIED (014 drops other permissive policies and
+-- REVOKEs; this file only swaps papers_public_read). Do not run 015 alone on a DB
+-- that has not had 014.
+-- All statements run in ONE transaction (BEGIN/COMMIT below): either the whole swap
+-- happens or none of it, so there is no moment without the policy.
 --
 -- WHAT THIS DOES
 --   Re-creates ONLY the papers_public_read policy from 014 with one change:
@@ -37,6 +42,7 @@
 --   (the app code also has to drop 'cc_by_nc' from PREPRINT_ALLOWED_LICENSES, otherwise
 --    the app would still show them from service-role paths.)
 
+BEGIN;
 ALTER TABLE public.papers ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS "papers_public_read" ON public.papers;
 CREATE POLICY "papers_public_read"
@@ -47,6 +53,7 @@ CREATE POLICY "papers_public_read"
     OR (source IN ('bioRxiv', 'medRxiv') AND license IN ('cc_by', 'cc0', 'cc0_ng', 'cc_by_nc'))
     OR (source IN ('EuropePMC', 'FrontiersYoungMinds', 'PLOS') AND license IN ('cc_by'))
   );
+COMMIT;
 -- NULL source/license evaluate to NULL (= not visible), matching the code.
 
 -- ─────────────────────────────────────────────────────────────

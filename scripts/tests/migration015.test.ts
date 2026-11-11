@@ -28,10 +28,13 @@ const PAPERS_USING =
   `OR (source IN (${q(LICENSE_CHECKED_PAPER_SOURCES)}) AND license IN (${q(PREPRINT_ALLOWED_LICENSES)})) ` +
   `OR (source IN (${q(OPEN_ACCESS_PAPER_SOURCES)}) AND license IN (${q(OPEN_ACCESS_ALLOWED_LICENSES)}))`;
 
+// 全文を1トランザクション(BEGIN; ... COMMIT;)で囲む。中の3文はリテラル完全一致のまま検証する。
 const EXPECTED_STATEMENTS = [
+  "BEGIN",
   "ALTER TABLE public.papers ENABLE ROW LEVEL SECURITY",
   `DROP POLICY IF EXISTS "papers_public_read" ON public.papers`,
   `CREATE POLICY "papers_public_read" ON public.papers FOR SELECT TO anon, authenticated USING (${PAPERS_USING})`,
+  "COMMIT",
 ];
 
 // 現行ルールの固定(policy.ts を変えたら、意図した変更かここで気づく)
@@ -40,6 +43,7 @@ assert.deepEqual([...PREPRINT_ALLOWED_LICENSES], ["cc_by", "cc0", "cc0_ng", "cc_
 function checkMigration(sql: string): void {
   assert.deepEqual(splitStatements(sql), EXPECTED_STATEMENTS, "015 の SQL 文が policy.ts から生成した期待と完全一致しない");
   assert.ok(/ROLLBACK \(comment/.test(sql) && /VERIFY/.test(sql), "ROLLBACK/VERIFY がない");
+  assert.ok(/014[^\n]*(applied|APPLIED)/.test(sql), "「014 適用済みが前提」の明記がない");
   assert.ok(!/\bGRANT\b/.test(sql.replace(/--[^\n]*/g, "")), "実行文に GRANT がある");
 }
 
@@ -111,9 +115,12 @@ mutate("OR true", /USING \(\n/, "USING (\n    true OR\n");
 mutate("EuropePMC に NC を許可", /('PLOS'\) AND license IN \('cc_by')\)\)\n  \);/, "$1, 'cc_by_nc'))\n  );");
 mutate("余計な文(GRANT)", /ALTER TABLE public\.papers ENABLE ROW LEVEL SECURITY;/, "GRANT ALL ON public.papers TO anon;\nALTER TABLE public.papers ENABLE ROW LEVEL SECURITY;");
 mutate("DROP 文の削除", /\nDROP POLICY IF EXISTS "papers_public_read" ON public\.papers;/, "\n");
+mutate("COMMIT の削除", /\nCOMMIT;/, "\n");
+mutate("BEGIN の削除", /\nBEGIN;/, "\n");
+mutate("014 前提の明記の削除", /PREREQUISITE: 014 MUST ALREADY BE APPLIED/, "PREREQUISITE: none");
 // 総当たりは USING を広げる変異を拾う
 const widened = sql.replace(/license IN \('cc_by', 'cc0', 'cc0_ng', 'cc_by_nc'\)/, "license IS NOT NULL");
 assert.notEqual(widened, sql);
 assert.throws(() => bruteForce(widened), "総当たりが USING の拡大を検出できない");
 
-console.log(`migration015: OK (statements ${EXPECTED_STATEMENTS.length}, brute-force ${total} rows, 9 mutations caught)`);
+console.log(`migration015: OK (statements ${EXPECTED_STATEMENTS.length}, brute-force ${total} rows, 12 mutations caught)`);
