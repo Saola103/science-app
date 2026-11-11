@@ -52,7 +52,8 @@ for (const src of OPEN_ACCESS_PAPER_SOURCES) {
 assert.equal(isPaperDisplayable({ source: "europepmc", license: "cc_by" }), false); // 大文字小文字も完全一致
 assert.equal(isPaperDisplayable({ source: "arXiv" }), true); // 既存は不変
 assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by" }), true);
-assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc" }), false);
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc" }), true); // 2026-11-12 追加(NC単独のみ)
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc_nd" }), false);
 for (const n of NEWS_CC_BY_SOURCES) assert.equal(isAllowedNewsSource(n), true);
 assert.deepEqual([...NEWS_CC_BY_SOURCES], ["ESO", "ESA/Webb", "ESA/Hubble"]);
 assert.equal(isAllowedNewsSource("国立天文台"), false); // 確認連絡が未決のため追加しない

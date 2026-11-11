@@ -63,10 +63,22 @@ export const NEWS_DESCRIPTION_MAX_CHARS = 300;
 
 /**
  * bioRxiv API が返す license 値のうち、要約(翻案)して表示してよいもの。
- * CC BY と CC0 のみ。cc0_ng は CC0 系の表記(要確認: 一次情報で意味を再確認)。
- * 空欄・"cc_no"(許可なき再利用不可)・ND/NC系・過去に補完した "CC BY" 文字列は不明扱いで除外。
+ * CC BY・CC0・CC BY-NC(単独)。cc0_ng は CC0 系の表記(要確認: 一次情報で意味を再確認)。
+ * cc_by_nc は 2026-11-12 追加(法務整備書 第7章: 広告・課金・寄付・スポンサーがない間だけの条件付き。
+ * 収益化を始めるなら先にこの値を外す)。値は完全一致で判定する(trim・大文字小文字の寛容化はしない)。
+ * 空欄・"cc_no"(許可なき再利用不可)・cc_by_nc_nd / cc_by_nd / cc_by_nc_sa 等のND/SA系・
+ * 過去に補完した "CC BY" 文字列は不明扱いで除外。
+ * SQL側(migration 015)の papers_public_read はこの配列のコピー。
  */
-export const PREPRINT_ALLOWED_LICENSES: readonly string[] = ["cc_by", "cc0", "cc0_ng"];
+export const PREPRINT_ALLOWED_LICENSES: readonly string[] = ["cc_by", "cc0", "cc0_ng", "cc_by_nc"];
+
+/** 上記のうち「非営利のみ」条件が付くもの。出典行にライセンス名・リンク・改変あり等を出す対象 */
+export const PREPRINT_NC_LICENSE = "cc_by_nc";
+
+/** bioRxiv/medRxiv で license が CC BY-NC 単独(完全一致)の論文か */
+export function isNcPreprint(p: { source?: string | null; license?: string | null }): boolean {
+  return !!p.source && LICENSE_CHECKED_PAPER_SOURCES.includes(p.source) && p.license === PREPRINT_NC_LICENSE;
+}
 
 /**
  * 表示を許可する論文の source(許可リスト方式。DBの値と完全一致=大文字小文字も区別)。
@@ -99,7 +111,8 @@ export const EUROPEPMC_LICENSE_RAW = "cc by";
 export const CROSSREF_CC_BY_4_URL = "https://creativecommons.org/licenses/by/4.0/";
 
 export function isPreprintLicenseAllowed(license: string | null | undefined): boolean {
-  return !!license && PREPRINT_ALLOWED_LICENSES.includes(license.trim().toLowerCase());
+  // 完全一致(SQL の license IN (...) と同じ。Leg 条件: CC BY-NC 単独のみ・ND系は通さない)
+  return !!license && PREPRINT_ALLOWED_LICENSES.includes(license);
 }
 
 /**
@@ -150,13 +163,19 @@ export function sourceLabelWithJournal(source: string | null | undefined, journa
 const CC_BY_4_NOTE = "ライセンス: CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)";
 const CC_BY_GENERIC_NOTE = "ライセンス: CC BY(版は原文ページに記載)";
 const CHANGE_NOTE = "原文をAIが要約・日本語化しています(変更あり)";
+const CC_BY_NC_NOTE = "ライセンス: CC BY-NC(https://creativecommons.org/licenses/by-nc/4.0/ 。版は原文ページに記載)";
 
 /**
  * 既存の「出典: …」行に足す帰属文言。CC BY の情報源だけ返し、それ以外は null
  * (NASA/NSF/arXiv/bioRxiv 等の表示は変えない)。
  * 機関のニュースには「推奨を意味しない」旨も付ける。
+ * bioRxiv/medRxiv は license が CC BY-NC 単独(cc_by_nc)のときだけ文言を返す(法務整備書 7-4)。
+ * それ以外のライセンス(cc_by / cc0 等)の bioRxiv/medRxiv は従来どおり null。
  */
-export function attributionFor(source: string | null | undefined): string | null {
+export function attributionFor(source: string | null | undefined, license?: string | null): string | null {
+  if (isNcPreprint({ source, license })) {
+    return `${CC_BY_NC_NOTE}・${CHANGE_NOTE}・査読前のプレプリント・著者・${source}の推奨を意味しません`;
+  }
   switch (source) {
     case "ESO":
       return `${CC_BY_4_NOTE}・${CHANGE_NOTE}・ESOの推奨を意味しません`;

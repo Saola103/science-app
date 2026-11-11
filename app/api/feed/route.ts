@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
 import { applyNewsVisibility, applyPaperVisibility } from "../../../lib/sources/visibility";
+import { isNcPreprint } from "../../../lib/sources/policy";
 import { cachedPoolSize } from "../../../lib/api/poolSizeCache";
 import { parseLimit, sanitizeCategory } from "../../../lib/api/params";
 import { buildKeywordOrFilter, tokenizeKeywordQuery } from "../../../lib/supabase/vectorSearch";
@@ -34,6 +35,7 @@ type FeedItem = {
   url?: string | null;
   source?: string | null;
   journal?: string | null; // Europe PMC 経由の論文のみ(出典行用)
+  license?: string | null; // bioRxiv/medRxiv の CC BY-NC 論文のみ(出典行の帰属表示用)
   authors?: string[] | null;
   arxiv_id?: string | null;
   image_url?: string | null;
@@ -104,7 +106,7 @@ export async function GET(req: NextRequest) {
           ? applyPaperVisibility( // G4: 許可リスト+ライセンス(共通関数)
               supabase
                 .from("papers")
-                .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, image_url")
+                .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, license, image_url")
                 .in("id", paperIds)
             )
           : Promise.resolve({ data: [] as never[] }),
@@ -127,6 +129,7 @@ export async function GET(req: NextRequest) {
             category: p.category, published_at: p.published_at, url: p.url,
             authors: Array.isArray(p.authors) ? p.authors : [], source: p.source || "arXiv", image_url: p.image_url,
             ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
+            ...(isNcPreprint(p) ? { license: p.license } : {}),
           });
         }
       }
@@ -233,7 +236,7 @@ export async function GET(req: NextRequest) {
           applyPaperVisibility(
             supabase
               .from("papers")
-              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, image_url")
+              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, license, image_url")
           )
         )
       ).order("published_at", { ascending: false });
@@ -289,6 +292,7 @@ export async function GET(req: NextRequest) {
           source: p.source || "arXiv",
           image_url: p.image_url,
           ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
+          ...(isNcPreprint(p) ? { license: p.license } : {}),
         });
       }
     }

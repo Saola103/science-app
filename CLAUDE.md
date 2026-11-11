@@ -9,6 +9,7 @@ TikTok スタイルの縦スクロールで最新科学論文・ニュースを�
 - `lib/pipeline/collect.ts` — 収集パイプライン本体。arXiv / bioRxiv / RSS ニュースを取得し、Groq (LLaMA-3.3-70B) で「やさしく／くわしく」の2種類の日本語要約を生成、embedding を作って Supabase に upsert する。ニュースは仕様上「やさしく」1種類のみ生成し `summary_expert` を持たない（`lib/proto/mapArticle.ts`の`isDuplicateSummaryPair()`はこれを重複ではなく正常な単一パネル記事として扱う — 2026-09-23 の重複判定修正がここを誤判定してニュースを全画面から消していたリグレッションを2026-09-24 に修正済み）。
 - `lib/sources/` — 各データソース（arxiv, biorxiv, news/rss, pubmed）のフェッチャー。PubMed は著作権リスクのため収集パイプラインからは除外済み（コメント参照）。
   2026-11 追加: `openAccess.ts`（Europe PMC / Crossref(Frontiers for Young Minds) / PLOS Author Summary。ライセンス完全一致の CC BY のみ、`papers.license` には取り込み時に検証済みの `cc_by` を保存）と、RSS の ESO・ESA/Webb・ESA/Hubble（CC BY 4.0）。許可リストの単一の真実は `policy.ts`（SQL側は migration 014）。新ソースの1回あたり件数・当日Groq使用量の上限は `lib/pipeline/openAccessBudget.ts`。
+  2026-11-12 追加: bioRxiv/medRxiv の `license` が `cc_by_nc`(CC BY-NC 単独・完全一致)の論文も表示対象(`PREPRINT_ALLOWED_LICENSES`、migration 015)。ND/SA系・補完値は非表示のまま。出典行に CC BY-NC・変更あり等を出す(`attributionFor(source, license)`)。**広告・課金・寄付・スポンサーを始める前に、先に `cc_by_nc` を許可リストと SQL から外すこと**(法務整備書 第7章)。
 - `lib/llm/` — Groq / Gemini 呼び出しのラッパーと要約プロンプト。プロンプトはLaTeX記法を使わないよう明示的に指示している（2026-09-24 追加）。
 - `lib/supabase/` — クライアント（anon key）とサーバー用クライアント（service role key）。RLS ポリシーは `supabase/migrations/`。
 - `app/feedapp/` + `components/proto/` — 現行のフィードUI（旧 `components/FeedCard.tsx` ベースの `/feed` ルートは削除済み）。`lib/format/summaryText.ts` 等の `stripMarkdown` 系関数は LLM 出力から Markdown 記法・LaTeX記法を除去してカードに表示するための処理。

@@ -53,7 +53,7 @@ export default function AboutPage() {
               </p>
               <ul className="space-y-4">
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
-                  情報ソース: 論文は arXiv、Europe PMC・Frontiers for Young Minds・PLOS のうち CC BY のライセンスのもの、bioRxiv/medRxiv のうち CC BY または CC0 のライセンスのもの、ニュースは公的機関（NASA・NSF・ESO・ESA/Webb・ESA/Hubble）の公開情報を対象としています。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと表現は弁護士確認後に確定 */}
+                  情報ソース: 論文は arXiv、Europe PMC・Frontiers for Young Minds・PLOS のうち CC BY のライセンスのもの、bioRxiv/medRxiv のうち CC BY・CC0・CC BY-NC のライセンスのもの、ニュースは公的機関（NASA・NSF・ESO・ESA/Webb・ESA/Hubble）の公開情報を対象としています。各情報源の利用条件に従うよう努めています。CC BY-NC の論文は、広告・課金・寄付のない非営利運営の範囲でのみ掲載しています。{/* 要確認: 情報源の最終リストと表現は弁護士確認後に確定 */}
                 </li>
                 <li className="p-6 bg-slate-50 rounded-2xl border border-slate-100 text-sm font-bold text-slate-700 leading-relaxed">
                   知的財産権の尊重: AIによる要約生成においては、元の著作物の表現をそのまま写さず、事実関係を再構成するよう努めています。AIによる要約には誤りが含まれることがあるため、必ず原文もご確認ください。

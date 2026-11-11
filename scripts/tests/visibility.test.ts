@@ -12,7 +12,10 @@ import { applyNewsVisibility, applyPaperVisibility, fetchVisibleItemsByIds } fro
 assert.equal(isPaperDisplayable({ source: "arXiv" }), true);
 assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by" }), true);
 assert.equal(isPaperDisplayable({ source: "medRxiv", license: "cc0" }), true);
-assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc" }), false);
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc" }), true); // 2026-11-12 CC BY-NC 単独は表示(法務整備書 第7章)
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nc_nd" }), false);
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "cc_by_nd" }), false);
+assert.equal(isPaperDisplayable({ source: "bioRxiv", license: "CC BY" }), false); // 補完値は非表示のまま
 assert.equal(isPaperDisplayable({ source: "bioRxiv", license: null }), false);
 assert.equal(isPaperDisplayable({ source: "biorxiv", license: "cc_by_nc" }), false); // 小文字
 assert.equal(isPaperDisplayable({ source: "biorxiv", license: "cc_by" }), false); // SQL(完全一致)と揃える
@@ -60,6 +63,7 @@ function fakeClient(rows: Record<string, any[]>, log: string[]) {
       papers: [
         { id: "p1", source: "arXiv", license: null, title: "ok" },
         { id: "p2", source: "bioRxiv", license: "cc_by_nc", title: "nc" },
+        { id: "p5", source: "bioRxiv", license: "cc_by_nc_nd", title: "nc-nd" },
         { id: "p3", source: "PubMed", license: null, title: "pm" },
         { id: "p4", source: "medRxiv", license: "cc_by", title: "med" },
       ],
@@ -71,9 +75,10 @@ function fakeClient(rows: Record<string, any[]>, log: string[]) {
     },
     log
   );
-  const items = await fetchVisibleItemsByIds(client, "public", ["p1", "p2", "p3", "p4"], ["n1", "n2", "n3"]);
-  assert.deepEqual(items.map((i) => i.id).sort(), ["n1", "p1", "p4"]);
-  assert.ok(items.every((i) => !("license" in i)));
+  const items = await fetchVisibleItemsByIds(client, "public", ["p1", "p2", "p3", "p4", "p5"], ["n1", "n2", "n3"]);
+  assert.deepEqual(items.map((i) => i.id).sort(), ["n1", "p1", "p2", "p4"]);
+  // license は NC の論文だけ残る(出典行の帰属表示用)。それ以外は従来どおり返さない
+  assert.deepEqual(items.filter((i) => "license" in i).map((i) => [i.id, i.license]), [["p2", "cc_by_nc"]]);
   assert.equal(items.find((i) => i.id === "n1").source, "NASA");
   assert.ok(log.includes("papers:or") && log.some((l) => l.startsWith("news:in:source_name")));
   assert.ok(log.every((l) => !/news:select:.*\bsource\b(?!_)/.test(l.replace("source_name", ""))), "news select must use source_name");

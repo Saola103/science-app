@@ -5,7 +5,7 @@
  * 基準そのものは lib/sources/policy.ts にある。
  */
 
-import { NEWS_ALLOWED_SOURCES, PAPER_VISIBILITY_OR, isAllowedNewsSource, isPaperDisplayable } from "./policy";
+import { NEWS_ALLOWED_SOURCES, PAPER_VISIBILITY_OR, isAllowedNewsSource, isNcPreprint, isPaperDisplayable } from "./policy";
 
 /** papers のクエリに可視性条件(許可リスト+ライセンス)を付ける。 */
 export function applyPaperVisibility<T>(query: T): T {
@@ -24,7 +24,7 @@ const NEWS_COLUMNS = "id, title, summary_general, category, published_at, url, s
 /**
  * いいね/保存履歴のID群から、表示してよい記事だけを返す。
  * SQL側の条件に加え、取得後も isPaperDisplayable / isAllowedNewsSource で二重に絞る。
- * license は判定にだけ使い、返却には含めない。
+ * license は判定にだけ使い、返却には含めない(ただし CC BY-NC の論文だけは出典行の帰属表示用に license を残す)。
  */
 export async function fetchVisibleItemsByIds(
   supabase: any,
@@ -40,8 +40,8 @@ export async function fetchVisibleItemsByIds(
     );
     for (const p of (papers ?? []) as any[]) {
       if (!isPaperDisplayable(p)) continue;
-      const { license: _license, ...rest } = p;
-      results.push({ ...rest, type: "paper" });
+      const { license, ...rest } = p;
+      results.push({ ...rest, type: "paper", ...(isNcPreprint(p) ? { license } : {}) });
     }
   }
 

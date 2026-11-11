@@ -29,7 +29,8 @@ export default function TermsPage() {
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">5. 出典と権利</h2>
-                    <p>本サービスは、論文（arXiv、Europe PMC・Frontiers for Young Minds・PLOSのうちCC BYのライセンスのもの、およびbioRxiv/medRxivのうちCC BYまたはCC0のライセンスのもの）と、公的機関（NASA・NSF・ESO・ESA/Webb・ESA/Hubble）が公開するニュースの内容を、AIで日本語に要約して紹介します。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと、要約の法的整理(著作権法30条の4・47条の5・32条・27条等)は専門家確認。「引用として適法」とは断定しない */}</p>
+                    <p>本サービスは、論文（arXiv、Europe PMC・Frontiers for Young Minds・PLOSのうちCC BYのライセンスのもの、およびbioRxiv/medRxivのうちCC BY・CC0・CC BY-NCのライセンスのもの）と、公的機関（NASA・NSF・ESO・ESA/Webb・ESA/Hubble）が公開するニュースの内容を、AIで日本語に要約して紹介します。各情報源の利用条件に従うよう努めています。{/* 要確認: 情報源の最終リストと、要約の法的整理(著作権法30条の4・47条の5・32条・27条等)は専門家確認。「引用として適法」とは断定しない */}</p>
+                    <p>一部の論文は著者が選んだCC BY-NCライセンスで公開されており、本サービスは非営利の範囲でのみ、出典とライセンスを表示して要約を掲載します。広告・課金・寄付などを導入する場合は、これらの論文の掲載を先に停止します。</p>
                     <p>紹介する論文・記事の著作権その他の権利は、それぞれの著者・出版元・配信元に帰属します。各記事には出典名と原文へのリンクを表示しています。要約は元の著作物の代わりになるものではありません。全文は原文でお読みください。</p>
                 </section>
                 <section>

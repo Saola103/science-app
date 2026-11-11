@@ -16,6 +16,7 @@ export type FeedApiItem = {
   url?: string | null;
   source?: string | null;
   journal?: string | null; // Europe PMC 経由の論文のみ(出典行用)
+  license?: string | null; // bioRxiv/medRxiv の CC BY-NC 論文のみ(帰属表示用)
   authors?: string[] | null;
   image_url?: string | null;
 };
@@ -305,7 +306,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
       { label: "分野", text: category },
     ],
     source: sourceLabel,
-    attribution: attributionFor(item.source) ?? undefined,
+    attribution: attributionFor(item.source, item.license) ?? undefined,
     author: formatAuthors(item.authors, item.source, item.type),
     publishedAt,
     easyExplanation,

@@ -1,5 +1,7 @@
 /**
  * migration 014 の厳密テスト(R2-01)。実行: npx tsx scripts/tests/migration014.test.ts
+ *  - 014 は「適用済み(または適用予定)の履歴」なので、bioRxiv/medRxiv のライセンス許可値は 014 当時の値に固定(PINNED_014_PREPRINT_LICENSES)。
+ *    現行ルール(policy.ts)との一致は migration015.test.ts が検証する(015 が 014 の papers_public_read を置き換える)。
  *  - 014 の全 SQL 文を「許可リスト」と完全一致で比較(policy.ts の定数から生成した文字列)。
  *    想定外の文・改変(OR true / OR source='PubMed' / REVOKE 削除 / ALTER FUNCTION 削除)は失敗する。
  *  - SQL の USING と PAPER_VISIBILITY_OR を、表記ゆれを含む source × license の総当たりで評価して一致を確認。
@@ -13,12 +15,14 @@ import {
   LICENSE_CHECKED_PAPER_SOURCES,
   OPEN_ACCESS_PAPER_SOURCES,
   OPEN_ACCESS_ALLOWED_LICENSES,
-  PREPRINT_ALLOWED_LICENSES,
-  PAPER_VISIBILITY_OR,
 } from "../../lib/sources/policy";
 
-const norm = (s: string) => s.replace(/\s+/g, " ").replace(/\( /g, "(").replace(/ \)/g, ")").trim();
-const q = (xs: readonly string[]) => xs.map((x) => `'${x}'`).join(", ");
+import { q, splitStatements, evalSqlUsing, evalPostgrest } from "./helpers/migrationSql";
+
+/** 014 当時の PREPRINT_ALLOWED_LICENSES(固定。policy.ts が変わってもここは変えない) */
+const PINNED_014_PREPRINT_LICENSES = ["cc_by", "cc0", "cc0_ng"] as const;
+/** 014 当時の PAPER_VISIBILITY_OR(アプリ側条件)。policy.ts と同じ組み立てで、ライセンスだけ固定値 */
+const PAPER_VISIBILITY_OR_014 = `source.eq.arXiv,and(source.in.(${LICENSE_CHECKED_PAPER_SOURCES.join(",")}),license.in.(${PINNED_014_PREPRINT_LICENSES.join(",")})),and(source.in.(${OPEN_ACCESS_PAPER_SOURCES.join(",")}),license.in.(${OPEN_ACCESS_ALLOWED_LICENSES.join(",")}))`;
 
 // ── policy.ts から期待文字列を生成 ───────────────────────────────────────────
 const ARXIV = PAPER_ALLOWED_SOURCES.filter(
@@ -27,7 +31,7 @@ const ARXIV = PAPER_ALLOWED_SOURCES.filter(
 assert.deepEqual([...ARXIV], ["arXiv"]);
 export const PAPERS_USING =
   `source = ${q(ARXIV)} ` +
-  `OR (source IN (${q(LICENSE_CHECKED_PAPER_SOURCES)}) AND license IN (${q(PREPRINT_ALLOWED_LICENSES)})) ` +
+  `OR (source IN (${q(LICENSE_CHECKED_PAPER_SOURCES)}) AND license IN (${q(PINNED_014_PREPRINT_LICENSES)})) ` +
   `OR (source IN (${q(OPEN_ACCESS_PAPER_SOURCES)}) AND license IN (${q(OPEN_ACCESS_ALLOWED_LICENSES)}))`;
 export const NEWS_USING = `source_name IN (${q(NEWS_ALLOWED_SOURCES)})`;
 
@@ -53,31 +57,6 @@ export const EXPECTED_STATEMENTS: string[] = [
   "ALTER FUNCTION public.increment_api_daily_usage(date, text, bigint) SET search_path = public, pg_temp",
 ];
 
-/** コメント(-- ...)を除き、$$ ... $$ を考慮して ; で文に分割し、正規化して返す */
-export function splitStatements(sql: string): string[] {
-  const code = sql.replace(/--[^\n]*/g, "");
-  const out: string[] = [];
-  let cur = "";
-  let inDollar = false;
-  for (let i = 0; i < code.length; i++) {
-    if (code.startsWith("$$", i)) {
-      inDollar = !inDollar;
-      cur += "$$";
-      i++;
-      continue;
-    }
-    if (code[i] === ";" && !inDollar) {
-      if (norm(cur)) out.push(norm(cur));
-      cur = "";
-      continue;
-    }
-    cur += code[i];
-  }
-  assert.ok(!inDollar, "unterminated $$ block");
-  if (norm(cur)) out.push(norm(cur));
-  return out;
-}
-
 /** 014 の検査。問題があれば throw する */
 export function checkMigration(sql: string): void {
   const stmts = splitStatements(sql);
@@ -88,71 +67,6 @@ export function checkMigration(sql: string): void {
   assert.ok(!/\bGRANT\b/.test(sql.split("-- ROLLBACK")[0].replace(/--[^\n]*/g, "")), "実行文に GRANT がある");
 }
 
-// ── SQL 式と PostgREST 条件の評価器(総当たり用) ──────────────────────────────
-type Row = { source: string | null; license: string | null };
-type Tri = boolean | null;
-
-function evalSqlUsing(expr: string, row: Row): Tri {
-  const toks = [...expr.matchAll(/'([^']*)'|([A-Za-z_]+)|(=|\(|\)|,)/g)].map((m) => (m[1] !== undefined ? { s: m[1] } : { t: (m[2] ?? m[3]) }));
-  let i = 0;
-  const peek = () => toks[i] as { s?: string; t?: string } | undefined;
-  const isT = (v: string) => peek()?.t?.toUpperCase() === v;
-  const take = (v: string) => { assert.ok(isT(v), `expected ${v} at ${i}`); i++; };
-  const col = (c: string) => (row as Record<string, string | null>)[c];
-  const or = (): Tri => {
-    let v = and();
-    while (isT("OR")) { i++; const r = and(); v = v === true || r === true ? true : v === null || r === null ? null : false; }
-    return v;
-  };
-  const and = (): Tri => {
-    let v = atom();
-    while (isT("AND")) { i++; const r = atom(); v = v === false || r === false ? false : v === null || r === null ? null : true; }
-    return v;
-  };
-  const atom = (): Tri => {
-    if (isT("(")) { i++; const v = or(); take(")"); return v; }
-    const name = peek()!.t!; i++;
-    const c = col(name);
-    if (isT("=")) { i++; const lit = peek()!.s!; i++; return c == null ? null : c === lit; }
-    if (isT("IN")) {
-      i++; take("(");
-      const vals: string[] = [];
-      while (!isT(")")) { vals.push(peek()!.s!); i++; if (isT(",")) i++; }
-      take(")");
-      return c == null ? null : vals.includes(c);
-    }
-    throw new Error("unsupported SQL expr at token " + i);
-  };
-  const v = or();
-  assert.equal(i, toks.length, "trailing tokens in SQL expr");
-  return v;
-}
-
-function splitTop(s: string): string[] {
-  const out: string[] = []; let d = 0, cur = "";
-  for (const ch of s) {
-    if (ch === "(") d++;
-    if (ch === ")") d--;
-    if (ch === "," && d === 0) { out.push(cur); cur = ""; } else cur += ch;
-  }
-  out.push(cur);
-  return out;
-}
-/** トップレベルのカンマ = OR(PostgREST の or=(...) と同じ) */
-function evalPostgrest(or: string, row: Row): boolean {
-  const term = (t: string): boolean => {
-    let m = t.match(/^and\(([\s\S]*)\)$/);
-    if (m) return splitTop(m[1]).every(term);
-    m = t.match(/^or\(([\s\S]*)\)$/);
-    if (m) return splitTop(m[1]).some(term);
-    m = t.match(/^(\w+)\.eq\.([\s\S]*)$/);
-    if (m) { const c = (row as Record<string, string | null>)[m[1]]; return c != null && c === m[2]; }
-    m = t.match(/^(\w+)\.in\.\(([\s\S]*)\)$/);
-    if (m) { const c = (row as Record<string, string | null>)[m[1]]; return c != null && m[2].split(",").includes(c); }
-    throw new Error("unsupported PostgREST term: " + t);
-  };
-  return splitTop(or).some(term);
-}
 
 function bruteForce(sql: string): number {
   const stmts = splitStatements(sql);
@@ -164,13 +78,13 @@ function bruteForce(sql: string): number {
     return [...set];
   };
   const sources = variants(PAPER_ALLOWED_SOURCES);
-  const licenses = variants([...PREPRINT_ALLOWED_LICENSES, ...OPEN_ACCESS_ALLOWED_LICENSES]);
+  const licenses = variants([...PINNED_014_PREPRINT_LICENSES, ...OPEN_ACCESS_ALLOWED_LICENSES]);
   let n = 0;
   for (const source of sources) for (const license of licenses) {
     const row = { source, license };
     const a = evalSqlUsing(using, row) === true;
-    const b = evalPostgrest(PAPER_VISIBILITY_OR, row);
-    assert.equal(a, b, `SQL と PAPER_VISIBILITY_OR が不一致: ${JSON.stringify(row)} sql=${a} app=${b}`);
+    const b = evalPostgrest(PAPER_VISIBILITY_OR_014, row);
+    assert.equal(a, b, `SQL と PAPER_VISIBILITY_OR_014 が不一致: ${JSON.stringify(row)} sql=${a} app=${b}`);
     n++;
   }
   return n;
