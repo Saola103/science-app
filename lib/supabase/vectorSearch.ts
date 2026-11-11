@@ -115,46 +115,6 @@ export async function searchPapersByVector(
   return ((data || []) as VectorSearchResult[]).filter(isPaperDisplayable);
 }
 
-/**
- * Find papers similar to a given paper by its ID.
- * Useful for "related papers" recommendations.
- */
-export async function findSimilarPapers(
-  paperId: string,
-  matchCount: number = 5,
-  matchThreshold: number = 0.4
-): Promise<VectorSearchResult[]> {
-  const supabase = getSupabaseServerClient();
-
-  // 1. Get the paper's embedding
-  const { data: paper, error: fetchErr } = await supabase
-    .from("papers")
-    .select("summary_embedding")
-    .eq("id", paperId)
-    .single();
-
-  if (fetchErr || !paper?.summary_embedding) {
-    console.error("[findSimilarPapers] Could not find embedding for paper:", paperId);
-    return [];
-  }
-
-  // 2. Use the embedding to find similar papers
-  const { data, error } = await supabase.rpc("match_papers", {
-    query_embedding: paper.summary_embedding,
-    match_threshold: matchThreshold,
-    match_count: matchCount + 1, // +1 because the paper itself will match
-  });
-
-  if (error) {
-    console.error("[findSimilarPapers] RPC failed:", error.message);
-    return [];
-  }
-
-  // Filter out the source paper itself
-  // G4: bioRxiv/medRxiv は CC BY/CC0 のみ
-  return ((data || []) as VectorSearchResult[]).filter((p) => p.id !== paperId && isPaperDisplayable(p));
-}
-
 const KEYWORD_STOPWORDS = new Set([
   "the", "of", "and", "or", "in", "on", "for", "to", "a", "an", "is", "are", "by", "with", "from", "about", "how", "what", "why",
 ]);
