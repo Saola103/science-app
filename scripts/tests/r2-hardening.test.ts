@@ -15,7 +15,6 @@ import { buildNewsPrompt, buildCasualPrompt, buildExpertPrompt, fillTemplate, PA
 import { getTag, iterateItems, sanitizeLink, normalizePublishedAt, toExcerpt, RSS_TITLE_MAX_CHARS } from "../../lib/sources/rss";
 import { extractAuthorSummary, cleanText, toPublishedAt, parseEpmcRecord } from "../../lib/sources/openAccess";
 import { fetchTextBounded, FetchLimitError, resolveRedirect, isSameSite } from "../../lib/http/boundedFetch";
-import { allocateSummaries, MAX_DEEP_SUMMARIES } from "../../lib/llm/publicBudget";
 import { isPastDeadline, NEW_SOURCES_DEADLINE_MS } from "../../lib/pipeline/openAccessBudget";
 
 const ROOT = new URL("../../", import.meta.url).pathname;
@@ -121,19 +120,8 @@ assert.equal(resolveRedirect(new URL("https://a.nasa.gov/x"), "http://a.nasa.gov
 assert.equal(resolveRedirect(new URL("https://a.nasa.gov/x"), "https://evil.example/y"), null);
 assert.equal(resolveRedirect(new URL("https://a.nasa.gov/x"), "https://b.nasa.gov/y")?.hostname, "b.nasa.gov");
 
-// ── R2-08: deep 検索の要約件数 / 締切 ───────────────────────────────────────
+// ── R2-08: 収集の締切(deep検索は削除済み) ────────────────────────────────
 {
-  const papers = [
-    { abstract: "a" }, { abstract: "b", summary: "s" }, { abstract: "c" }, { abstract: "d" }, { abstract: "e" }, { abstract: "f" }, { title: "no abstract" },
-  ];
-  const a = allocateSummaries(papers, MAX_DEEP_SUMMARIES, false);
-  assert.equal(MAX_DEEP_SUMMARIES, 3);
-  assert.deepEqual(a, [true, false, true, true, false, false, false]);
-  assert.equal(a.filter(Boolean).length, 3);
-  assert.deepEqual(allocateSummaries(papers, 3, true), papers.map(() => false)); // 再確認で枠切れ → 1件も要約しない
-  assert.deepEqual(allocateSummaries([{ summary_general: "x", abstract: "a" }], 3, false), [false]);
-  const route = readFileSync(path.join(ROOT, "app/api/search/route.ts"), "utf8");
-  assert.ok(/checkPublicBudget\(\{ groq: true \}\)[\s\S]*allocateSummaries/.test(route), "deep の要約前に予算を再確認していない");
   const collect = readFileSync(path.join(ROOT, "lib/pipeline/collect.ts"), "utf8");
   const fetchIdx = collect.indexOf("fetchEuropePmcJournalPapers(),");
   assert.ok(collect.lastIndexOf("isPastDeadline(startedAt)", fetchIdx) > collect.indexOf("export async function collectOpenAccessPapers"), "取得前の締切判定がない");

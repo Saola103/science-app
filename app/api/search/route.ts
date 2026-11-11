@@ -1,26 +1,24 @@
 
 import { NextRequest, NextResponse } from "next/server";
-import { fetchArxivOpenAccessPapers, ArxivOpenAccessPaper } from "../../../lib/sources/arxiv";
+import { fetchArxivOpenAccessPapers } from "../../../lib/sources/arxiv";
 import { fetchPubMedPapers } from "../../../lib/sources/pubmed";
 import { summarize } from "../../../lib/llm/summarize";
 import { generateText, isQueryEmbeddingEnabled } from "../../../lib/llm/index";
-import { searchPapersForQuery, hybridSearch } from "../../../lib/supabase/vectorSearch";
+import { hybridSearch } from "../../../lib/supabase/vectorSearch";
 import { checkRateLimit, getClientIp } from "../../../lib/rateLimit";
 import { readJsonLimited } from "../../../lib/api/readJson";
-import { BUDGET_EXCEEDED_MESSAGE, MAX_DEEP_SUMMARIES, allocateSummaries, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
+import { BUDGET_EXCEEDED_MESSAGE, checkPublicBudget, runInPublicScope } from "../../../lib/llm/publicBudget";
 
 // タイムアウト設定（VercelのHobbyプランだと10秒制限があるが、Proなら長い。一応長めに）
 export const maxDuration = 60;
 
 const MAX_QUERY_LENGTH = 300;
-const MAX_HISTORY = 10;
 
 type SearchRequest = {
-  mode: "keyword" | "deep" | "drill";
+  mode: "keyword";
   query?: string;
   timeRange?: "all" | "6mo" | "1yr" | "5yr" | "10yr";
   format?: "title" | "summary" | "abstract";
-  history?: { role: "user" | "assistant"; content: string }[];
   source?: "all" | "arxiv" | "pubmed";
 };
 
@@ -43,16 +41,13 @@ export async function POST(req: NextRequest) {
     }
     const body = (parsed.body ?? {}) as Record<string, unknown>;
 
-    // Input validation: whitelist enums, require string query / well-formed history.
+    // Input validation: whitelist enums, require string query.
     const mode = body.mode;
-    if (mode !== "keyword" && mode !== "deep" && mode !== "drill") {
+    if (mode !== "keyword") {
       return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
     }
     if (body.query !== undefined && typeof body.query !== "string") {
       return NextResponse.json({ error: "query must be a string" }, { status: 400 });
-    }
-    if (body.history !== undefined && !Array.isArray(body.history)) {
-      return NextResponse.json({ error: "history must be an array" }, { status: 400 });
     }
     const pick = <T extends string>(v: unknown, allowed: readonly T[]): T | undefined =>
       typeof v === "string" && (allowed as readonly string[]).includes(v) ? (v as T) : undefined;
@@ -60,23 +55,11 @@ export async function POST(req: NextRequest) {
     const format = pick(body.format, ["title", "summary", "abstract"] as const);
     const source = pick(body.source, ["all", "arxiv", "pubmed"] as const) ?? "all";
     const query = typeof body.query === "string" ? body.query.slice(0, MAX_QUERY_LENGTH) : undefined;
-    let history: { role: "user" | "assistant"; content: string }[] | undefined;
-    if (Array.isArray(body.history)) {
-      history = [];
-      for (const h of body.history.slice(-MAX_HISTORY)) {
-        if (!h || (h.role !== "user" && h.role !== "assistant") || typeof h.content !== "string") {
-          return NextResponse.json({ error: "invalid history item" }, { status: 400 });
-        }
-        history.push({ role: h.role, content: h.content.slice(0, MAX_QUERY_LENGTH) });
-      }
-    }
-
     // Daily budget guard (see lib/llm/publicBudget.ts). Only requests that will
     // actually call Groq are blocked when the public Groq share is spent:
-    // deep mode, summary format, or a non-ASCII query (gets translated by Groq).
+    // summary format, or a non-ASCII query (gets translated by Groq).
     // Over-budget embeddings just degrade vector search to keyword search.
     const needsGroq =
-      mode === "deep" ||
       format === "summary" ||
       (typeof query === "string" && /[^\x00-\x7F]/.test(query));
     const budget = await checkPublicBudget({ groq: needsGroq });
@@ -84,7 +67,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: BUDGET_EXCEEDED_MESSAGE }, { status: 429 });
     }
     return await runInPublicScope({ embedBlocked: budget.embedBlocked }, () =>
-      handleSearch(mode, query, history, timeRange, format, source)
+      handleSearch(query, timeRange, format, source)
     );
   } catch (error) {
     console.error("Search API Error:", error);
@@ -93,16 +76,14 @@ export async function POST(req: NextRequest) {
 }
 
 async function handleSearch(
-  mode: "keyword" | "deep" | "drill",
   query: string | undefined,
-  history: { role: "user" | "assistant"; content: string }[] | undefined,
   timeRange: SearchRequest["timeRange"],
   format: SearchRequest["format"],
   source: "all" | "arxiv" | "pubmed"
 ): Promise<NextResponse> {
   try {
-    // --- Mode A: Keyword Search & Mode C: Drill-down ---
-    if (mode === "keyword" || mode === "drill") {
+    // --- Keyword Search ---
+    {
       if (!query) {
         return NextResponse.json({ error: "Query is required" }, { status: 400 });
       }
@@ -202,113 +183,6 @@ async function handleSearch(
 
       return NextResponse.json({ papers: papersToReturn, searchMethod: "hybrid" });
     }
-
-    // --- Mode B: Deep Search (Conversational) ---
-    if (mode === "deep") {
-      const lastUserMessage = history?.[history.length - 1]?.content || query;
-
-      const contextPrompt = `
-あなたは科学論文検索アシスタントです。
-ユーザーとの会話履歴:
-${history?.map(h => `${h.role}: ${h.content}`).join("\n") || "なし"}
-
-ユーザーの最新の発言: "${lastUserMessage}"
-
-タスク:
-ユーザーの意図を理解し、以下のJSON形式で応答してください。
-1. まだユーザーの意図が曖昧で、具体的な分野やキーワードを絞り込むための質問が必要な場合:
-{
-  "action": "question",
-  "text": "ユーザーへの深掘り質問（日本語）"
-}
-
-2. 検索条件が十分に固まった場合、arXiv検索用のクエリを生成してください:
-{
-  "action": "search",
-  "query": "arXiv API query (e.g. 'cat:cs.AI AND ti:transformer')",
-  "pubmedQuery": "PubMed search query (e.g. 'machine learning AND protein')",
-  "text": "検索を実行します。（ユーザーへの報告メッセージ）"
-}
-`;
-
-      const aiResponseRaw = await generateText(contextPrompt);
-      let aiResponse;
-      try {
-          const jsonMatch = aiResponseRaw.match(/\{[\s\S]*\}/);
-          if (jsonMatch) {
-              aiResponse = JSON.parse(jsonMatch[0]);
-          } else {
-              throw new Error("No JSON found");
-          }
-      } catch (e) {
-          return NextResponse.json({
-              message: aiResponseRaw,
-              action: "question"
-          });
-      }
-
-      if (aiResponse.action === "search") {
-          // Search arXiv, PubMed, and vector DB in parallel
-          const [arxivPapers, pubmedPapers, vectorPapers] = await Promise.allSettled([
-            fetchArxivOpenAccessPapers(aiResponse.query, 5, "relevance"),
-            aiResponse.pubmedQuery
-              ? fetchPubMedPapers(aiResponse.pubmedQuery, 5, "relevance")
-              : Promise.resolve([]),
-            searchPapersForQuery(lastUserMessage || "", 5, 0.3).catch(() => []),
-          ]);
-
-          // Merge results
-          const allPapers: any[] = [];
-          if (arxivPapers.status === "fulfilled") allPapers.push(...arxivPapers.value);
-          if (pubmedPapers.status === "fulfilled") {
-            allPapers.push(...pubmedPapers.value.map(p => ({
-              id: p.id, title: p.title, abstract: p.abstract,
-              authors: p.authors, publishedAt: p.publishedAt,
-              url: p.url, source: "PubMed",
-            })));
-          }
-          if (vectorPapers.status === "fulfilled") {
-            // Add vector results that aren't already present
-            const existingIds = new Set(allPapers.map(p => p.title?.toLowerCase().slice(0, 60)));
-            for (const p of vectorPapers.value) {
-              const key = p.title?.toLowerCase().slice(0, 60);
-              if (!existingIds.has(key)) {
-                allPapers.push(p);
-                existingIds.add(key);
-              }
-            }
-          }
-
-          // Summarize top results
-          const topPapers = allPapers.slice(0, 8);
-          // R2-08: 要約(Groq)の直前に公開枠を再確認し、1リクエストで新規に要約する件数も上限(MAX_DEEP_SUMMARIES)にする
-          const recheck = await checkPublicBudget({ groq: true });
-          const doSummarize = allocateSummaries(topPapers, MAX_DEEP_SUMMARIES, recheck.blocked);
-          const summarizedPapers = await Promise.all(topPapers.map(async (p, idx) => {
-              if (p.summary_general || p.summary) return p;
-              if (p.abstract && doSummarize[idx]) {
-                  try {
-                    const s = await summarize(p.abstract, { maxLength: 200, tone: "casual" });
-                    return { ...p, summary: s };
-                  } catch { return p; }
-              }
-              return p;
-          }));
-
-          return NextResponse.json({
-              message: aiResponse.text,
-              action: "search",
-              papers: summarizedPapers
-          });
-      } else {
-          return NextResponse.json({
-              message: aiResponse.text,
-              action: "question"
-          });
-      }
-    }
-
-    return NextResponse.json({ error: "Invalid mode" }, { status: 400 });
 
   } catch (error) {
     console.error("Search API Error:", error);

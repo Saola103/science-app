@@ -36,30 +36,6 @@ export const PUBLIC_LIMITS: Record<Bucket, number> = {
   gemini_embed_public: Math.floor(GEMINI_EMBED_DAILY_CAP * 0.6), // 600; cron keeps >= 400
 };
 
-/**
- * 公開の deep 検索で、1リクエストあたりAI要約を新規生成する論文の最大数(R2-08)。
- * 以前は最大8件を並列に要約でき、予算確認は開始時の1回だけだったため、少ない検索回数で公開枠を使い切れた。
- */
-export const MAX_DEEP_SUMMARIES = 3;
-
-/**
- * 要約が必要な論文(summary_general/summary が無く abstract がある)のうち、先頭から max 件だけ true を返す。
- * budgetBlocked が true(要約直前の再確認で公開枠が尽きていた)なら全て false。
- */
-export function allocateSummaries(
-  papers: { summary?: unknown; summary_general?: unknown; abstract?: unknown }[],
-  max: number,
-  budgetBlocked: boolean
-): boolean[] {
-  let left = budgetBlocked ? 0 : max;
-  return papers.map((p) => {
-    if (p.summary_general || p.summary || !p.abstract) return false;
-    if (left <= 0) return false;
-    left--;
-    return true;
-  });
-}
-
 export const BUDGET_EXCEEDED_MESSAGE =
   "本日のAI機能の利用上限に達しました。明日（日本時間の朝9時ごろ）にまたお試しください。論文のフィードは引き続きご利用いただけます。";
 

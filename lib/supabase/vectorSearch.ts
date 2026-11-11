@@ -220,19 +220,6 @@ export async function keywordSearchPapers(
 }
 
 /**
- * Query-driven paper search used by public routes: semantic (vector) search
- * only when ENABLE_QUERY_EMBEDDING=true, otherwise keyword search.
- */
-export async function searchPapersForQuery(
-  query: string,
-  matchCount: number = 5,
-  matchThreshold: number = 0.3
-): Promise<VectorSearchResult[]> {
-  if (isQueryEmbeddingEnabled()) return searchPapersByVector(query, matchCount, matchThreshold);
-  return keywordSearchPapers(query, matchCount);
-}
-
-/**
  * Hybrid search: combine keyword results with vector similarity.
  * With ENABLE_QUERY_EMBEDDING off (default) this is keyword-only and never
  * contacts the embedding API.
