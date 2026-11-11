@@ -111,6 +111,12 @@ assert.equal(parseEpmcRecord({ ...baseEpmc, abstractText: "short" }, "epmc_journ
 assert.equal(parseEpmcRecord({ ...baseEpmc, title: "Correction: A good paper" }, "epmc_journals"), null);
 assert.equal(parseEpmcRecord({ ...baseEpmc, pubTypeList: { pubType: ["Published Erratum"] } }, "epmc_journals"), null);
 assert.equal(parseEpmcRecord({ ...baseEpmc, pubTypeList: { pubType: ["Comment", "Editorial"] } }, "epmc_journals"), null);
+// 固定語(意識・麻酔・睡眠)検索だけ症例報告を除外。誌名リスト検索は対象外
+const caseReport = { ...baseEpmc, pubTypeList: { pubType: ["Journal Article", "Case Reports"] } };
+assert.equal(parseEpmcRecord(caseReport, "epmc_topics"), null);
+assert.ok(parseEpmcRecord(caseReport, "epmc_journals"));
+assert.ok(buildTopicsQuery(14, new Date("2026-11-10T00:00:00Z")).includes('AND NOT PUB_TYPE:"Case Reports"'));
+assert.ok(!buildJournalsQuery(14, new Date("2026-11-10T00:00:00Z")).includes("Case Reports"));
 assert.equal(isCorrectionLike("Erratum to: x", undefined), true);
 assert.equal(isCorrectionLike("Retraction notice: x", undefined), true);
 assert.equal(isCorrectionLike("Corrections in the cortex", undefined), false);

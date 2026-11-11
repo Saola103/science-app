@@ -93,6 +93,11 @@ export function cleanText(raw: string | null | undefined): string {
 const CORRECTION_TITLE = /^\s*(correction|corrigendum|erratum|retraction|retracted|expression of concern|addendum)\b/i;
 const EXCLUDED_PUB_TYPES = ["published erratum", "correction", "retraction of publication", "retracted publication", "comment", "editorial", "news", "letter"];
 
+/** 症例報告(Case Reports)か。固定語検索(意識・麻酔・睡眠)で Cureus 等の症例報告が多く混ざるため除外する。 */
+export function isCaseReport(pubTypes: readonly string[] | undefined): boolean {
+  return (pubTypes ?? []).some((t) => /^case reports?$/i.test(t.trim()));
+}
+
 /** 訂正・撤回・コメント類か */
 export function isCorrectionLike(title: string, pubTypes: readonly string[] | undefined): boolean {
   if (CORRECTION_TITLE.test(title)) return true;
@@ -147,6 +152,7 @@ export function parseEpmcRecord(r: EpmcRecord, stream: "epmc_journals" | "epmc_t
   if (!pmcid || !/^PMC\d+$/.test(pmcid)) return null;
   const title = cleanText(r.title);
   if (!title || isCorrectionLike(title, r.pubTypeList?.pubType)) return null;
+  if (stream === "epmc_topics" && isCaseReport(r.pubTypeList?.pubType)) return null; // 固定語検索のみ症例報告を除外
   const abstract = cleanText(r.abstractText).slice(0, ABSTRACT_MAX_CHARS);
   if (abstract.length < ABSTRACT_MIN_CHARS) return null;
   const doi = r.doi && SAFE.test(r.doi) ? r.doi : null;
@@ -241,7 +247,7 @@ export function buildJournalsQuery(daysBack = 14, now = new Date()): string {
 }
 
 export function buildTopicsQuery(daysBack = 14, now = new Date()): string {
-  return `${baseEpmcQuery(daysBack, now)} AND ${orGroup("TITLE", TOPIC_TITLE_TERMS)} AND ${orGroup("ABSTRACT", NEURO_ABSTRACT_TERMS)}`;
+  return `${baseEpmcQuery(daysBack, now)} AND ${orGroup("TITLE", TOPIC_TITLE_TERMS)} AND ${orGroup("ABSTRACT", NEURO_ABSTRACT_TERMS)} AND NOT PUB_TYPE:"Case Reports"`;
 }
 
 export function buildPlosQuery(daysBack = 14, now = new Date()): string {
