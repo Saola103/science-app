@@ -10,7 +10,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
 import { applyNewsVisibility, applyPaperVisibility } from "../../../lib/sources/visibility";
 import { isNcPreprint } from "../../../lib/sources/policy";
-import { cachedPoolSize } from "../../../lib/api/poolSizeCache";
+import { cachedPoolSize, invalidatePoolSize } from "../../../lib/api/poolSizeCache";
 import { parseLimit, sanitizeCategory } from "../../../lib/api/params";
 import { buildKeywordOrFilter, tokenizeKeywordQuery } from "../../../lib/supabase/vectorSearch";
 
@@ -214,8 +214,8 @@ export async function GET(req: NextRequest) {
         if (table === "news") countQuery = applyNewsVisibility(countQuery);
         countQuery = withValidHeadline(countQuery);
         if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
-        const { count } = await countQuery;
-        return count;
+        const { count, error } = await countQuery;
+        return error ? null : count; // failed count: not cached (R3-02)
       });
       const maxOffset = Math.max(0, poolSize - half);
       return maxOffset > 0 ? Math.floor(Math.random() * (maxOffset + 1)) : 0;
@@ -229,7 +229,7 @@ export async function GET(req: NextRequest) {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const settle = (q: any): Promise<PromiseSettledResult<any>> => Promise.allSettled([q]).then((r) => r[0]);
 
-    const papersChain = (randomizeFirstPage ? randomOffset("papers", ["arXiv", "bioRxiv", "medRxiv"]) : Promise.resolve(0)).then((papersOffset) => {
+    const buildPapersQuery = (papersOffset: number) => {
       // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
       let papersQuery = withRewrittenPrompt(
         withValidHeadline(
@@ -249,10 +249,10 @@ export async function GET(req: NextRequest) {
       }
       if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
       if (q) papersQuery = papersQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "summary"]));
-      return settle(papersQuery);
-    });
+      return papersQuery;
+    };
 
-    const newsChain = (randomizeFirstPage ? randomOffset("news") : Promise.resolve(0)).then((newsOffset) => {
+    const buildNewsQuery = (newsOffset: number) => {
       // Fetch news too (also filtered by category/q when set, same as papers)
       let newsQuery = withValidHeadline(
         applyNewsVisibility(
@@ -270,8 +270,25 @@ export async function GET(req: NextRequest) {
       }
       if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
       if (q) newsQuery = newsQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "description"]));
-      return settle(newsQuery);
-    });
+      return newsQuery;
+    };
+
+    // A random window past the real end (stale pool size, e.g. right after a
+    // source was hidden) comes back empty: drop the cached size and retry once
+    // from offset 0. Same query, same visibility filters.
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    async function runStream(table: "papers" | "news", build: (offset: number) => any, sourceFilter?: string[]) {
+      const offset = randomizeFirstPage ? await randomOffset(table, sourceFilter) : 0;
+      const first = await settle(build(offset));
+      if (randomizeFirstPage && offset > 0 && first.status === "fulfilled" && !first.value.error && (first.value.data?.length ?? 0) === 0) {
+        invalidatePoolSize(table);
+        return settle(build(0));
+      }
+      return first;
+    }
+
+    const papersChain = runStream("papers", buildPapersQuery, ["arXiv", "bioRxiv", "medRxiv"]);
+    const newsChain = runStream("news", buildNewsQuery);
 
     const [papersResult, newsResult] = await Promise.all([papersChain, newsChain]);
 
