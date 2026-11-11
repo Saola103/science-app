@@ -11,6 +11,7 @@ import {
   isPaperDisplayable,
   isAllowedNewsSource,
   attributionFor,
+  sourceLabelWithJournal,
   sourceDisplayName,
 } from "../../lib/sources/policy";
 import {
@@ -62,6 +63,12 @@ assert.equal(isAllowedNewsSource("Phys.org"), false);
 // ── 3. 帰属表示(既存の出典行に足す文言のみ) ──────────────────────────────────
 assert.equal(attributionFor("NASA"), null);
 assert.equal(attributionFor("NSF"), null);
+// 出典行: Europe PMC 経由は元の雑誌名を添える。取れなければ従来どおり
+assert.equal(sourceLabelWithJournal("EuropePMC", "J Neurosci"), "J Neurosci(Europe PMC経由)");
+assert.equal(sourceLabelWithJournal("EuropePMC", ""), "Europe PMC");
+assert.equal(sourceLabelWithJournal("EuropePMC", null), "Europe PMC");
+assert.equal(sourceLabelWithJournal("arXiv", "Some Journal"), "arXiv");
+assert.equal(sourceLabelWithJournal("PLOS", "PLoS Comput Biol"), "PLOS");
 assert.equal(attributionFor("arXiv"), null);
 assert.equal(attributionFor(null), null);
 for (const s of ["ESO", "ESA/Webb", "ESA/Hubble", "FrontiersYoungMinds"]) {

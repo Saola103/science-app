@@ -88,7 +88,7 @@ export default async function PaperSharePage({ searchParams }: Props) {
   const supabase = getSupabaseServerClient();
   const { data, error } = await supabase
     .from("papers")
-    .select("id, title, summary_general, summary_expert, category, published_at, url, authors, source, license")
+    .select("id, title, summary_general, summary_expert, category, published_at, url, authors, source, journal, license")
     .eq("id", id)
     .single();
 

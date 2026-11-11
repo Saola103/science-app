@@ -136,6 +136,17 @@ export function sourceDisplayName(source: string | null | undefined): string | n
   return SOURCE_DISPLAY_NAMES[source] ?? source;
 }
 
+/**
+ * 出典行に出す名前。Europe PMC 経由の論文は元の雑誌名を添える(例: "J Neurosci(Europe PMC経由)")。
+ * 雑誌名が空・取れない場合や他の情報源は sourceDisplayName と同じ。
+ */
+export function sourceLabelWithJournal(source: string | null | undefined, journal: string | null | undefined): string | null {
+  const base = sourceDisplayName(source);
+  const j = typeof journal === "string" ? journal.trim().slice(0, 120) : "";
+  if (source === "EuropePMC" && j) return `${j}(${base}経由)`;
+  return base;
+}
+
 const CC_BY_4_NOTE = "ライセンス: CC BY 4.0(https://creativecommons.org/licenses/by/4.0/)";
 const CC_BY_GENERIC_NOTE = "ライセンス: CC BY(版は原文ページに記載)";
 const CHANGE_NOTE = "原文をAIが要約・日本語化しています(変更あり)";

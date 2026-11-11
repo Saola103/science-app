@@ -1,6 +1,6 @@
 import { Article, Illustration } from "./types";
 import { mapDbCategoryToTaxonomy } from "./mockData";
-import { attributionFor, sourceDisplayName } from "../sources/policy";
+import { attributionFor, sourceLabelWithJournal } from "../sources/policy";
 import { stripMarkdown, stripMarkdownExpert, parseGeneralSummary } from "../format/summaryText";
 
 /** Shape returned by GET /api/feed's `items` array (see app/api/feed/route.ts). */
@@ -15,6 +15,7 @@ export type FeedApiItem = {
   published_at?: string | null;
   url?: string | null;
   source?: string | null;
+  journal?: string | null; // Europe PMC 経由の論文のみ(出典行用)
   authors?: string[] | null;
   image_url?: string | null;
 };
@@ -263,7 +264,7 @@ export function mapFeedItemToArticle(item: FeedApiItem): Article {
   const expertBody = rawExpert ? stripMarkdownExpert(rawExpert) : null;
 
   const category = mapDbCategoryToTaxonomy(item.category, `${item.title} ${rawGeneral}`);
-  const sourceLabel = sourceDisplayName(item.source) || (item.type === "paper" ? "arXiv" : "ニュース");
+  const sourceLabel = sourceLabelWithJournal(item.source, item.journal) || (item.type === "paper" ? "arXiv" : "ニュース");
   const publishedAt = formatPublishedAt(item.published_at);
 
   const easyExplanation = easyExplanationBlock || generalBody || item.title;

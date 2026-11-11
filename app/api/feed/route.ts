@@ -33,6 +33,7 @@ type FeedItem = {
   published_at?: string | null;
   url?: string | null;
   source?: string | null;
+  journal?: string | null; // Europe PMC 経由の論文のみ(出典行用)
   authors?: string[] | null;
   arxiv_id?: string | null;
   image_url?: string | null;
@@ -103,7 +104,7 @@ export async function GET(req: NextRequest) {
           ? applyPaperVisibility( // G4: 許可リスト+ライセンス(共通関数)
               supabase
                 .from("papers")
-                .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+                .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, image_url")
                 .in("id", paperIds)
             )
           : Promise.resolve({ data: [] as never[] }),
@@ -125,6 +126,7 @@ export async function GET(req: NextRequest) {
             summary: p.summary_general || p.summary, summary_general: p.summary_general, summary_expert: p.summary_expert,
             category: p.category, published_at: p.published_at, url: p.url,
             authors: Array.isArray(p.authors) ? p.authors : [], source: p.source || "arXiv", image_url: p.image_url,
+            ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
           });
         }
       }
@@ -231,7 +233,7 @@ export async function GET(req: NextRequest) {
           applyPaperVisibility(
             supabase
               .from("papers")
-              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, journal, image_url")
           )
         )
       ).order("published_at", { ascending: false });
@@ -286,6 +288,7 @@ export async function GET(req: NextRequest) {
           authors: Array.isArray(p.authors) ? p.authors : [],
           source: p.source || "arXiv",
           image_url: p.image_url,
+          ...(p.source === "EuropePMC" && p.journal ? { journal: p.journal } : {}),
         });
       }
     }
