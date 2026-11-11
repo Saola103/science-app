@@ -40,13 +40,18 @@ async function waitForTokenBudget(estimatedTokens: number): Promise<void> {
   }
 }
 
+const GROQ_REQUEST_TIMEOUT_MS = 45_000;
+const GEMINI_EMBED_TIMEOUT_MS = 20_000;
+
 function getGroqClient(): Groq {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     console.error("CRITICAL: GROQ_API_KEY is missing. Get a free key at https://console.groq.com");
     throw new Error("GROQ_API_KEY is required. Get a free key at https://console.groq.com");
   }
-  return new Groq({ apiKey });
+  // SDK default is a 10-minute timeout; cap each call so one stuck request
+  // cannot eat the 300s collection budget (existing 429 retry loop is unchanged).
+  return new Groq({ apiKey, timeout: GROQ_REQUEST_TIMEOUT_MS, maxRetries: 1 });
 }
 
 export async function generateText(prompt: string, temperature = 0.7): Promise<string> {
@@ -123,6 +128,7 @@ export async function embedText(text: string): Promise<number[]> {
           content: { parts: [{ text }] },
           outputDimensionality: EMBEDDING_DIMENSIONS,
         }),
+        signal: AbortSignal.timeout(GEMINI_EMBED_TIMEOUT_MS), // failure falls through to the existing catch (returns [])
       }
     );
     if (!res.ok) {
