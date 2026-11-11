@@ -13,8 +13,6 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { runCollectionPipeline } from "../../../../lib/pipeline/collect";
-import { getCollectionHealth, type CollectionHealth } from "../../../../lib/health/collectionHealth";
-import { formatCollectionMessage, sendDiscord } from "../../../../lib/notify/discord";
 import { bearerToken, rejectUnlessAdmin } from "../../../../lib/auth/adminAuth";
 
 export const maxDuration = 300; // 5 minutes max for Vercel Pro
@@ -50,22 +48,6 @@ export async function GET(req: NextRequest) {
 
   try {
     const result = await runCollectionPipeline();
-
-    // Optional Discord summary. Skipped entirely (no DB read) when the
-    // webhook is not configured; any failure here is swallowed.
-    if (process.env.DISCORD_WEBHOOK_URL) {
-      try {
-        let health: CollectionHealth | null = null;
-        try {
-          health = await getCollectionHealth();
-        } catch (e) {
-          console.warn("[Cron] health check for notification failed:", e);
-        }
-        await sendDiscord(formatCollectionMessage(result, health));
-      } catch {
-        /* never fail the cron because of a notification */
-      }
-    }
 
     return NextResponse.json({
       success: true,

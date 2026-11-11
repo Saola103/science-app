@@ -1,6 +1,6 @@
 /**
  * Collection health: freshness of papers/news and today's Groq token usage.
- * Used by GET /api/health/collection and the optional Discord summary.
+ * Used by GET /api/health/collection.
  * Returns only counts/timestamps/ratios -- never keys or env values.
  */
 import { getSupabaseServerClient } from "../supabase/serviceClient";
