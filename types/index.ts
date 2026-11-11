@@ -9,6 +9,8 @@ export type PaperCardData = {
   summary_expert?: string | null;
   image_url?: string | null;
   abstract?: string | null;
+  source?: string | null;
+  license?: string | null; // CC BY-NC のbioRxiv/medRxivの出典行(attributionFor)用
 };
 
 export type NewsData = {

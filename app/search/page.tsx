@@ -3,6 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, ArrowRight, ExternalLink } from "lucide-react";
+import { attributionFor, isNcPreprint } from "../../lib/sources/policy";
 
 type ResultItem = {
   id: string;
@@ -12,6 +13,7 @@ type ResultItem = {
   published_at?: string | null;
   url?: string | null;
   source?: string | null;
+  license?: string | null;
   authors?: string[] | null;
   type?: string;
 };
@@ -32,6 +34,9 @@ function catLabel(c?: string | null) {
 function ResultCard({ item }: { item: ResultItem }) {
   const headline = item.summary_general?.split(/[。！？\n]/)?.[0]?.trim() || item.title;
   const date = item.published_at ? new Date(item.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Tokyo" }) : "";
+
+  // R3b-01: CC BY-NC 論文は出典行(ライセンス・変更あり)を出す。NC 以外は従来どおり。
+  const ncAttribution = isNcPreprint(item) ? attributionFor(item.source, item.license) : null;
 
   return (
     <a
@@ -55,6 +60,7 @@ function ResultCard({ item }: { item: ResultItem }) {
         <span className="text-[10px] font-bold text-white/20 uppercase">{item.source || "arXiv"}</span>
         <ExternalLink className="w-3 h-3 text-white/20" />
       </div>
+      {ncAttribution && <p className="text-[9px] text-white/40 leading-snug">{ncAttribution}</p>}
     </a>
   );
 }

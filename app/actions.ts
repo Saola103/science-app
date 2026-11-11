@@ -14,7 +14,7 @@ export async function fetchLatestPapers(limit = 10, categories?: string[]) {
     let query = applyPaperVisibility(
         supabase
             .from("papers")
-            .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source, category, image_url")
+            .select("id, title, journal, url, published_at, summary, summary_general, summary_expert, source, category, image_url, license")
     ) // G4: 許可リスト+ライセンス(共通関数)
         .order("published_at", { ascending: false });
 
