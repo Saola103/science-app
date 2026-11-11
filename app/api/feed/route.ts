@@ -9,6 +9,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSupabaseServerClient } from "../../../lib/supabase/serviceClient";
 import { applyNewsVisibility, applyPaperVisibility } from "../../../lib/sources/visibility";
+import { cachedPoolSize } from "../../../lib/api/poolSizeCache";
 import { parseLimit, sanitizeCategory } from "../../../lib/api/params";
 import { buildKeywordOrFilter, tokenizeKeywordQuery } from "../../../lib/supabase/vectorSearch";
 
@@ -198,64 +199,76 @@ export async function GET(req: NextRequest) {
       return query.gte("summary_updated_at", PROMPT_REWRITE_CUTOFF);
     }
 
+    // Pool sizes only decide which random window the first page draws from, so
+    // a short-lived per-instance cache is enough (it saves two exact-count
+    // queries per feed open). Does not affect which rows a window may contain.
     async function randomOffset(table: "papers" | "news", sourceFilter?: string[]): Promise<number> {
-      let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
-      if (sourceFilter) countQuery = applyPaperVisibility(countQuery);
-      if (table === "news") countQuery = applyNewsVisibility(countQuery);
-      countQuery = withValidHeadline(countQuery);
-      if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
-      const { count } = await countQuery;
-      const poolSize = count ?? 0;
+      const poolSize = await cachedPoolSize(table, async () => {
+        let countQuery = supabase.from(table).select("id", { count: "exact", head: true });
+        if (sourceFilter) countQuery = applyPaperVisibility(countQuery);
+        if (table === "news") countQuery = applyNewsVisibility(countQuery);
+        countQuery = withValidHeadline(countQuery);
+        if (table === "papers") countQuery = withRewrittenPrompt(countQuery);
+        const { count } = await countQuery;
+        return count;
+      });
       const maxOffset = Math.max(0, poolSize - half);
       return maxOffset > 0 ? Math.floor(Math.random() * (maxOffset + 1)) : 0;
     }
 
-    const [papersOffset, newsOffset] = randomizeFirstPage
-      ? await Promise.all([
-          randomOffset("papers", ["arXiv", "bioRxiv", "medRxiv"]),
-          randomOffset("news"),
-        ])
-      : [0, 0];
+    // Each stream (papers / news) is its own chain "count -> page query", and
+    // the two chains run in parallel (previously both counts had to finish
+    // before either page query started). An offset failure still rejects the
+    // whole request (-> 500) as before; a page-query failure is still
+    // tolerated per stream (allSettled semantics).
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const settle = (q: any): Promise<PromiseSettledResult<any>> => Promise.allSettled([q]).then((r) => r[0]);
 
-    // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
-    let papersQuery = withRewrittenPrompt(
-      withValidHeadline(
-        applyPaperVisibility(
-          supabase
-            .from("papers")
-            .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+    const papersChain = (randomizeFirstPage ? randomOffset("papers", ["arXiv", "bioRxiv", "medRxiv"]) : Promise.resolve(0)).then((papersOffset) => {
+      // Fetch papers — arXiv + bioRxiv + medRxiv (PubMed excluded: copyright risk)
+      let papersQuery = withRewrittenPrompt(
+        withValidHeadline(
+          applyPaperVisibility(
+            supabase
+              .from("papers")
+              .select("id, title, summary, summary_general, summary_expert, category, published_at, url, authors, source, image_url")
+          )
         )
-      )
-    ).order("published_at", { ascending: false });
+      ).order("published_at", { ascending: false });
 
-    if (randomizeFirstPage) {
-      papersQuery = papersQuery.range(papersOffset, papersOffset + half - 1);
-    } else {
-      papersQuery = papersQuery.limit(categoryFilter || q ? limit : half);
-      if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
-    }
-    if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
-    if (q) papersQuery = papersQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "summary"]));
+      if (randomizeFirstPage) {
+        papersQuery = papersQuery.range(papersOffset, papersOffset + half - 1);
+      } else {
+        papersQuery = papersQuery.limit(categoryFilter || q ? limit : half);
+        if (cursor) papersQuery = papersQuery.lt("published_at", cursor);
+      }
+      if (categoryFilter) papersQuery = papersQuery.ilike("category", `%${categoryFilter}%`);
+      if (q) papersQuery = papersQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "summary"]));
+      return settle(papersQuery);
+    });
 
-    // Fetch news too (also filtered by category/q when set, same as papers)
-    let newsQuery = withValidHeadline(
-      applyNewsVisibility(
-        supabase
-          .from("news")
-          .select("id, title, description, summary_general, category, published_at, url, source_name")
-      )
-    ).order("published_at", { ascending: false });
+    const newsChain = (randomizeFirstPage ? randomOffset("news") : Promise.resolve(0)).then((newsOffset) => {
+      // Fetch news too (also filtered by category/q when set, same as papers)
+      let newsQuery = withValidHeadline(
+        applyNewsVisibility(
+          supabase
+            .from("news")
+            .select("id, title, description, summary_general, category, published_at, url, source_name")
+        )
+      ).order("published_at", { ascending: false });
 
-    if (randomizeFirstPage) {
-      newsQuery = newsQuery.range(newsOffset, newsOffset + half - 1);
-    } else {
-      newsQuery = newsQuery.limit(half);
-      if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
-    }
-    if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
-    if (q) newsQuery = newsQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "description"]));
+      if (randomizeFirstPage) {
+        newsQuery = newsQuery.range(newsOffset, newsOffset + half - 1);
+      } else {
+        newsQuery = newsQuery.limit(half);
+        if (cursor) newsQuery = newsQuery.lt("published_at", cursor);
+      }
+      if (categoryFilter) newsQuery = newsQuery.ilike("category", `%${categoryFilter}%`);
+      if (q) newsQuery = newsQuery.or(buildKeywordOrFilter(qTokens, ["title", "summary_general", "description"]));
+      return settle(newsQuery);
+    });
 
-    const [papersResult, newsResult] = await Promise.allSettled([papersQuery, newsQuery]);
+    const [papersResult, newsResult] = await Promise.all([papersChain, newsChain]);
 
     const papers: FeedItem[] = [];
     if (papersResult.status === "fulfilled" && papersResult.value.data) {
