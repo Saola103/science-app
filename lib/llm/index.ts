@@ -55,6 +55,17 @@ function getGroqClient(): Groq {
   return new Groq({ apiKey, timeout: GROQ_REQUEST_TIMEOUT_MS, maxRetries: 0 });
 }
 
+/**
+ * 失敗した Groq 呼び出しの使用量(見積り)を加算するか。
+ * 4xx(429 以外のクライアントエラー: 400/401/403 等)は生成前に拒否されるので加算しない。
+ * 429 も加算しない。5xx・タイムアウト・接続エラー(status なし)は生成された可能性があるので加算する。
+ */
+export function shouldCountFailedGroqUsage(err: unknown): boolean {
+  const status = err instanceof Groq.APIError ? err.status : undefined;
+  if (typeof status === "number" && status >= 400 && status < 500) return false;
+  return true;
+}
+
 export async function generateText(prompt: string, temperature = 0.7): Promise<string> {
   const client = getGroqClient();
   const maxTokens = 700;
@@ -83,8 +94,8 @@ export async function generateText(prompt: string, temperature = 0.7): Promise<s
       }
       // A timed-out / failed call may still have consumed tokens on Groq's side;
       // count the cap so the daily estimate is never lower than reality.
-      // (A 429 is rejected before generation, so it is not counted.)
-      if (!isRateLimit) recordGroqUsage(maxTokens);
+      // (4xx incl. 429 is rejected before generation, so it is not counted.)
+      if (shouldCountFailedGroqUsage(err)) recordGroqUsage(maxTokens);
       console.error("[Groq generateText Error]:", err);
       throw err;
     }

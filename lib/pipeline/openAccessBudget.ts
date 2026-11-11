@@ -46,7 +46,7 @@ export function isPastDeadline(startedAt: number, now: number = Date.now()): boo
 }
 
 /** arXiv取り込みの締切。maxDuration=300秒の手前(Groq/待機の1件分の余裕)で次回へ持ち越す(R3-01) */
-export const ARXIV_DEADLINE_MS = 260_000;
+export const ARXIV_DEADLINE_MS = 240_000;
 
 export function isPastArxivDeadline(startedAt: number, now: number = Date.now()): boolean {
   return now - startedAt > ARXIV_DEADLINE_MS;
