@@ -38,7 +38,9 @@ function categoryWeight(category: string, pool: Article[], followed: string[], s
 }
 
 // 関連論文から来たとき(/feedapp/feed?focus=<paper id>)の対象ID。形式が合わなければ無視する。
-const FOCUS_ID_RE = /^[A-Za-z0-9._:-]{1,200}$/;
+// 論文IDは arXiv の URL(http://arxiv.org/abs/…)のように / を含むので、空白とカンマ(ids の区切り)以外は許す。
+// 取得は /api/feed?ids= が可視性ルールをかけるので、ここは長さと区切り文字だけ見る。
+const FOCUS_ID_RE = /^[^\s,]{1,200}$/;
 
 export default function FeedPage() {
   return (
