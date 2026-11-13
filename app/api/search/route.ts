@@ -1,7 +1,7 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { fetchArxivOpenAccessPapers } from "../../../lib/sources/arxiv";
-import { fetchPubMedPapers } from "../../../lib/sources/pubmed";
+import { isPaperDisplayable } from "../../../lib/sources/policy";
 import { summarize } from "../../../lib/llm/summarize";
 import { generateText, isQueryEmbeddingEnabled } from "../../../lib/llm/index";
 import { hybridSearch } from "../../../lib/supabase/vectorSearch";
@@ -124,32 +124,16 @@ async function handleSearch(
       // Fetch from arXiv
       if (source === "all" || source === "arxiv") {
         const arxivPapers = await fetchArxivOpenAccessPapers(searchQuery, 15, "submittedDate");
-        allPapers.push(...arxivPapers.map(p => ({ ...p, source: "arXiv" })));
+        // ライブ取得結果も DB と同じ公開可否(isPaperDisplayable)を通す
+        allPapers.push(...arxivPapers.map(p => ({ ...p, source: "arXiv" })).filter(isPaperDisplayable));
       }
 
-      // Fetch from PubMed
-      if (source === "all" || source === "pubmed") {
-        try {
-          const pubmedPapers = await fetchPubMedPapers(searchQuery, 10, "relevance");
-          allPapers.push(...pubmedPapers.map(p => ({
-            id: p.id,
-            title: p.title,
-            abstract: p.abstract,
-            authors: p.authors,
-            publishedAt: p.publishedAt,
-            url: p.url,
-            license: p.license,
-            journal: p.journal,
-            source: "PubMed",
-          })));
-        } catch (e) {
-          console.warn("[Search] PubMed fetch failed:", e);
-        }
-      }
+      // PubMed は公開ポリシー(PAPER_ALLOWED_SOURCES)に無い(license 未検証)ため取得しない。
+      // source=pubmed のときは arXiv も取らないので、DBヒットのみ(0件もありうる)。
 
       // Deduplicate by title similarity (simple approach)
       const seen = new Set<string>();
-      const dedupedPapers = allPapers.filter(p => {
+      const dedupedPapers = allPapers.filter(isPaperDisplayable).filter(p => {
         const key = p.title?.toLowerCase().slice(0, 60);
         if (seen.has(key)) return false;
         seen.add(key);

@@ -6,7 +6,6 @@ import { useLocale, useTranslations } from "../../lib/i18n/ja";
 import { Article } from "../../lib/proto/types";
 import { CATEGORY_STYLE, getCategoryLabel } from "../../lib/proto/mockData";
 import { ArticleDetailSheet } from "./ArticleDetailSheet";
-import { isNcAttribution } from "../../lib/sources/policy";
 
 export type SwipeDirection = "left" | "right";
 
@@ -38,8 +37,8 @@ export function CardFrontContent({ article }: { article: Article }) {
       <h2 className="px-5 pt-4 text-[19px] font-bold leading-[1.5] text-[#1A1D29] shrink-0">
         {article.summary}
       </h2>
-      {/* R3b-01: CC BY-NC 論文だけ出典行(ライセンス・変更あり)。NC 以外は従来どおり出さない。 */}
-      {isNcAttribution(article.attribution) && (
+      {/* 帰属表示が必要なソース(CC BY / CC BY-NC 等)だけ出典行を出す。それ以外は attribution なし。 */}
+      {article.attribution && (
         <p className="px-5 pt-2 text-[10px] leading-snug text-[#6B7280] shrink-0">{article.attribution}</p>
       )}
 

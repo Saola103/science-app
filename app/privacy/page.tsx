@@ -17,6 +17,7 @@ export default function PrivacyPage() {
                 <section>
                     <h2 className="text-xl font-bold text-foreground">1. 運営の性質</h2>
                     <p>本サービスは個人（学生）が運営する非営利の教育目的のサービスであり、商用の対価を目的としたサービス提供ではありません。</p>
+                    <p>運営: Saola（個人・学生）／連絡先: {CONTACT_EMAIL}</p>
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">2. 取得する情報</h2>

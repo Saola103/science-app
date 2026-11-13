@@ -6,7 +6,7 @@ import { PaperCardData } from '../types';
 import { NewsCardData } from './NewsCard';
 import { useStreak } from '../lib/hooks/useStreak';
 import { LegalLinks } from './LegalLinks';
-import { attributionFor, isNcPreprint } from '../lib/sources/policy';
+import { attributionFor } from '../lib/sources/policy';
 
 interface HomeContentProps {
   papers: PaperCardData[] | null;
@@ -106,8 +106,8 @@ function MiniCard({ item }: { item: AnyItem }) {
   const summary = (item as any).summary_general || (item as any).summary;
   const headline = summary?.split(/[。！？\n]/)?.[0]?.trim() || item.title;
   const gradient = cardGradient((item as any).category);
-  // R3b-01: CC BY-NC 論文は AI 要約(翻案)を出す面すべてで出典行(ライセンス・変更あり)を出す。NC 以外は従来どおり。
-  const ncAttribution = isNcPreprint(item as any) ? attributionFor((item as any).source, (item as any).license) : null;
+  // 出典行: CC BY / CC BY-NC など帰属表示が必要なソースだけ出る(attributionFor が null ならなし)。
+  const ncAttribution = attributionFor((item as any).source ?? (item as any).source_name, (item as any).license);
 
   return (
     <a

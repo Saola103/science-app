@@ -3,7 +3,7 @@
 import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Search, Loader2, ArrowRight, ExternalLink } from "lucide-react";
-import { attributionFor, isNcPreprint } from "../../lib/sources/policy";
+import { attributionFor } from "../../lib/sources/policy";
 
 type ResultItem = {
   id: string;
@@ -35,8 +35,8 @@ function ResultCard({ item }: { item: ResultItem }) {
   const headline = item.summary_general?.split(/[。！？\n]/)?.[0]?.trim() || item.title;
   const date = item.published_at ? new Date(item.published_at).toLocaleDateString("ja-JP", { year: "numeric", month: "short", day: "numeric", timeZone: "Asia/Tokyo" }) : "";
 
-  // R3b-01: CC BY-NC 論文は出典行(ライセンス・変更あり)を出す。NC 以外は従来どおり。
-  const ncAttribution = isNcPreprint(item) ? attributionFor(item.source, item.license) : null;
+  // 出典行: 帰属表示が必要なソース(CC BY / CC BY-NC 等)だけ出る。
+  const ncAttribution = attributionFor(item.source, item.license);
 
   return (
     <a

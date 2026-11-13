@@ -3,7 +3,7 @@
  * 実行: CRON_SECRET=x npx tsx scripts/tests/nc-surfaces.test.ts
  *  - スタブ描画(react-dom/server)できる面: トップ(HomeContent)、スワイプカード、詳細シート、/paper。
  *  - app/search・マイページの行はページ内ローカルのコンポーネントで単体描画できないため、
- *    出典行の配線(ガード付きで attributionFor / isNcAttribution を使う)をソースで確認する。
+ *    出典行の配線(ガード付きで attributionFor / article.attribution を使う)をソースで確認する。
  *  - NC 以外(cc_by / 他ソース)の表示は変えていないこと(NC 文言が出ない)も確認。
  */
 import assert from "node:assert/strict";
@@ -62,13 +62,22 @@ const origLoad = (Module as any)._load;
 
   // /search・マイページ・トップ取得の配線
   const searchSrc = readFileSync(new URL("../../app/search/page.tsx", import.meta.url), "utf8");
-  assert.ok(/isNcPreprint\(item\) \? attributionFor\(item\.source, item\.license\) : null/.test(searchSrc) && /\{ncAttribution && /.test(searchSrc), "/search の配線");
+  assert.ok(/attributionFor\(item\.source, item\.license\)/.test(searchSrc) && /\{ncAttribution && /.test(searchSrc), "/search の配線");
   const mySrc = readFileSync(new URL("../../app/feedapp/mypage/page.tsx", import.meta.url), "utf8");
-  assert.ok(/isNcAttribution\(article\.attribution\) && \(/.test(mySrc), "マイページの配線");
+  assert.ok(/article\.attribution && \(/.test(mySrc), "マイページの配線");
   const actSrc = readFileSync(new URL("../../app/actions.ts", import.meta.url), "utf8");
   assert.ok(/source, category, image_url, license"\)/.test(actSrc), "トップの select に license");
   // /search が受け取る /api/search の行(keywordSearchPapers の select)にも license がある
   assert.ok(/image_url, source, license"\)/.test(readFileSync(new URL("../../lib/supabase/vectorSearch.ts", import.meta.url), "utf8")));
   assert.ok(attributionFor("bioRxiv", "cc_by_nc")!.includes(NC));
+  // CC BY 系(NC以外の許可ソース)にも出典行が出る(トップ・スワイプ)。NC文言は出ない
+  const CCBY = "ライセンス: CC BY";
+  for (const source of ["EuropePMC", "PLOS", "FrontiersYoungMinds"]) {
+    const it = { ...base, source, license: "cc_by" } as any;
+    const h = renderToStaticMarkup(React.createElement(HomeContent, { papers: [it], news: [] }));
+    assert.ok(h.includes(CCBY) && h.includes(CHANGE) && !h.includes(NC), `トップ CC BY ${source}`);
+    const s = renderToStaticMarkup(React.createElement(CardFrontContent, { article: mapFeedItemToArticle(it) }));
+    assert.ok(s.includes(CCBY) && s.includes(CHANGE) && !s.includes(NC), `スワイプ CC BY ${source}`);
+  }
   console.log("nc-surfaces: OK");
 })();

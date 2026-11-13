@@ -159,15 +159,6 @@ const RSS_FEEDS: { url: string; source: string; category: string; maxItems?: num
     source: "NSF",
     category: "general",
   },
-  // CERN News（素粒子物理学・加速器実験）
-  // 旧URL(home.cern/news/rss.xml)は2026-09-22時点で404。公式サイトの
-  // <link rel="alternate">が案内する新URL(WordPress標準のfeed URL)に差し替え済み
-  // (実際にfetchして10件取得できることを確認)。
-  {
-    url: "https://home.cern/feed/",
-    source: "CERN",
-    category: "physics",
-  },
   // ScienceAlert は2026-09-22時点でUser-Agentによらず常時403(Bot対策によるブロック
   // と思われ、URL変更では復旧不可)。同じく「平易な解説の人気科学ニュース」という
   // 趣旨が近く、実際にfetchしてitem取得を確認できたPopular Scienceに差し替えた。

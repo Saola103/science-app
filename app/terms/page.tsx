@@ -17,6 +17,7 @@ export default function TermsPage() {
                 <section>
                     <h2 className="text-xl font-bold text-foreground">2. サービスの目的・非営利性</h2>
                     <p>本サービスは、AI技術を用いて科学論文・科学ニュースの要約を提供し、学術情報へのアクセスを容易にすることを目的とした、個人（学生）が運営する、非営利の教育目的のサービスです。広告掲載や課金は行わず、商用の対価を目的とした提供ではありません。アカウント登録・ログイン機能はなく、どなたでも無料でご利用いただけます。</p>
+                    <p>運営: Saola（個人・学生）／連絡先: {CONTACT_EMAIL}</p>
                 </section>
                 <section>
                     <h2 className="text-xl font-bold text-foreground">3. AI要約についての注意と免責</h2>

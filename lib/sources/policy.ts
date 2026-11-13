@@ -165,11 +165,6 @@ const CC_BY_GENERIC_NOTE = "ライセンス: CC BY(版は原文ページに記�
 const CHANGE_NOTE = "原文をAIが要約・日本語化しています(変更あり)";
 const CC_BY_NC_NOTE = "ライセンス: CC BY-NC(https://creativecommons.org/licenses/by-nc/4.0/ 。版は原文ページに記載)";
 
-/** attributionFor が返した文言が CC BY-NC(bioRxiv/medRxiv)用か。カード面で NC のときだけ出典行を出すための判定。 */
-export function isNcAttribution(attribution: string | null | undefined): boolean {
-  return !!attribution && attribution.startsWith(CC_BY_NC_NOTE);
-}
-
 /**
  * 既存の「出典: …」行に足す帰属文言。CC BY の情報源だけ返し、それ以外は null
  * (NASA/NSF/arXiv/bioRxiv 等の表示は変えない)。
